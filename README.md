@@ -83,6 +83,18 @@ To initialize the schema and ingest Excel/CSV source files:
 
 1. Ensure PostgreSQL is running on port `5433` (or update credentials in `backend/.env`).
 2. Run the ingestion command:
+   
+   **Option A: PowerShell (Windows)**
+   ```powershell
+   python scripts/ingest_excel_to_db.py `
+       --port-code INMAA `
+       --port-name "Chennai Port" `
+       --berth-config sample_data/Berth_configurations.xlsx `
+       --berth-capability sample_data/Operational_Capability_of_Berth.xlsx `
+       --port-call-log sample_data/Chennai_PORTLOG2025JUN-DEC.xlsx
+   ```
+
+   **Option B: Bash (Linux / macOS / Git Bash)**
    ```bash
    python scripts/ingest_excel_to_db.py \
        --port-code INMAA \

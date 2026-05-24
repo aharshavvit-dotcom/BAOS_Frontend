@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Port Store — Dynamic port configuration and berth inventory.
  *
  * Replaces ALL hardcoded berth arrays (INMAA-B01..B07, BERTH_SPECS, etc.)
@@ -10,7 +10,7 @@ import {
   type PortInfo, type PortConfig, type PortStatus, type BerthConfig,
 } from '@/lib/api/ports';
 
-// ── Dynamic color palette for berths ──────────────────────────────────────
+// Dynamic color palette for berths
 
 const BERTH_PALETTE = [
   '#10b981', '#0ea5e9', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899',
@@ -27,7 +27,7 @@ function buildBerthColorMap(berths: BerthConfig[]): Record<string, string> {
   return map;
 }
 
-// ── Store Type ────────────────────────────────────────────────────────────
+// Store Type---
 
 interface PortState {
   // Data
@@ -56,7 +56,7 @@ interface PortState {
 
 export const usePortStore = create<PortState>((set, get) => ({
   ports: [],
-  selectedPortCode: 'chennai',
+  selectedPortCode: 'INMAA',
   portConfig: null,
   portStatus: null,
   berthColorMap: {},
@@ -71,7 +71,7 @@ export const usePortStore = create<PortState>((set, get) => ({
 
       // Auto-select first port if none selected
       if (ports.length > 0 && !get().portConfig) {
-        await get().selectPort(ports[0].port_name);
+        await get().selectPort(ports[0].port_code);
       }
     } catch (err) {
       set({
@@ -126,3 +126,4 @@ export const usePortStore = create<PortState>((set, get) => ({
 
   getVesselTypes: () => get().portConfig?.vessel_types ?? [],
 }));
+

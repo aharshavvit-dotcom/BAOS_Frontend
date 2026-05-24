@@ -40,14 +40,13 @@ export function PortSelector() {
           }}
         >
           {ports.map((p) => (
-            <option key={p.port_name} value={p.port_name}>
-              {p.port_name.charAt(0).toUpperCase() + p.port_name.slice(1)}
-              {' '}({p.num_berths} berths)
+            <option key={p.port_code} value={p.port_code}>
+              {p.port_name} ({p.port_code})
             </option>
           ))}
           {ports.length === 0 && (
             <option value={selectedPortCode}>
-              {selectedPortCode.charAt(0).toUpperCase() + selectedPortCode.slice(1)}
+              Loading... ({selectedPortCode})
             </option>
           )}
         </select>

@@ -17,8 +17,9 @@ import { getRecommendation, type BerthRecommendation, type ParameterCheck } from
 import { extractApiError, isDemoMode } from '@/lib/api/client';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { PortSelector } from '@/components/port/PortSelector';
+import SourceBadge from '@/components/common/SourceBadge';
 
-/* ── Types ─────────────────────────────────────────────── */
+/* Types */
 interface VesselForm {
   vessel_name: string;
   vessel_type: string;
@@ -43,7 +44,7 @@ export default function RecommendPage() {
     vessel_name: '',
     vessel_type: 'Bulk Dry',
     cargo_type: 'COAL',
-    eta_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+    eta_date: '',
     eta_time: '08:00',
     cargo_tons: 25000,
     loa: 180,
@@ -60,6 +61,10 @@ export default function RecommendPage() {
 
   useEffect(() => {
     fetchPorts();
+    setForm(prev => ({
+      ...prev,
+      eta_date: new Date(Date.now() + 86400000).toISOString().split('T')[0]
+    }));
   }, [fetchPorts]);
 
   function updateField<K extends keyof VesselForm>(key: K, val: VesselForm[K]) {
@@ -111,7 +116,7 @@ export default function RecommendPage() {
 
   return (
     <div>
-      {/* ── Section Header ──────────────────────────────── */}
+      {/* Section Header */}
       <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3 mb-1">
@@ -127,7 +132,7 @@ export default function RecommendPage() {
         <PortSelector />
       </div>
 
-      {/* ── Vessel Input Form ───────────────────────────── */}
+      {/* Vessel Input Form */}
       <form onSubmit={handleSubmit}>
         <div className="card" style={{ padding: 24, marginBottom: 24 }}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -211,7 +216,7 @@ export default function RecommendPage() {
         </div>
       )}
 
-      {/* ── Results ─────────────────────────────────────── */}
+      {/* Results */}
       {results && best && (
         <>
           {/* Success banner */}
@@ -244,7 +249,7 @@ export default function RecommendPage() {
             ℹ️ <strong>Wait &amp; Service times</strong> shown above are historical averages derived from past port logs. They are <strong>not real-time</strong> — actual times will vary based on current port congestion, weather, and vessel queue. These values do <strong>not</strong> influence the berth ranking; ranking is based solely on vessel-berth suitability.
           </p>
 
-          {/* ── Interactive Berth Timeline ───────────────── */}
+          {/* Interactive Berth Timeline */}
           <div className="flex items-center gap-3 mb-4">
             <span className="text-xl">🗓</span>
             <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>
@@ -432,7 +437,7 @@ export default function RecommendPage() {
             ))}
           </div>
 
-          {/* ── Complete Berth Rankings (ALL berths) ──────── */}
+          {/* Complete Berth Rankings (ALL berths) */}
           <div className="flex items-center gap-3 mb-4">
             <span className="text-xl">📊</span>
             <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>
@@ -470,23 +475,28 @@ export default function RecommendPage() {
             </table>
           </div>
 
-          {/* ── Confidence Comparison Chart ──────────────── */}
-          <div className="card" style={{ padding: 20, marginBottom: 24 }}>
-            <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, marginBottom: 16, color: 'var(--color-text-primary)' }}>
-              📊 Confidence Comparison
-            </h4>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={results.map(r => ({ name: getBerthDisplayName(r.berth_code), Confidence: r.confidence }))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} angle={-20} textAnchor="end" height={60} />
-                <YAxis stroke="#94a3b8" fontSize={12} domain={[0, 100]} />
-                <Tooltip contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8 }} />
-                <Bar dataKey="Confidence" fill="#10b981" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Confidence Comparison Chart */}
+          <div className="card flex flex-col justify-between" style={{ padding: 20, marginBottom: 24 }}>
+            <div className="flex items-center justify-between mb-4">
+              <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'var(--color-text-primary)' }}>
+                📊 Confidence Comparison
+              </h4>
+              <SourceBadge source="SOLVER" />
+            </div>
+            <div className="h-[260px] w-full min-w-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={results.map(r => ({ name: getBerthDisplayName(r.berth_code), Confidence: r.confidence }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} angle={-20} textAnchor="end" height={60} />
+                  <YAxis stroke="#94a3b8" fontSize={12} domain={[0, 100]} />
+                  <Tooltip contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8 }} />
+                  <Bar dataKey="Confidence" fill="#10b981" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          {/* ── Detailed Berth Analysis — Parameter-Level Breakdown ── */}
+          {/* Detailed Berth Analysis - Parameter-Level Breakdown */}
           <div
             onClick={() => setBreakdownOpen(!breakdownOpen)}
             style={{
@@ -565,7 +575,7 @@ export default function RecommendPage() {
   );
 }
 
-/* ── Helper: build structured parameter breakdown ─────────────── */
+/* Helper: build structured parameter breakdown */
 function buildBreakdown(form: VesselForm, berthLoa: number, berthDepth: number, berthBeam: number, cargoMatch: boolean, vesselTypeMatch: boolean, waitH: number, serviceH: number): ParameterCheck[] {
   const loaSlack = berthLoa - form.loa;
   const draftSlack = berthDepth - form.draft;
@@ -601,7 +611,7 @@ function buildBreakdown(form: VesselForm, berthLoa: number, berthDepth: number, 
   return checks;
 }
 
-/* ── Sample data for demo (when backend is unavailable) ─────── */
+/* Sample data for demo (when backend is unavailable) */
 function getSampleResults(form: VesselForm): BerthRecommendation[] {
   const vesselName = form.vessel_name || 'Vessel';
   const loaMarginB01 = 250 - form.loa;

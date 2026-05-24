@@ -78,7 +78,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--color-dark)' }}>
-      {/* ── Left Panel (brand) ───────────────────────────── */}
+      {/* Left Panel (brand) */}
       <div
         className="hidden lg:flex flex-col justify-center p-12 flex-1"
         style={{
@@ -115,7 +115,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── Right Panel (form) ───────────────────────────── */}
+      {/* Right Panel (form) */}
       <div className="flex flex-col justify-center items-center flex-1 p-8">
         <div className="w-full max-w-[400px]">
           {/* Mobile logo */}

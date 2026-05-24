@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Commercial Intelligence Page
  * Migrated from ui/commercial_page.py — 4 tabs:
  * 1. Configuration & Scoring
@@ -10,7 +10,7 @@
 
 import { useState } from 'react';
 
-/* ── Types ────────────────────────────────────────────── */
+/* --- Types --- */
 interface ScoringForm {
   vessel_type: string;
   company: string;
@@ -70,7 +70,7 @@ export default function CommercialPage() {
 
   return (
     <div>
-      {/* ── Header ──────────────────────────────────────── */}
+      {/* --- Header --- */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
           <span className="text-2xl">💰</span>
@@ -84,7 +84,7 @@ export default function CommercialPage() {
         </p>
       </div>
 
-      {/* ── Tab Navigation ──────────────────────────────── */}
+      {/* --- Tab Navigation --- */}
       <div className="flex gap-2 mb-6" style={{ borderBottom: '1px solid var(--color-dark-border)', paddingBottom: 12 }}>
         {TABS.map((tab, i) => (
           <button
@@ -97,24 +97,24 @@ export default function CommercialPage() {
         ))}
       </div>
 
-      {/* ── Tab 1: Configuration & Scoring ──────────────── */}
+      {/* --- Tab 1: Configuration & Scoring --- */}
       {activeTab === 0 && <ScoringTab />}
 
-      {/* ── Tab 2: Partnership Manager ──────────────────── */}
+      {/* --- Tab 2: Partnership Manager --- */}
       {activeTab === 1 && <PartnershipTab />}
 
-      {/* ── Tab 3: Revenue Dashboard ───────────────────── */}
+      {/* --- Tab 3: Revenue Dashboard --- */}
       {activeTab === 2 && <RevenueTab />}
 
-      {/* ── Tab 4: Learning Analytics ──────────────────── */}
+      {/* --- Tab 4: Learning Analytics --- */}
       {activeTab === 3 && <LearningTab />}
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════════════════
+/* ===
    TAB 1: Configuration & Scoring
-   ═══════════════════════════════════════════════════════ */
+   === */
 function ScoringTab() {
   const [config, setConfig] = useState({ commercial_flag: false, partnership: true, dynamic_pricing: true, mode: 'balanced' });
   const [form, setForm] = useState<ScoringForm>({
@@ -322,9 +322,9 @@ function ScoringTab() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════
+/* ===
    TAB 2: Partnership Manager
-   ═══════════════════════════════════════════════════════ */
+   === */
 function PartnershipTab() {
   const [lookupName, setLookupName] = useState('');
   const partners = getSamplePartners();
@@ -391,9 +391,9 @@ function PartnershipTab() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════
+/* ===
    TAB 3: Revenue Dashboard
-   ═══════════════════════════════════════════════════════ */
+   === */
 function RevenueTab() {
   const [utilPct, setUtilPct] = useState(78);
   const econ = getSampleBerthEcon(utilPct);
@@ -475,9 +475,9 @@ function RevenueTab() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════
+/* ===
    TAB 4: Learning Analytics
-   ═══════════════════════════════════════════════════════ */
+   === */
 function LearningTab() {
   return (
     <div>
@@ -506,7 +506,7 @@ function LearningTab() {
   );
 }
 
-/* ── Sample Data Functions ─────────────────────────────── */
+/* --- Sample Data Functions --- */
 function getSampleScores(): BerthScore[] {
   return [
     { berth_code: 'CTB3', final_score: 88, technical_score: 80, commercial_score: 92, strategic_score: 85, net_revenue: 145000, profit_margin: 0.38, revenue_tier: 'HIGH', berth_class: 'PREMIUM', pricing_note: 'Peak demand surcharge', discount_pct: 15 },
@@ -538,3 +538,4 @@ function getSampleBerthEcon(util: number): BerthEcon[] {
     { berth_code: 'GP2', berth_class: 'ECONOMY', specialization: 'General', avg_revenue_per_call: 32000, profit_margin: 0.15, operating_cost_per_hour: 320, dynamic_price_adj: 'Standard', pricing_reason: 'Normal pricing', est_revenue_now: Math.round(32000 * mult) },
   ];
 }
+

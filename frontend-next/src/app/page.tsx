@@ -1,5 +1,3 @@
-'use client';
-
 import LandingNavbar from '@/components/layout/LandingNavbar';
 import HeroSection from '@/components/landing/HeroSection';
 import FeatureCardsSection from '@/components/landing/FeatureCardsSection';
@@ -11,14 +9,16 @@ import LandingFooter from '@/components/layout/LandingFooter';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       <LandingNavbar />
-      <HeroSection />
-      <FeatureCardsSection />
-      <MetricsPreviewSection />
-      <AnalyticsPreviewSection />
-      <HeatmapPreviewSection />
-      <CTASection />
+      <main className="pt-20">
+        <HeroSection />
+        <FeatureCardsSection />
+        <MetricsPreviewSection />
+        <AnalyticsPreviewSection />
+        <HeatmapPreviewSection />
+        <CTASection />
+      </main>
       <LandingFooter />
     </div>
   );

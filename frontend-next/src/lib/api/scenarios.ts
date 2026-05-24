@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BAOS — Scenario API Service
  *
  * Calls backend for manual override / what-if scenarios.
@@ -7,7 +7,7 @@
 import apiClient from './client';
 import type { SolverStatus } from './optimizer';
 
-// ── Types ─────────────────────────────────────────────────────────────────
+// --- Types ---
 
 export interface ScenarioOverride {
   vessel_id: string;
@@ -79,7 +79,7 @@ export interface RankedAlternativesResponse {
   alternatives: RankedAlternative[];
 }
 
-// ── API Functions ─────────────────────────────────────────────────────────
+// --- API Functions ---
 
 /**
  * Apply a manual override and trigger backend re-optimization.
@@ -136,3 +136,4 @@ export async function runWhatIf(
   });
   return res.data;
 }
+

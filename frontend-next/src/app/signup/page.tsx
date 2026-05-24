@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BAOS AI — Signup Page
  * Multi-step form matching signup.html
  */
@@ -144,7 +144,7 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--color-dark)' }}>
-      {/* ── Left Panel ───────────────────────────────────── */}
+      {/* --- Left Panel --- */}
       <div
         className="hidden lg:flex flex-col justify-center p-12 flex-1"
         style={{
@@ -168,7 +168,7 @@ export default function SignupPage() {
         </div>
       </div>
 
-      {/* ── Right Panel ──────────────────────────────────── */}
+      {/* --- Right Panel --- */}
       <div className="flex flex-col justify-center items-center flex-1 p-8">
         <div className="w-full max-w-[440px]">
           {/* Mobile logo */}
@@ -310,3 +310,4 @@ export default function SignupPage() {
     </div>
   );
 }
+

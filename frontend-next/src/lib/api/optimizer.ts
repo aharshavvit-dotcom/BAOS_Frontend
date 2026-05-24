@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BAOS — Optimizer API Service
  *
  * Calls the real CP-SAT backend at POST /api/v1/optimize.
@@ -7,7 +7,7 @@
 import apiClient from './client';
 import type { AssumptionSource } from '../constants/assumptionDefaults';
 
-// ── Frontend Types (display-friendly, hours-based) ────────────────────────
+// --- Frontend Types (display-friendly, hours-based) ---
 
 export interface OptimizerVesselInput {
   vessel_id: string;
@@ -58,7 +58,7 @@ export interface OptimizerRequest {
   resources: ResourceConfig;
 }
 
-// ── Backend Types (what the API actually expects/returns) ──────────────────
+// --- Backend Types (what the API actually expects/returns) ---
 
 interface BackendVessel {
   vessel_id: string;
@@ -89,7 +89,7 @@ interface BackendOptimizeRequest {
   tug_capacity: number;
 }
 
-// ── Response Types ────────────────────────────────────────────────────────
+// --- Response Types ---
 
 export interface AssignmentResult {
   vessel_id: string;
@@ -149,7 +149,7 @@ export interface OptimizeResponse {
   warnings?: string[];
 }
 
-// ── Display-friendly mapped result ────────────────────────────────────────
+// --- Display-friendly mapped result ---
 
 export interface DisplayAssignment {
   vessel_id: string;
@@ -201,7 +201,7 @@ export interface DisplayOptimizerResult {
   source: 'BACKEND' | 'DEMO';
 }
 
-// ── Mapper: Frontend → Backend ────────────────────────────────────────────
+// --- Mapper: Frontend → Backend ---
 
 function mapVesselToBackend(v: OptimizerVesselInput): BackendVessel {
   return {
@@ -248,7 +248,7 @@ function mapRequestToBackend(req: OptimizerRequest): BackendOptimizeRequest {
   };
 }
 
-// ── Mapper: Backend → Display ─────────────────────────────────────────────
+// --- Mapper: Backend → Display ---
 
 function getSolverStatusMessage(status: SolverStatus, assignedCount: number, totalCount: number): string {
   switch (status) {
@@ -346,7 +346,7 @@ export function mapResponseToDisplay(
   };
 }
 
-// ── API Functions ─────────────────────────────────────────────────────────
+// --- API Functions ---
 
 /** Run multi-vessel CP-SAT optimization via real backend */
 export async function runOptimize(
@@ -363,7 +363,7 @@ export async function getSchedule(portCode: string): Promise<OptimizeResponse> {
   return res.data;
 }
 
-// ── Default Vessel Factory ────────────────────────────────────────────────
+// --- Default Vessel Factory ---
 
 export function makeDefaultVessel(index: number): OptimizerVesselInput {
   return {
@@ -418,3 +418,4 @@ export function defaultResources(): ResourceConfig {
     channel_capacity: 1,
   };
 }
+

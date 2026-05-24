@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BAOS — Feasibility API Service
  *
  * Calls POST /api/v1/feasibility to get backend-computed feasibility matrix.
@@ -6,7 +6,7 @@
  */
 import apiClient from './client';
 
-// ── Types ─────────────────────────────────────────────────────────────────
+// --- Types ---
 
 export interface FeasibilityVessel {
   vessel_id: string;
@@ -50,7 +50,7 @@ export interface FeasibilityCell {
   summary: string;
 }
 
-// ── API Function ──────────────────────────────────────────────────────────
+// --- API Function ---
 
 /** Get feasibility matrix from backend */
 export async function getFeasibilityMatrix(
@@ -83,3 +83,4 @@ export async function getFeasibilityMatrix(
 
   return cells;
 }
+

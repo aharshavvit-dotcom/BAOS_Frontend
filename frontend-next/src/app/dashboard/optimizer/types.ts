@@ -1,4 +1,4 @@
-/* ── Optimizer Types & Helpers ─────────────────────────── */
+﻿/* --- Optimizer Types & Helpers --- */
 
 /**
  * NOTE: This file has been refactored. Hardcoded berth arrays (ALL_BERTHS,
@@ -8,7 +8,7 @@
  * The local getSampleResult() mock is retained ONLY for demo mode fallback.
  */
 
-// ── Types ─────────────────────────────────────────────────────────────────
+// --- Types ---
 
 export interface VesselInput {
   vessel_id: string;
@@ -109,7 +109,7 @@ export interface ShipTypeLevers {
   config: LeversConfig;
 }
 
-// ── Constants ─────────────────────────────────────────────────────────────
+// --- Constants ---
 
 export const VESSEL_TYPES = [
   'Bulk Dry', 'Chemical', 'Container', 'General Cargo', 'Oil',
@@ -136,7 +136,7 @@ export const ALL_BERTHS_DEMO = [
   '1 South', '2 South', '1 West', '2 West', '3 West', '4 West', 'C',
 ];
 
-// ── Defaults & Factories ──────────────────────────────────────────────────
+// --- Defaults & Factories ---
 
 export function defaultLevers(): LeversConfig {
   return {
@@ -158,7 +158,7 @@ export function createInitialVessels(n: number): VesselInput[] {
   return Array.from({ length: n }, (_, i) => makeVessel(i));
 }
 
-// ── Demo-Only Mock Result ─────────────────────────────────────────────────
+// --- Demo-Only Mock Result ---
 
 /**
  * @deprecated — Only used when NEXT_PUBLIC_DEMO_MODE=true and backend is unavailable.
@@ -211,3 +211,4 @@ export function getSampleResult(vessels: VesselInput[]): OptimizerResult {
     source: 'DEMO',
   };
 }
+

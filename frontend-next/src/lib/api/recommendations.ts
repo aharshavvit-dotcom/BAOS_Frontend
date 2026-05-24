@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BAOS — Recommendation API Service
  *
  * Calls POST /api/v1/recommendations/get-recommendation with correct schema.
@@ -6,7 +6,7 @@
  */
 import apiClient from './client';
 
-// ── Frontend Form Type ────────────────────────────────────────────────────
+// Frontend Form Type---
 
 export interface RecommendationFormData {
   vessel_name: string;
@@ -21,7 +21,7 @@ export interface RecommendationFormData {
   port_code: string;
 }
 
-// ── Backend Request/Response Types ────────────────────────────────────────
+// Backend Request/Response Types
 
 interface BackendRecommendationRequest {
   vessel_name: string;
@@ -76,7 +76,7 @@ export interface RecommendationResponse {
   source: 'BACKEND' | 'DEMO';
 }
 
-// ── API Function ──────────────────────────────────────────────────────────
+// API Function---
 
 /**
  * Get berth recommendations for a vessel.
@@ -105,43 +105,23 @@ export async function getRecommendation(
     port_code: form.port_code,
   };
 
-  // Try the v1 API first (legacy endpoints), then the backend route
-  try {
-    const res = await apiClient.post('/api/v1/recommendations/get-recommendation', payload);
-    const data = res.data;
+  const res = await apiClient.post('/api/v1/recommendations/get-recommendation', payload);
+  const data = res.data;
 
-    // Handle both response formats: { recommendations: [...] } or { options: [...] }
-    const recs = data.recommendations || data.options || [];
+  // Handle both response formats: { recommendations: [...] } or { options: [...] }
+  const recs = data.recommendations || data.options || [];
 
-    return {
-      recommendation_id: data.recommendation_id,
-      recommendations: recs.map((r: Record<string, unknown>, idx: number) => ({
-        ...r,
-        rank: (r.rank as number) || idx + 1,
-      })) as BerthRecommendation[],
-      vessel_name: form.vessel_name,
-      port_code: form.port_code,
-      warnings: data.warnings || [],
-      assumptions_used: data.assumptions_used || [],
-      source: 'BACKEND' as const,
-    };
-  } catch {
-    // Try the backend route (which requires auth)
-    const res = await apiClient.post('/api/recommendations/get-recommendation', payload);
-    const data = res.data;
-    const recs = data.recommendations || data.options || [];
-
-    return {
-      recommendation_id: data.recommendation_id,
-      recommendations: recs.map((r: Record<string, unknown>, idx: number) => ({
-        ...r,
-        rank: (r.rank as number) || idx + 1,
-      })) as BerthRecommendation[],
-      vessel_name: form.vessel_name,
-      port_code: form.port_code,
-      warnings: data.warnings || [],
-      assumptions_used: data.assumptions_used || [],
-      source: 'BACKEND' as const,
-    };
-  }
+  return {
+    recommendation_id: data.recommendation_id,
+    recommendations: recs.map((r: Record<string, unknown>, idx: number) => ({
+      ...r,
+      rank: (r.rank as number) || idx + 1,
+    })) as BerthRecommendation[],
+    vessel_name: form.vessel_name,
+    port_code: form.port_code,
+    warnings: data.warnings || [],
+    assumptions_used: data.assumptions_used || [],
+    source: 'BACKEND' as const,
+  };
 }
+

@@ -1,12 +1,12 @@
 /**
- * Auth store — user session management.
+ * Auth store - user session management.
  * Falls back to demo login when backend is unreachable.
  */
 import { create } from 'zustand';
-import api from '@/lib/api';
+import api from '@/lib/api/client';
 import type { User, LoginCredentials, SignupData } from '@/types';
 
-/* ── Demo credentials (used when backend is offline) ──────── */
+/* --- Demo credentials (used when backend is offline) --- */
 const DEMO_USERS: Record<string, { password: string; user: User }> = {
   'admin@baos.ai': {
     password: 'admin123',

@@ -28,7 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--color-dark)' }}>
-      {/* ── Sidebar ──────────────────────────────────────── */}
+      {/* Sidebar */}
       <aside
         className="flex-shrink-0 flex flex-col border-r h-screen sticky top-0 transition-all duration-300"
         style={{
@@ -78,13 +78,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      {/* ── Main content ─────────────────────────────────── */}
+      {/* Main content */}
       <div className="flex-1 flex flex-col min-h-screen overflow-auto">
         {/* Topbar */}
         <header
           className="flex items-center justify-between px-6 h-[60px] sticky top-0 z-40"
           style={{
-            background: 'rgba(15,23,42,0.95)',
+            background: 'rgba(255,255,255,0.95)',
             backdropFilter: 'blur(8px)',
             borderBottom: '1px solid var(--color-dark-border)',
           }}
@@ -103,11 +103,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Page content */}
         <main className="flex-1 p-6">
+          <div className="mx-auto max-w-7xl">
           {children}
+          </div>
         </main>
       </div>
 
-      {/* ── Toast Notifications ──────────────────────────── */}
+      {/* Toast Notifications */}
       {toasts.length > 0 && (
         <div className="toast-container">
           {toasts.map(t => (

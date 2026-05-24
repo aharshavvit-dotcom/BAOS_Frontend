@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BAOS — Centralized API Client
  *
  * Single Axios instance with:
@@ -9,7 +9,7 @@
  */
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
-// ── Config ────────────────────────────────────────────────────────────────
+// Config---
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
@@ -31,7 +31,7 @@ export interface ApiEnvelope<T> {
   timestamp?: string;
 }
 
-// ── Client Instance ───────────────────────────────────────────────────────
+// Client Instance---
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE,
@@ -39,7 +39,7 @@ const apiClient: AxiosInstance = axios.create({
   timeout: 30_000,
 });
 
-// ── Request interceptor — attach JWT ──────────────────────────────────────
+// Request interceptor - attach JWT---
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (typeof window !== 'undefined') {
@@ -51,7 +51,7 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-// ── Response interceptor — 401 refresh ───────────────────────────────────
+// Response interceptor - 401 refresh---
 
 apiClient.interceptors.response.use(
   (response) => response,
@@ -87,7 +87,7 @@ apiClient.interceptors.response.use(
   },
 );
 
-// ── Helpers ───────────────────────────────────────────────────────────────
+// Helpers---
 
 /** Check if demo mode is enabled */
 export function isDemoMode(): boolean {
@@ -120,3 +120,4 @@ export function getApiBaseUrl(): string {
 }
 
 export default apiClient;
+

@@ -1,8 +1,8 @@
-/**
+﻿/**
  * BAOS AI — TypeScript type definitions.
  */
 
-// ── Auth ─────────────────────────────────────────────────────────────────────
+// --- Auth ---
 
 export interface User {
   id: string;
@@ -33,7 +33,7 @@ export interface SignupData {
   port_code: string;
 }
 
-// ── Dashboard ────────────────────────────────────────────────────────────────
+// --- Dashboard ---
 
 export interface KPIValue {
   label: string;
@@ -84,7 +84,7 @@ export interface ChartsData {
   cost_breakdown: ChartData;
 }
 
-// ── Recommendations ──────────────────────────────────────────────────────────
+// --- Recommendations ---
 
 export interface BerthRecommendation {
   berth_code: string;
@@ -126,7 +126,7 @@ export interface RecommendationRequest {
   port_code: string;
 }
 
-// ── Vessel & Port ────────────────────────────────────────────────────────────
+// --- Vessel & Port ---
 
 export interface Vessel {
   id: string;
@@ -161,7 +161,7 @@ export interface Berth {
   is_available: boolean;
 }
 
-// ── UI ───────────────────────────────────────────────────────────────────────
+// --- UI ---
 
 export interface Toast {
   id: string;
@@ -170,3 +170,4 @@ export interface Toast {
 }
 
 export type FilterStatus = 'all' | 'pending' | 'accepted' | 'rejected';
+

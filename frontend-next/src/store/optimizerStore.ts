@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Optimizer Store — State management for multi-vessel scheduling.
  *
  * Connects to real backend POST /api/v1/optimize.
@@ -69,7 +69,7 @@ export const useOptimizerStore = create<OptimizerState>((set, get) => ({
   error: null,
   solverStatus: null,
 
-  // ── Input Actions ─────────────────────────────────────────
+  // --- Input Actions ---
 
   setPortCode: (code) => set({ portCode: code }),
 
@@ -117,7 +117,7 @@ export const useOptimizerStore = create<OptimizerState>((set, get) => ({
 
   setResources: (resources) => set({ resources }),
 
-  // ── Execution Actions ─────────────────────────────────────
+  // --- Execution Actions ---
 
   runOptimization: async () => {
     const { vessels, levers, resources, portCode } = get();
@@ -222,3 +222,4 @@ export const useOptimizerStore = create<OptimizerState>((set, get) => ({
 
   clearError: () => set({ error: null }),
 }));
+

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Optimizer Dashboard — CP-SAT Multi-Vessel Optimizer
  *
  * REFACTORED: Uses real backend API calls instead of mock fallbacks.
@@ -26,7 +26,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { PortSelector } from '@/components/port/PortSelector';
 import type { SolverStatus } from '@/lib/api/optimizer';
 
-/* ── Lever Slider Config ─────────────────────────────── */
+/* --- Lever Slider Config --- */
 const LEVER_DEFS: [keyof LeversConfig, string, number, number, number][] = [
   ['w_waiting', '⏱ Waiting Cost', 0, 3, 0.1],
   ['w_sla_penalty', '📋 SLA Penalty', 0, 5, 0.1],
@@ -95,7 +95,7 @@ export default function OptimizerPage() {
     });
   }
 
-  // ── Real Backend Optimization ──────────────────────────
+  // --- Real Backend Optimization ---
 
   async function runOptimizer() {
     setLoading(true);
@@ -178,7 +178,7 @@ export default function OptimizerPage() {
     }
   }
 
-  // ── Real Backend Override ──────────────────────────────
+  // --- Real Backend Override ---
 
   async function selectAlternativeBerth(vesselId: string, berthCode: string) {
     const newOverrides = new Map(overrides);
@@ -292,7 +292,7 @@ export default function OptimizerPage() {
 
   return (
     <div>
-      {/* ── Header ────────────────────────────────────── */}
+      {/* --- Header --- */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-3">
@@ -319,7 +319,7 @@ export default function OptimizerPage() {
         </div>
       </div>
 
-      {/* ── Error Banner ────────────────────────────────── */}
+      {/* --- Error Banner --- */}
       {error && (
         <div style={{
           background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)',
@@ -331,7 +331,7 @@ export default function OptimizerPage() {
         </div>
       )}
 
-      {/* ── Lever Panel ────────────────────────────────── */}
+      {/* --- Lever Panel --- */}
       {showLevers && (
         <div className="card mb-6" style={{ padding: 20 }}>
           <div className="flex gap-4 mb-4">
@@ -444,7 +444,7 @@ export default function OptimizerPage() {
         </div>
       )}
 
-      {/* ── Vessel Queue ──────────────────────────────── */}
+      {/* --- Vessel Queue --- */}
       <div className="flex items-center gap-3 mb-4">
         <span className="text-xl">🚢</span>
         <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>Vessel Queue</h3>
@@ -490,7 +490,7 @@ export default function OptimizerPage() {
         ))}
       </div>
 
-      {/* ── Run Button ────────────────────────────────── */}
+      {/* --- Run Button --- */}
       <div className="flex gap-4 items-center mb-8">
         <button className="btn btn-primary btn-lg flex-1" onClick={runOptimizer} disabled={loading} style={{ fontWeight: 700 }}>
           {loading ? '⚙️ Running CP-SAT Solver...' : '🚀 Run CP-SAT Optimizer'}
@@ -513,7 +513,7 @@ export default function OptimizerPage() {
         </div>
       )}
 
-      {/* ── RESULTS ──────────────────────────────────── */}
+      {/* --- RESULTS --- */}
       {result && (
         <ResultsSection result={result} vessels={vessels} overrides={overrides}
           expandedVessel={expandedVessel} setExpandedVessel={setExpandedVessel}
@@ -530,9 +530,9 @@ export default function OptimizerPage() {
   );
 }
 
-/* ════════════════════════════════════════════════════════
+/* ===
    Results Section
-   ════════════════════════════════════════════════════════ */
+   === */
 function ResultsSection({ result, vessels, overrides, expandedVessel, setExpandedVessel, expandedCostVessel, setExpandedCostVessel, selectAlternativeBerth, showFeasibility, setShowFeasibility, hoveredCell, setHoveredCell, hoveredBar, setHoveredBar, barPos, setBarPos, getBerthColor, getBerthDisplayName, berthCodes }: {
   result: OptimizerResult; vessels: VesselInput[]; overrides: Map<string, string>;
   expandedVessel: string | null; setExpandedVessel: (v: string | null) => void;
@@ -597,7 +597,7 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
         ))}
       </div>
 
-      {/* ── Schedule Assignments ─────── */}
+      {/* --- Schedule Assignments --- */}
       <div className="flex items-center gap-3 mb-4">
         <span className="text-xl">📋</span>
         <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>Schedule Assignments</h3>
@@ -667,7 +667,7 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
         })}
       </div>
 
-      {/* ── Interactive Berth Timeline ─────────────────── */}
+      {/* --- Interactive Berth Timeline --- */}
       <div className="flex items-center gap-3 mb-4">
         <span className="text-xl">🗓</span>
         <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>Interactive Berth Timeline</h3>
@@ -763,7 +763,7 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
         })()}
       </div>
 
-      {/* ── Cost Breakdown per Vessel ── */}
+      {/* --- Cost Breakdown per Vessel --- */}
       {result.costs.length > 0 && (
         <>
           <div className="flex items-center gap-3 mb-4">
@@ -816,7 +816,7 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
         </>
       )}
 
-      {/* ── Waiting Time Chart ─────────────────── */}
+      {/* --- Waiting Time Chart --- */}
       <div className="card mb-8" style={{ padding: 20 }}>
         <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>Waiting Time by Vessel</h4>
         <ResponsiveContainer width="100%" height={220}>
@@ -836,3 +836,4 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
     </>
   );
 }
+

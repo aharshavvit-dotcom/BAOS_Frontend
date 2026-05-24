@@ -8,65 +8,16 @@
 import { useState, useMemo } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, Legend, AreaChart, Area,
+  PieChart, Pie, Cell, Legend, AreaChart, Area, LineChart, Line,
 } from 'recharts';
-
-/* ── Analytics Data (derived from port config) ─────────── */
-const TERMINALS = [
-  { name: 'Jawahar Terminal', code: '262', berths: ['JD1', 'JD2', 'JD3', 'JD4', 'JD5', 'JD6'] },
-  { name: 'CITPL Terminal', code: '6272', berths: ['SCB1', 'SCB2', 'SCB3'] },
-  { name: 'CCTL Terminal', code: '6273', berths: ['CTB1', 'CTB2', 'CTB3', 'CTB4'] },
-  { name: 'Oil Terminal', code: '81', berths: ['BD1', 'BD2', 'BD3'] },
-  { name: 'Ambedkar Terminal', code: '999', berths: ['1 South', '2 West', '3 West', '4 West', 'C', '1 West', '2 South'] },
-];
-
-const BERTH_STATUS = [
-  { berth: 'Berth JD1', terminal: 'Jawahar', status: 'occupied', vessel: 'MV Ocean Crown', vesselType: 'Bulk Dry', since: '6h ago', eta_depart: '18h', progress: 65 },
-  { berth: 'Berth JD2', terminal: 'Jawahar', status: 'occupied', vessel: 'SS Pacific Trader', vesselType: 'General Cargo', since: '12h ago', eta_depart: '8h', progress: 85 },
-  { berth: 'Berth JD3', terminal: 'Jawahar', status: 'free', vessel: '', vesselType: '', since: '2h ago', eta_depart: '', progress: 0 },
-  { berth: 'Berth JD4', terminal: 'Jawahar', status: 'occupied', vessel: 'MT Horizon Star', vesselType: 'Chemical', since: '4h ago', eta_depart: '24h', progress: 30 },
-  { berth: 'Berth JD5', terminal: 'Jawahar', status: 'free', vessel: '', vesselType: '', since: '5h ago', eta_depart: '', progress: 0 },
-  { berth: 'Berth JD6', terminal: 'Jawahar', status: 'maintenance', vessel: '', vesselType: '', since: '1d ago', eta_depart: '', progress: 0 },
-  { berth: 'Berth SCB1', terminal: 'CITPL', status: 'occupied', vessel: 'MV Ever Glory', vesselType: 'Container', since: '8h ago', eta_depart: '14h', progress: 55 },
-  { berth: 'Berth SCB2', terminal: 'CITPL', status: 'occupied', vessel: 'MV Nordic Express', vesselType: 'Container', since: '2h ago', eta_depart: '28h', progress: 12 },
-  { berth: 'Berth SCB3', terminal: 'CITPL', status: 'free', vessel: '', vesselType: '', since: '4h ago', eta_depart: '', progress: 0 },
-  { berth: 'Berth CTB1', terminal: 'CCTL', status: 'occupied', vessel: 'MV Maersk Tanaka', vesselType: 'Container', since: '10h ago', eta_depart: '6h', progress: 90 },
-  { berth: 'Berth CTB2', terminal: 'CCTL', status: 'occupied', vessel: 'MV CMA Zenith', vesselType: 'Container', since: '6h ago', eta_depart: '18h', progress: 50 },
-  { berth: 'Berth CTB3', terminal: 'CCTL', status: 'free', vessel: '', vesselType: '', since: '8h ago', eta_depart: '', progress: 0 },
-  { berth: 'Berth CTB4', terminal: 'CCTL', status: 'free', vessel: '', vesselType: '', since: '3h ago', eta_depart: '', progress: 0 },
-  { berth: 'Berth BD1', terminal: 'Oil', status: 'occupied', vessel: 'MT Jade Voyager', vesselType: 'Oil', since: '16h ago', eta_depart: '10h', progress: 75 },
-  { berth: 'Berth BD2', terminal: 'Oil', status: 'occupied', vessel: 'MT Chem Pioneer', vesselType: 'Chemical', since: '20h ago', eta_depart: '4h', progress: 92 },
-  { berth: 'Berth BD3', terminal: 'Oil', status: 'free', vessel: '', vesselType: '', since: '1h ago', eta_depart: '', progress: 0 },
-  { berth: 'Berth 1 South', terminal: 'Ambedkar', status: 'occupied', vessel: 'MV Coastal Star', vesselType: 'General Cargo', since: '24h ago', eta_depart: '12h', progress: 70 },
-  { berth: 'Berth 2 West', terminal: 'Ambedkar', status: 'free', vessel: '', vesselType: '', since: '6h ago', eta_depart: '', progress: 0 },
-  { berth: 'Berth 3 West', terminal: 'Ambedkar', status: 'occupied', vessel: 'MV Ro-Ro King', vesselType: 'Ro-Ro Cargo', since: '3h ago', eta_depart: '20h', progress: 22 },
-  { berth: 'Berth 4 West', terminal: 'Ambedkar', status: 'free', vessel: '', vesselType: '', since: '12h ago', eta_depart: '', progress: 0 },
-  { berth: 'Berth C', terminal: 'Ambedkar', status: 'occupied', vessel: 'MV Atlas Dry', vesselType: 'Bulk Dry', since: '8h ago', eta_depart: '16h', progress: 45 },
-  { berth: 'Berth 1 West', terminal: 'Ambedkar', status: 'free', vessel: '', vesselType: '', since: '2h ago', eta_depart: '', progress: 0 },
-  { berth: 'Berth 2 South', terminal: 'Ambedkar', status: 'free', vessel: '', vesselType: '', since: '10h ago', eta_depart: '', progress: 0 },
-];
-
-const WEEKLY_THROUGHPUT = [
-  { day: 'Mon', vessels: 8, cargo_kt: 120, avgWait: 3.2 },
-  { day: 'Tue', vessels: 10, cargo_kt: 145, avgWait: 4.1 },
-  { day: 'Wed', vessels: 7, cargo_kt: 105, avgWait: 2.8 },
-  { day: 'Thu', vessels: 12, cargo_kt: 180, avgWait: 5.2 },
-  { day: 'Fri', vessels: 9, cargo_kt: 135, avgWait: 3.9 },
-  { day: 'Sat', vessels: 6, cargo_kt: 85, avgWait: 2.1 },
-  { day: 'Sun', vessels: 5, cargo_kt: 72, avgWait: 1.8 },
-];
-
-const MONTHLY_UTILIZATION = [
-  { month: 'Oct', utilization: 68 },
-  { month: 'Nov', utilization: 72 },
-  { month: 'Dec', utilization: 78 },
-  { month: 'Jan', utilization: 75 },
-  { month: 'Feb', utilization: 81 },
-  { month: 'Mar', utilization: 76 },
-  { month: 'Apr', utilization: 73 },
-];
-
-const COLORS = ['#10b981', '#0ea5e9', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#6366f1'];
+import SourceBadge from '@/components/common/SourceBadge';
+import {
+  TERMINALS,
+  BERTH_STATUS,
+  WEEKLY_THROUGHPUT,
+  MONTHLY_UTILIZATION,
+  ANALYTICS_COLORS as COLORS,
+} from '@/lib/demo/analyticsDemoData';
 
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('today');
@@ -142,7 +93,7 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* ── KPI Cards ──────────────────────────────────── */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         {[
           { icon: '🟢', value: stats.free.toString(), label: 'Berths Free', color: '#10b981' },
@@ -159,13 +110,13 @@ export default function AnalyticsPage() {
         ))}
       </div>
 
-      {/* ── Berth Status Grid ──────────────────────────── */}
+      {/* Berth Status Grid */}
       <div className="flex items-center gap-3 mb-4">
         <span className="text-xl">🏗️</span>
         <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>
           Live Berth Status
         </h3>
-        <div className="flex gap-3 ml-auto" style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
+        <div className="flex gap-3 ml-auto text-xs" style={{ color: 'var(--color-text-muted)' }}>
           <span>🟢 Free ({stats.free})</span>
           <span>🔵 Occupied ({stats.occupied})</span>
           <span>🟡 Maintenance ({stats.maintenance})</span>
@@ -225,116 +176,141 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* ── Charts Row ─────────────────────────────────── */}
+      {/* Charts Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* Terminal Utilization */}
-        <div className="card" style={{ padding: 20 }}>
-          <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>
-            🏢 Terminal Utilization
-          </h4>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={terminalUtilization} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-              <XAxis type="number" domain={[0, 100]} stroke="#94a3b8" fontSize={12} />
-              <YAxis type="category" dataKey="name" stroke="#94a3b8" fontSize={11} width={80} />
-              <Tooltip contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8 }}
-                formatter={(v) => [`${v}%`, 'Utilization']} />
-              <Bar dataKey="utilization" radius={[0, 6, 6, 0]}>
-                {terminalUtilization.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="card flex flex-col justify-between" style={{ padding: 20 }}>
+          <div className="flex items-center justify-between mb-4">
+            <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>
+              🏢 Terminal Utilization
+            </h4>
+            <SourceBadge source="DEMO" />
+          </div>
+          <div className="h-[260px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={terminalUtilization} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+                <XAxis type="number" domain={[0, 100]} stroke="#94a3b8" fontSize={12} />
+                <YAxis type="category" dataKey="name" stroke="#94a3b8" fontSize={11} width={80} />
+                <Tooltip contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8 }}
+                  formatter={(v) => [`${v}%`, 'Utilization']} />
+                <Bar dataKey="utilization" radius={[0, 6, 6, 0]}>
+                  {terminalUtilization.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Vessel Type Distribution */}
-        <div className="card" style={{ padding: 20 }}>
-          <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>
-            🚢 Current Vessel Mix
-          </h4>
-          <ResponsiveContainer width="100%" height={260}>
-            <PieChart>
-              <Pie data={vesselTypeDistrib} cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={3} dataKey="value"
-                label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}>
-                {vesselTypeDistrib.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8 }} />
-            </PieChart>
-          </ResponsiveContainer>
+        <div className="card flex flex-col justify-between" style={{ padding: 20 }}>
+          <div className="flex items-center justify-between mb-4">
+            <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>
+              🚢 Current Vessel Mix
+            </h4>
+            <SourceBadge source="HISTORICAL" />
+          </div>
+          <div className="h-[260px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={vesselTypeDistrib} cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={3} dataKey="value"
+                  label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}>
+                  {vesselTypeDistrib.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
-      {/* ── Weekly Throughput ───────────────────────────── */}
+      {/* Weekly Throughput */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="card" style={{ padding: 20 }}>
-          <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>
-            📦 Weekly Vessel Throughput
-          </h4>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={WEEKLY_THROUGHPUT}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-              <XAxis dataKey="day" stroke="#94a3b8" fontSize={12} />
-              <YAxis stroke="#94a3b8" fontSize={12} />
-              <Tooltip contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8 }} />
-              <Bar dataKey="vessels" fill="#0ea5e9" name="Vessels" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="card flex flex-col justify-between" style={{ padding: 20 }}>
+          <div className="flex items-center justify-between mb-4">
+            <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>
+              📦 Weekly Vessel Throughput
+            </h4>
+            <SourceBadge source="HISTORICAL" />
+          </div>
+          <div className="h-[240px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={WEEKLY_THROUGHPUT}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+                <XAxis dataKey="day" stroke="#94a3b8" fontSize={12} />
+                <YAxis stroke="#94a3b8" fontSize={12} />
+                <Tooltip contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8 }} />
+                <Bar dataKey="vessels" fill="#0ea5e9" name="Vessels" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
-        <div className="card" style={{ padding: 20 }}>
-          <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>
-            ⏱️ Average Wait Time Trend
-          </h4>
-          <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={WEEKLY_THROUGHPUT}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-              <XAxis dataKey="day" stroke="#94a3b8" fontSize={12} />
-              <YAxis stroke="#94a3b8" fontSize={12} label={{ value: 'Hours', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 11 }} />
-              <Tooltip contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8 }} />
-              <defs>
-                <linearGradient id="waitGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.05} />
-                </linearGradient>
-              </defs>
-              <Area type="monotone" dataKey="avgWait" name="Avg Wait (h)" stroke="#f59e0b" fill="url(#waitGrad)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
+        <div className="card flex flex-col justify-between" style={{ padding: 20 }}>
+          <div className="flex items-center justify-between mb-4">
+            <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>
+              ⏱️ Average Wait Time Trend
+            </h4>
+            <SourceBadge source="DEMO" />
+          </div>
+          <div className="h-[240px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={WEEKLY_THROUGHPUT}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+                <XAxis dataKey="day" stroke="#94a3b8" fontSize={12} />
+                <YAxis stroke="#94a3b8" fontSize={12} label={{ value: 'Hours', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 11 }} />
+                <Tooltip contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8 }} />
+                <defs>
+                  <linearGradient id="waitGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <Area type="monotone" dataKey="avgWait" name="Avg Wait (h)" stroke="#f59e0b" fill="url(#waitGrad)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
-      {/* ── Monthly Utilization Trend ───────────────────── */}
+      {/* Monthly Utilization Trend */}
       <div className="card mb-8" style={{ padding: 20 }}>
-        <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>
-          📈 Monthly Berth Utilization Trend
-        </h4>
-        <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={MONTHLY_UTILIZATION}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-            <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
-            <YAxis stroke="#94a3b8" fontSize={12} domain={[50, 100]} />
-            <Tooltip contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8 }} />
-            <Legend />
-            <Line type="monotone" dataKey="utilization" name="Utilization %" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 5 }}
-              activeDot={{ r: 8, fill: '#8b5cf6' }} />
-            {/* Target line */}
-            <Line type="monotone" data={MONTHLY_UTILIZATION.map(m => ({ ...m, target: 75 }))} dataKey="target"
-              name="Target (75%)" stroke="#10b981" strokeDasharray="8 4" strokeWidth={2} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+        <div className="flex items-center justify-between mb-4">
+          <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>
+            📈 Monthly Berth Utilization Trend
+          </h4>
+          <SourceBadge source="DEMO" />
+        </div>
+        <div className="h-[260px] w-full min-w-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={MONTHLY_UTILIZATION}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+              <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
+              <YAxis stroke="#94a3b8" fontSize={12} domain={[50, 100]} />
+              <Tooltip contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8 }} />
+              <Legend />
+              <Line type="monotone" dataKey="utilization" name="Utilization %" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 5 }}
+                activeDot={{ r: 8, fill: '#8b5cf6' }} />
+              {/* Target line */}
+              <Line type="monotone" data={MONTHLY_UTILIZATION.map(m => ({ ...m, target: 75 }))} dataKey="target"
+                name="Target (75%)" stroke="#10b981" strokeDasharray="8 4" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
-      {/* ── Departing Soon Table ────────────────────────── */}
+      {/* Departing Soon Table */}
       <div className="flex items-center gap-3 mb-4">
         <span className="text-xl">🕐</span>
         <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>
           Vessels Departing Soon
         </h3>
       </div>
-      <div className="card mb-8" style={{ padding: 0, overflow: 'auto' }}>
+      <div className="card mb-8" style={{ padding: 0, overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'rgba(0,0,0,0.02)' }}>

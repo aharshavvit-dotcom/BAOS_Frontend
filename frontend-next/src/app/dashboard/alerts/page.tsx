@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Alerts Page — Port Operations Alert Management
  * Features: Real-time alerts for SLA breaches, berth congestion,
  * maintenance schedules, weather warnings, and vessel delays
@@ -7,7 +7,7 @@
 
 import { useState, useMemo } from 'react';
 
-/* ── Alert Types ──────────────────────────────────────── */
+/* --- Alert Types --- */
 interface Alert {
   id: string;
   type: 'critical' | 'warning' | 'info' | 'success';
@@ -170,7 +170,7 @@ export default function AlertsPage() {
         </div>
       </div>
 
-      {/* ── Alert Summary Cards ────────────────────────── */}
+      {/* --- Alert Summary Cards --- */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         {[
           { icon: '🔴', value: counts.critical, label: 'Critical', color: '#ef4444' },
@@ -188,7 +188,7 @@ export default function AlertsPage() {
         ))}
       </div>
 
-      {/* ── Filters ────────────────────────────────────── */}
+      {/* --- Filters --- */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         {/* Type filter */}
         <div className="flex gap-1">
@@ -221,7 +221,7 @@ export default function AlertsPage() {
         </label>
       </div>
 
-      {/* ── Alert List ─────────────────────────────────── */}
+      {/* --- Alert List --- */}
       <div className="space-y-3 mb-8">
         {filtered.length === 0 && (
           <div className="card text-center" style={{ padding: 40 }}>
@@ -314,3 +314,4 @@ export default function AlertsPage() {
     </div>
   );
 }
+

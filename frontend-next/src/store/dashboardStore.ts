@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Dashboard store — KPIs and chart data.
  * Uses local fallback data when backend API is unavailable.
  */
@@ -19,7 +19,7 @@ interface DashboardState {
   addRecommendation: (rec: DashboardRecommendation) => void;
 }
 
-/* ── Fallback data (used when backend is unavailable) ────────── */
+/* --- Fallback data (used when backend is unavailable) --- */
 const FALLBACK_KPIS: KPIData = {
   vessels_count: 142,
   revenue: 480000,
@@ -93,3 +93,4 @@ export const useDashboardStore = create<DashboardState>((set) => ({
       recommendations: [rec, ...state.recommendations],
     })),
 }));
+

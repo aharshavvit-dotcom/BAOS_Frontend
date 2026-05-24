@@ -62,12 +62,12 @@ function HeroMockDashboard() {
 
 export default function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/50 pt-32 pb-20 border-b border-slate-100">
+    <section className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/50 border-b border-slate-100">
       {/* Decorative Glow Blobs */}
       <div className="absolute top-[-100px] left-[-100px] h-[350px] w-[350px] rounded-full bg-blue-400/5 blur-3xl pointer-events-none" />
       <div className="absolute bottom-[-100px] right-[-100px] h-[350px] w-[350px] rounded-full bg-teal-400/5 blur-3xl pointer-events-none" />
 
-      <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-6 lg:grid-cols-2">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-6 py-16 lg:py-24 min-h-[calc(100vh-5rem)] lg:grid-cols-2">
         <div className="text-left animate-fade-in-up">
           <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-6 bg-blue-50 border border-blue-200 text-blue-600">
             🚀 Maritime Decision Intelligence Platform
@@ -87,7 +87,7 @@ export default function HeroSection() {
 
           <div className="mt-8 flex flex-col gap-4 sm:flex-row">
             <Link
-              href="/signup"
+              href="/login"
               className="rounded-xl bg-blue-600 px-6 py-4 text-center text-sm font-semibold text-white shadow-md hover:bg-blue-500 hover:shadow-lg transition-all"
             >
               Get Started Free →
@@ -106,19 +106,19 @@ export default function HeroSection() {
               <div className="text-2xl font-extrabold text-blue-600 sm:text-3xl">
                 <AnimatedCounter target={94} suffix="%" />
               </div>
-              <p className="text-xs font-semibold text-slate-500 mt-1">SLA Compliance</p>
+              <p className="text-xs font-semibold text-slate-500 mt-1">SLA Compliance <span className="text-[10px] text-slate-400">(DEMO)</span></p>
             </div>
             <div>
               <div className="text-2xl font-extrabold text-blue-600 sm:text-3xl">
                 <AnimatedCounter target={26.5} suffix="h" decimals={1} />
               </div>
-              <p className="text-xs font-semibold text-slate-500 mt-1">Avg Turnaround</p>
+              <p className="text-xs font-semibold text-slate-500 mt-1">Avg Turnaround <span className="text-[10px] text-slate-400">(HISTORICAL)</span></p>
             </div>
             <div>
               <div className="text-2xl font-extrabold text-blue-600 sm:text-3xl">
                 <AnimatedCounter target={480} prefix="$" suffix="K" />
               </div>
-              <p className="text-xs font-semibold text-slate-500 mt-1">Monthly Revenue</p>
+              <p className="text-xs font-semibold text-slate-500 mt-1">Monthly Revenue <span className="text-[10px] text-slate-400">(ASSUMPTION)</span></p>
             </div>
           </div>
         </div>

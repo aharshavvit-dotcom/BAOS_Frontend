@@ -5,7 +5,7 @@ import Reveal from '@/components/common/Reveal';
 
 export default function CTASection() {
   return (
-    <section className="bg-white px-6 py-20">
+    <section className="bg-slate-50 px-6 py-20">
       <div className="mx-auto max-w-4xl">
         <Reveal>
           <div className="rounded-3xl bg-gradient-to-r from-blue-600 to-teal-500 p-10 text-center text-white shadow-xl">
@@ -17,7 +17,7 @@ export default function CTASection() {
             </p>
             <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
               <Link
-                href="/signup"
+                href="/login"
                 className="rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-blue-600 shadow-md hover:bg-slate-50 transition-colors"
               >
                 Start Free Trial →

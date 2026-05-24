@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BAOS — Port API Service
  *
  * Endpoints:
@@ -8,7 +8,7 @@
  */
 import apiClient from './client';
 
-// ── Types ─────────────────────────────────────────────────────────────────
+// Types---
 
 export interface PortInfo {
   port_name: string;
@@ -82,7 +82,7 @@ export interface ServiceTimeStat {
   service_hours_mean: number;
 }
 
-// ── API Functions ─────────────────────────────────────────────────────────
+// API Functions---
 
 /** List all available ports with training status */
 export async function getPorts(): Promise<PortInfo[]> {
@@ -101,3 +101,4 @@ export async function getPortConfig(portCode: string): Promise<PortConfig> {
   const res = await apiClient.get<PortConfig>(`/api/v1/ports/${portCode}/config`);
   return res.data;
 }
+
