@@ -1,0 +1,218 @@
+﻿python.exe : (trapped) 
+error reading bcrypt 
+version
+At line:1 char:160
++ ... rse -Force; & d:\
+berth_optimization_poc_
+app\venv\Scripts\python
+.exe - ...
++                 ~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: ((trapped) err   
+ or reading bcrypt     
+version:String) []    
+, RemoteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+Traceback (most recent 
+call last):
+  File "D:\berth_optimi
+zation_poc_app\venv\Lib
+\site-packages\passlib\
+handlers\bcrypt.py", 
+line 620, in 
+_load_backend_mixin
+    version = _bcrypt._
+_about__.__version__
+              
+^^^^^^^^^^^^^^^^^
+AttributeError: module 
+'bcrypt' has no 
+attribute '__about__'
+Traceback (most recent 
+call last):
+  File "<frozen 
+runpy>", line 198, in 
+_run_module_as_main
+  File "<frozen 
+runpy>", line 88, in 
+_run_code
+  File "D:\ML_berth_opt
+imizer_app\berth_optimi
+zation_poc_app\backend\
+database\seed.py", 
+line 111, in <module>
+    seed()
+  File "D:\ML_berth_opt
+imizer_app\berth_optimi
+zation_poc_app\backend\
+database\seed.py", 
+line 82, in seed
+    password_hash=hash_
+password("admin123"),
+                  ^^^^^
+^^^^^^^^^^^^^^^^^^^^
+  File "D:\ML_berth_opt
+imizer_app\berth_optimi
+zation_poc_app\backend\
+auth\password.py", 
+line 11, in 
+hash_password
+    return pwd_context.
+hash(password)
+           ^^^^^^^^^^^^
+^^^^^^^^^^^^^^
+  File "D:\berth_optimi
+zation_poc_app\venv\Lib
+\site-packages\passlib\
+context.py", line 
+2258, in hash
+    return 
+record.hash(secret, 
+**kwds)
+           ^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "D:\berth_optimi
+zation_poc_app\venv\Lib
+\site-packages\passlib\
+utils\handlers.py", 
+line 779, in hash
+    self.checksum = sel
+f._calc_checksum(secret
+)
+                    ^^^
+^^^^^^^^^^^^^^^^^^^^^^^
+^
+  File "D:\berth_optimi
+zation_poc_app\venv\Lib
+\site-packages\passlib\
+handlers\bcrypt.py", 
+line 591, in 
+_calc_checksum
+    self._stub_requires
+_backend()
+  File "D:\berth_optimi
+zation_poc_app\venv\Lib
+\site-packages\passlib\
+utils\handlers.py", 
+line 2254, in 
+_stub_requires_backend
+    cls.set_backend()
+  File "D:\berth_optimi
+zation_poc_app\venv\Lib
+\site-packages\passlib\
+utils\handlers.py", 
+line 2156, in 
+set_backend
+    return owner.set_ba
+ckend(name, 
+dryrun=dryrun)
+           ^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
+^^^
+  File "D:\berth_optimi
+zation_poc_app\venv\Lib
+\site-packages\passlib\
+utils\handlers.py", 
+line 2163, in 
+set_backend
+    return 
+cls.set_backend(name, 
+dryrun=dryrun)
+           ^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
+^
+  File "D:\berth_optimi
+zation_poc_app\venv\Lib
+\site-packages\passlib\
+utils\handlers.py", 
+line 2188, in 
+set_backend
+    
+cls._set_backend(name, 
+dryrun)
+  File "D:\berth_optimi
+zation_poc_app\venv\Lib
+\site-packages\passlib\
+utils\handlers.py", 
+line 2311, in 
+_set_backend
+    super(SubclassBacke
+ndMixin, cls)._set_back
+end(name, dryrun)
+  File "D:\berth_optimi
+zation_poc_app\venv\Lib
+\site-packages\passlib\
+utils\handlers.py", 
+line 2224, in 
+_set_backend
+    ok = loader(**kwds)
+         ^^^^^^^^^^^^^^
+  File "D:\berth_optimi
+zation_poc_app\venv\Lib
+\site-packages\passlib\
+handlers\bcrypt.py", 
+line 626, in 
+_load_backend_mixin
+    return mixin_cls._f
+inalize_backend_mixin(n
+ame, dryrun)
+           ^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^
+  File "D:\berth_optimi
+zation_poc_app\venv\Lib
+\site-packages\passlib\
+handlers\bcrypt.py", 
+line 421, in 
+_finalize_backend_mixin
+    if detect_wrap_bug(
+IDENT_2A):
+       ^^^^^^^^^^^^^^^^
+^^^^^^^^^
+  File "D:\berth_optimi
+zation_poc_app\venv\Lib
+\site-packages\passlib\
+handlers\bcrypt.py", 
+line 380, in 
+detect_wrap_bug
+    if verify(secret, 
+bug_hash):
+       ^^^^^^^^^^^^^^^^
+^^^^^^^^
+  File "D:\berth_optimi
+zation_poc_app\venv\Lib
+\site-packages\passlib\
+utils\handlers.py", 
+line 792, in verify
+    return consteq(self
+._calc_checksum(secret)
+, chk)
+                   ^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\berth_optimi
+zation_poc_app\venv\Lib
+\site-packages\passlib\
+handlers\bcrypt.py", 
+line 655, in 
+_calc_checksum
+[Seed] Creating tables...
+[Seed] Checking for existing port...
+[Seed] Inserting berths...
+[Seed] Inserting demo user...
+    hash = 
+_bcrypt.hashpw(secret, 
+config)
+           ^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
+ValueError: password 
+cannot be longer than 
+72 bytes, truncate 
+manually if necessary 
+(e.g. my_password[:72])
