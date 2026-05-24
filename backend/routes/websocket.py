@@ -5,7 +5,10 @@ from __future__ import annotations
 
 import socketio
 
-from config import settings
+try:
+    from backend.config import settings
+except ImportError:
+    from config import settings
 
 # Create Socket.IO server (async mode for FastAPI)
 sio = socketio.AsyncServer(

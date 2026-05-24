@@ -18,16 +18,16 @@ __pycache__/
 *.pfx
 
 # Confidential project data
-berth_optimization_poc_app/ports/
-berth_optimization_poc_app/sample_data/
-berth_optimization_poc_app/test_data/
-berth_optimization_poc_app/data/
-berth_optimization_poc_app/datasets/
-berth_optimization_poc_app/private_data/
-berth_optimization_poc_app/confidential/
-berth_optimization_poc_app/exports/
-berth_optimization_poc_app/uploads/
-berth_optimization_poc_app/downloads/
+ports/
+sample_data/
+test_data/
+data/
+datasets/
+private_data/
+confidential/
+exports/
+uploads/
+downloads/
 
 # Generated models and data artifacts
 *.pkl
@@ -72,15 +72,15 @@ pip-wheel-metadata/
 .ipynb_checkpoints/
 
 # Frontend artifacts
-berth_optimization_poc_app/frontend-next/node_modules/
-berth_optimization_poc_app/frontend-next/.next/
-berth_optimization_poc_app/frontend-next/out/
-berth_optimization_poc_app/frontend-next/build/
-berth_optimization_poc_app/frontend-next/.turbo/
-berth_optimization_poc_app/frontend-next/.vercel/
-berth_optimization_poc_app/frontend-next/coverage/
-berth_optimization_poc_app/frontend-next/*.tsbuildinfo
-berth_optimization_poc_app/frontend-next/next-env.d.ts
+frontend-next/node_modules/
+frontend-next/.next/
+frontend-next/out/
+frontend-next/build/
+frontend-next/.turbo/
+frontend-next/.vercel/
+frontend-next/coverage/
+frontend-next/*.tsbuildinfo
+frontend-next/next-env.d.ts
 
 # Logs, temporary files, and archives
 *.log

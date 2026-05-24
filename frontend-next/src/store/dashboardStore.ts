@@ -21,10 +21,13 @@ interface DashboardState {
 
 /* ── Fallback data (used when backend is unavailable) ────────── */
 const FALLBACK_KPIS: KPIData = {
-  active_vessels: 142,
+  vessels_count: 142,
   revenue: 480000,
-  berth_utilization: 78,
-  sla_compliance: 94,
+  cost: 175000,
+  utilization_pct: 78,
+  sla_compliance_pct: 94,
+  avg_turnaround_hours: 18.5,
+  kpi_cards: [],
 };
 
 export const useDashboardStore = create<DashboardState>((set) => ({

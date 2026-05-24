@@ -12,7 +12,9 @@ Validates:
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_ROOT / "backend"))
+sys.path.insert(0, str(_ROOT))
 
 from data_models import (
     BerthSpec, PortMaster, ProvenanceField, DataSource, QualityGate,
@@ -333,7 +335,7 @@ def test_spec_ingestion():
     if not bcfg.exists():
         return  # Skip if no spec files
 
-    from data_layer.spec_ingest import build_port_master
+    from legacy.spec_ingest import build_port_master
 
     pm = build_port_master(
         port_name="test_chennai",
@@ -361,7 +363,7 @@ def test_constraint_library_from_excel():
     if not bcfg.exists():
         return  # Skip
 
-    from data_layer.spec_ingest import build_port_master
+    from legacy.spec_ingest import build_port_master
     from optimization_engine.constraint_library import ConstraintLibrary
 
     pm = build_port_master(

@@ -13,17 +13,8 @@ import { useSocket } from '@/hooks/useSocket';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, checkAuth, logout } = useAuthStore();
-  const { sidebarOpen, profileDropdownOpen, setProfileDropdownOpen, toasts, removeToast } = useUIStore();
-  const [loading, setLoading] = useState(true);
+  const { sidebarOpen, toasts, removeToast } = useUIStore();
   const [currentTime, setCurrentTime] = useState('');
-
-  // Connect WebSocket for real-time updates (disabled when backend WS unavailable)
-  // useSocket();
-
-  useEffect(() => {
-    checkAuth().then(() => setLoading(false));
-  }, [checkAuth]);
 
   // Live time
   useEffect(() => {
@@ -34,32 +25,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      const token = localStorage.getItem('baos_access_token');
-      if (!token) {
-        router.push('/login');
-      }
-    }
-  }, [loading, isAuthenticated, router]);
-
-  function handleLogout() {
-    logout();
-    router.push('/login');
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-dark)' }}>
-        <div className="text-center">
-          <div className="text-4xl mb-4">🚢</div>
-          <p style={{ color: 'var(--color-text-muted)' }}>Loading BAOS AI...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--color-dark)' }}>
@@ -110,10 +75,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className="text-lg">⚙️</span>
             {sidebarOpen && <span>Settings</span>}
           </Link>
-          <button onClick={handleLogout} className="sidebar-link w-full text-left">
-            <span className="text-lg">🚪</span>
-            {sidebarOpen && <span>Logout</span>}
-          </button>
         </div>
       </aside>
 
@@ -137,37 +98,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className="text-xs" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-code)' }}>
               🟢 {currentTime}
             </span>
-            <div className="relative">
-              <button
-                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors"
-                style={{ background: profileDropdownOpen ? 'rgba(255,255,255,0.05)' : 'transparent' }}
-              >
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                     style={{ background: 'var(--color-primary)', color: 'white' }}>
-                  {user?.full_name?.[0] || 'U'}
-                </div>
-                {sidebarOpen && (
-                  <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                    {user?.full_name || 'User'}
-                  </span>
-                )}
-              </button>
-
-              <div className={`profile-dropdown ${profileDropdownOpen ? 'show' : ''}`}>
-                <div className="px-3 py-2 mb-1" style={{ borderBottom: '1px solid var(--color-dark-border)' }}>
-                  <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                    {user?.full_name || 'User'}
-                  </p>
-                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                    {user?.email || 'user@baos.ai'}
-                  </p>
-                </div>
-                <button className="profile-dropdown-item">👤 Profile</button>
-                <button className="profile-dropdown-item">⚙️ Settings</button>
-                <button className="profile-dropdown-item" onClick={handleLogout}>🚪 Logout</button>
-              </div>
-            </div>
           </div>
         </header>
 

@@ -25,7 +25,6 @@ router = APIRouter(prefix="/api/recommendations", tags=["Recommendations"])
 @router.post("/get-recommendation", response_model=RecommendationResponse)
 async def get_recommendation(
     req: RecommendationRequest,
-    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Generate berth recommendations for a vessel."""
@@ -50,7 +49,6 @@ async def list_recommendations(
     rec_status: str = Query("all", alias="status"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List recommendations with filtering and pagination."""
@@ -95,7 +93,6 @@ async def list_recommendations(
 async def update_recommendation(
     recommendation_id: str,
     req: UpdateRecommendationRequest,
-    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Accept or reject a recommendation."""

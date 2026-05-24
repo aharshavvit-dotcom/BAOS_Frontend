@@ -2,13 +2,21 @@
  * Get Recommendation Page — AI-powered berth recommendations
  * Features: Rich agentic explanations, interactive berth timeline,
  * confidence comparison, detailed constraint analysis
+ *
+ * REFACTORED: Uses real backend API call with correct schema instead of local fallback.
+ * Uses dynamic port store to resolve friendly berth names and colors.
  */
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
+import { usePortStore } from '@/store/portStore';
+import { getRecommendation, type BerthRecommendation, type ParameterCheck } from '@/lib/api/recommendations';
+import { extractApiError, isDemoMode } from '@/lib/api/client';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { PortSelector } from '@/components/port/PortSelector';
 
 /* ── Types ─────────────────────────────────────────────── */
 interface VesselForm {
@@ -24,44 +32,13 @@ interface VesselForm {
   dwt: number;
 }
 
-interface ParameterCheck {
-  category: string;
-  parameter: string;
-  status: 'pass' | 'ok' | 'tight' | 'fail' | 'info';
-  icon: string;
-  detail: string;
-  compact: string;
-}
-
-interface RecommendationOption {
-  rank: number;
-  berth_code: string;
-  berth_name: string;
-  confidence: number;
-  expected_wait_hours: number;
-  expected_service_hours: number;
-  suitability_score: number;
-  risk_score: number;
-  pros: string[];
-  cons: string[];
-  explanation: string;
-  compact_reason: string;
-  ai_reasoning: string;
-  timeline_start: number;
-  timeline_end: number;
-  structured_breakdown: ParameterCheck[];
-}
-
 const VESSEL_TYPES = ['Bulk Dry', 'Chemical', 'Container', 'General Cargo', 'Oil', 'Other Dry Cargo', 'Ro-Ro Cargo', 'Bulk Carrier', 'Crude Oil Tanker', 'Chemical Tanker', 'RoRo', 'LPG Tanker', 'LNG Tanker', 'Multipurpose', 'Passenger'];
 const CARGO_TYPES = ['COAL', 'IRON ORE', 'CONTAINER', 'CRUDE OIL', 'CHEMICALS', 'GENERAL', 'VEHICLES', 'PETROLEUM', 'DIESEL', 'FUEL OIL', 'CEMENT', 'FERTILIZER', 'GRAIN', 'BAUXITE', 'SUGAR', 'LIMESTONE', 'STEEL', 'TIMBER', 'LPG', 'LNG', 'BREAK BULK', 'PROJECT CARGO'];
 const RANK_COLORS = ['#10b981', '#0ea5e9', '#8b5cf6'];
 
-const BERTH_COLORS: Record<string, string> = {
-  'INMAA-B01': '#10b981', 'INMAA-B02': '#0ea5e9', 'INMAA-B03': '#8b5cf6',
-  'INMAA-B04': '#f59e0b', 'INMAA-B05': '#ef4444', 'INMAA-B06': '#ec4899', 'INMAA-B07': '#6366f1',
-};
-
 export default function RecommendPage() {
+  const { selectedPortCode, getBerthColor, getBerthDisplayName, fetchPorts } = usePortStore();
+
   const [form, setForm] = useState<VesselForm>({
     vessel_name: '',
     vessel_type: 'Bulk Dry',
@@ -75,11 +52,15 @@ export default function RecommendPage() {
     dwt: 30000,
   });
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<RecommendationOption[] | null>(null);
+  const [results, setResults] = useState<BerthRecommendation[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [hoveredBar, setHoveredBar] = useState<RecommendationOption | null>(null);
+  const [hoveredBar, setHoveredBar] = useState<BerthRecommendation | null>(null);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [barPos, setBarPos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    fetchPorts();
+  }, [fetchPorts]);
 
   function updateField<K extends keyof VesselForm>(key: K, val: VesselForm[K]) {
     setForm(prev => ({ ...prev, [key]: val }));
@@ -92,35 +73,31 @@ export default function RecommendPage() {
     setResults(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-      const token = localStorage.getItem('baos_access_token');
-      const res = await fetch(`${apiUrl}/api/recommendations/get-recommendation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          name: form.vessel_name,
-          vessel_type: form.vessel_type,
-          cargo_type: form.cargo_type,
-          loa: form.loa,
-          beam: form.beam,
-          draft: form.draft,
-          dwt: form.dwt,
-          cargo_tons: form.cargo_tons,
-          eta: `${form.eta_date}T${form.eta_time}:00`,
-        }),
+      const response = await getRecommendation({
+        vessel_name: form.vessel_name,
+        vessel_type: form.vessel_type,
+        cargo_type: form.cargo_type,
+        loa_m: form.loa,
+        beam_m: form.beam,
+        draft_m: form.draft,
+        dwt: form.dwt,
+        cargo_tons: form.cargo_tons,
+        eta: `${form.eta_date}T${form.eta_time}:00`,
+        port_code: selectedPortCode,
       });
 
-      if (!res.ok) {
-        setResults(getSampleResults(form));
-        return;
+      setResults(response.recommendations);
+      setError(null);
+    } catch (err) {
+      const apiErr = extractApiError(err);
+      if (isDemoMode()) {
+        const sample = getSampleResults(form);
+        setResults(sample);
+        setError(`Backend unavailable: ${apiErr.message}. Showing demo data.`);
+      } else {
+        setError(apiErr.message);
+        setResults(null);
       }
-      const data = await res.json();
-      setResults(data.options || data);
-    } catch {
-      setResults(getSampleResults(form));
     } finally {
       setLoading(false);
     }
@@ -135,16 +112,19 @@ export default function RecommendPage() {
   return (
     <div>
       {/* ── Section Header ──────────────────────────────── */}
-      <div style={{ marginBottom: 24 }}>
-        <div className="flex items-center gap-3 mb-1">
-          <span className="text-2xl">🚢</span>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, color: 'var(--color-text-primary)' }}>
-            Enter Vessel Details
-          </h2>
+      <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <span className="text-2xl">🚢</span>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, color: 'var(--color-text-primary)' }}>
+              Enter Vessel Details
+            </h2>
+          </div>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>
+            Fill in vessel information to receive AI-powered berth recommendations with detailed explanations
+          </p>
         </div>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>
-          Fill in vessel information to receive AI-powered berth recommendations with detailed agentic explanations
-        </p>
+        <PortSelector />
       </div>
 
       {/* ── Vessel Input Form ───────────────────────────── */}
@@ -221,8 +201,13 @@ export default function RecommendPage() {
       </form>
 
       {error && (
-        <div className="card" style={{ borderLeft: '4px solid var(--color-danger)', marginBottom: 24, padding: 16 }}>
-          <p style={{ color: 'var(--color-danger)', fontWeight: 600 }}>❌ {error}</p>
+        <div style={{
+          background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)',
+          borderRadius: 10, padding: '12px 16px', marginBottom: 24,
+          fontSize: 13, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <span>⚠️</span> {error}
+          <button onClick={() => setError(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}>✕</button>
         </div>
       )}
 
@@ -274,11 +259,10 @@ export default function RecommendPage() {
                 <div style={{ minWidth: 500 }}>
                   {results.map((opt, i) => (
                     <div key={opt.rank} className="flex items-center gap-3 mb-3" style={{ height: 48 }}>
-                      <div style={{ width: 120, fontSize: 11, textAlign: 'right' }}>
+                      <div style={{ width: 150, fontSize: 11, textAlign: 'right' }}>
                         <div style={{ fontWeight: 700, color: RANK_COLORS[i] || '#94a3b8' }}>
-                          #{opt.rank} {opt.berth_code}
+                          #{opt.rank} {getBerthDisplayName(opt.berth_code)}
                         </div>
-                        <div style={{ fontSize: 9, color: 'var(--color-text-muted)' }}>{opt.berth_name}</div>
                       </div>
                       <div className="flex-1 relative" style={{ height: 40, background: 'rgba(0,0,0,0.03)', borderRadius: 8, border: '1px solid rgba(0,0,0,0.04)' }}>
                         {/* Hour markers */}
@@ -301,23 +285,23 @@ export default function RecommendPage() {
                         )}
                         {/* Service period */}
                         <div
-                          onMouseEnter={e => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoveredBar(opt);
-                            setBarPos({ x: rect.left + rect.width / 2, y: rect.top - 10 });
-                          }}
-                          onMouseLeave={() => setHoveredBar(null)}
-                          style={{
-                            position: 'absolute', top: 4, height: 32, borderRadius: 6, cursor: 'pointer',
-                            left: `${((opt.timeline_start + opt.expected_wait_hours) / maxH) * 100}%`,
-                            width: `${Math.max((opt.expected_service_hours / maxH) * 100, 3)}%`,
-                            background: `linear-gradient(135deg, ${RANK_COLORS[i] || '#94a3b8'}, ${RANK_COLORS[i] || '#94a3b8'}cc)`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 10, fontWeight: 700, color: 'white', overflow: 'hidden', whiteSpace: 'nowrap',
-                            boxShadow: hoveredBar?.rank === opt.rank ? '0 4px 12px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.1)',
-                            transform: hoveredBar?.rank === opt.rank ? 'scale(1.03)' : 'scale(1)',
-                            transition: 'transform 0.15s, box-shadow 0.15s',
-                          }}>
+                           onMouseEnter={e => {
+                             const rect = e.currentTarget.getBoundingClientRect();
+                             setHoveredBar(opt);
+                             setBarPos({ x: rect.left + rect.width / 2, y: rect.top - 10 });
+                           }}
+                           onMouseLeave={() => setHoveredBar(null)}
+                           style={{
+                             position: 'absolute', top: 4, height: 32, borderRadius: 6, cursor: 'pointer',
+                             left: `${((opt.timeline_start + opt.expected_wait_hours) / maxH) * 100}%`,
+                             width: `${Math.max((opt.expected_service_hours / maxH) * 100, 3)}%`,
+                             background: `linear-gradient(135deg, ${RANK_COLORS[i] || '#94a3b8'}, ${RANK_COLORS[i] || '#94a3b8'}cc)`,
+                             display: 'flex', alignItems: 'center', justifyContent: 'center',
+                             fontSize: 10, fontWeight: 700, color: 'white', overflow: 'hidden', whiteSpace: 'nowrap',
+                             boxShadow: hoveredBar?.rank === opt.rank ? '0 4px 12px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.1)',
+                             transform: hoveredBar?.rank === opt.rank ? 'scale(1.03)' : 'scale(1)',
+                             transition: 'transform 0.15s, box-shadow 0.15s',
+                           }}>
                           {form.vessel_name || 'Vessel'} · {opt.confidence.toFixed(0)}%
                         </div>
                       </div>
@@ -325,7 +309,7 @@ export default function RecommendPage() {
                   ))}
                   {/* Time axis */}
                   <div className="flex items-center gap-3" style={{ marginTop: 6 }}>
-                    <div style={{ width: 120 }} />
+                    <div style={{ width: 150 }} />
                     <div className="flex-1 flex justify-between" style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>
                       {Array.from({ length: 5 }, (_, i) => <span key={i}>{((maxH * i) / 4).toFixed(0)}h</span>)}
                     </div>
@@ -343,7 +327,7 @@ export default function RecommendPage() {
                 fontSize: 12, lineHeight: 1.6, color: 'var(--color-text-secondary)',
               }}>
                 <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--color-text-primary)', marginBottom: 4 }}>
-                  #{hoveredBar.rank} {hoveredBar.berth_code} — {hoveredBar.berth_name}
+                  #{hoveredBar.rank} {getBerthDisplayName(hoveredBar.berth_code)}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px', fontSize: 11, marginBottom: 6 }}>
                   <span>📊 Confidence: <strong style={{ color: confColor(hoveredBar.confidence) }}>{hoveredBar.confidence.toFixed(0)}%</strong></span>
@@ -384,10 +368,9 @@ export default function RecommendPage() {
                 </div>
 
                 <div style={{ padding: '20px 20px 16px' }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)' }}>
-                    Berth {opt.berth_code}
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)', marginBottom: 14 }}>
+                    {getBerthDisplayName(opt.berth_code)}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 14 }}>{opt.berth_name}</div>
 
                   {/* Metrics */}
                   <div className="grid grid-cols-3 gap-2 text-center" style={{ marginBottom: 14 }}>
@@ -462,7 +445,7 @@ export default function RecommendPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: 'rgba(0,0,0,0.02)' }}>
-                  {['Rank', 'Tier', 'Berth', 'Code', 'Confidence', 'Suitability', 'Avg Wait* (h)', 'Avg Service* (h)', 'Ranking Reason'].map(h => (
+                  {['Rank', 'Tier', 'Berth Name', 'Confidence', 'Suitability', 'Avg Wait* (h)', 'Avg Service* (h)', 'Ranking Reason'].map(h => (
                     <th key={h} style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--color-text-muted)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '2px solid var(--color-border)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -474,8 +457,7 @@ export default function RecommendPage() {
                     <tr key={r.rank} style={{ borderBottom: '1px solid var(--color-border)', background: r.rank <= 3 ? 'rgba(16,185,129,0.03)' : undefined }}>
                       <td style={{ padding: '10px 12px', fontWeight: 700 }}>#{r.rank}</td>
                       <td style={{ padding: '10px 12px', fontSize: 12 }}>{tier}</td>
-                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{r.berth_name}</td>
-                      <td style={{ padding: '10px 12px', color: 'var(--color-text-muted)' }}>{r.berth_code}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{getBerthDisplayName(r.berth_code)}</td>
                       <td style={{ padding: '10px 12px', color: confColor(r.confidence), fontWeight: 700 }}>{r.confidence.toFixed(1)}%</td>
                       <td style={{ padding: '10px 12px' }}>{r.suitability_score.toFixed(1)}%</td>
                       <td style={{ padding: '10px 12px' }}>{r.expected_wait_hours.toFixed(1)}</td>
@@ -494,7 +476,7 @@ export default function RecommendPage() {
               📊 Confidence Comparison
             </h4>
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={results.map(r => ({ name: r.berth_name || r.berth_code, Confidence: r.confidence }))}>
+              <BarChart data={results.map(r => ({ name: getBerthDisplayName(r.berth_code), Confidence: r.confidence }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} angle={-20} textAnchor="end" height={60} />
                 <YAxis stroke="#94a3b8" fontSize={12} domain={[0, 100]} />
@@ -539,7 +521,7 @@ export default function RecommendPage() {
                     {/* Header */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: 16, fontWeight: 800 }}>🏗️ Berth {opt.berth_code} — Rank #{opt.rank}</span>
+                        <span style={{ fontSize: 16, fontWeight: 800 }}>🏗️ {getBerthDisplayName(opt.berth_code)} — Rank #{opt.rank}</span>
                         <span style={{ background: feasBadge.bg, color: feasBadge.color, padding: '2px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>{feasBadge.text}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -620,7 +602,7 @@ function buildBreakdown(form: VesselForm, berthLoa: number, berthDepth: number, 
 }
 
 /* ── Sample data for demo (when backend is unavailable) ─────── */
-function getSampleResults(form: VesselForm): RecommendationOption[] {
+function getSampleResults(form: VesselForm): BerthRecommendation[] {
   const vesselName = form.vessel_name || 'Vessel';
   const loaMarginB01 = 250 - form.loa;
   const loaMarginB02 = 300 - form.loa;
@@ -630,7 +612,7 @@ function getSampleResults(form: VesselForm): RecommendationOption[] {
 
   return [
     {
-      rank: 1, berth_code: 'INMAA-B01', berth_name: 'Bulk Terminal A1',
+      rank: 1, berth_code: '2172', berth_name: 'Berth JD1',
       confidence: 87, expected_wait_hours: 2.5, expected_service_hours: 24, suitability_score: 92, risk_score: 8,
       timeline_start: 0, timeline_end: 26.5, compact_reason: `Best physical fit (LOA margin ${loaMarginB01}m, UKC ${draftClearB01.toFixed(1)}m) with ${form.cargo_type}-optimized infrastructure`,
       pros: [
@@ -640,11 +622,12 @@ function getSampleResults(form: VesselForm): RecommendationOption[] {
       ],
       cons: ['Higher operating cost — $850/hr vs avg $620/hr'],
       explanation: `Best overall match — LOA/draft clearance excellent, ${form.cargo_type} handling infrastructure directly aligned.`,
-      ai_reasoning: `DECISION ANALYSIS: ${vesselName} (${form.vessel_type}, ${form.loa}m LOA) evaluated against 7 berths. INMAA-B01 scored highest: Physical fit — LOA margin ${loaMarginB01}m, UKC ${draftClearB01.toFixed(1)}m. Equipment — purpose-built for ${form.cargo_type}. Risk — 8%.`,
+      ai_reasoning: `DECISION ANALYSIS: ${vesselName} (${form.vessel_type}, ${form.loa}m LOA) evaluated against 7 berths. Berth JD1 scored highest: Physical fit — LOA margin ${loaMarginB01}m, UKC ${draftClearB01.toFixed(1)}m. Equipment — purpose-built for ${form.cargo_type}. Risk — 8%.`,
       structured_breakdown: buildBreakdown(form, 250, 14.5, 40, true, true, 2.5, 24),
+      technical_score: 95, commercial_score: 88,
     },
     {
-      rank: 2, berth_code: 'INMAA-B02', berth_name: 'Container Terminal A2',
+      rank: 2, berth_code: '21943', berth_name: 'Berth JD6',
       confidence: 73, expected_wait_hours: 4.2, expected_service_hours: 28, suitability_score: 81, risk_score: 15,
       timeline_start: 0, timeline_end: 32.2, compact_reason: `Deep channel (${draftClearB02.toFixed(1)}m UKC) but container-optimized — requires equipment adaptation`,
       pros: [
@@ -656,11 +639,12 @@ function getSampleResults(form: VesselForm): RecommendationOption[] {
         `STS Cranes container-optimized — ${form.cargo_type} needs mobile equipment`,
       ],
       explanation: `Strong secondary option — generous physical clearance but ${form.cargo_type} requires equipment adaptation.`,
-      ai_reasoning: `INMAA-B02 ranks #2 at 81% suitability. Deepest channel 16.2m, ${loaMarginB02}m LOA margin. Equipment mismatch for ${form.vessel_type} adds ~4h to service.`,
+      ai_reasoning: `Berth JD6 ranks #2 at 81% suitability. Deepest channel 16.2m, ${loaMarginB02}m LOA margin. Equipment mismatch for ${form.vessel_type} adds ~4h to service.`,
       structured_breakdown: buildBreakdown(form, 300, 16.2, 45, false, false, 4.2, 28),
+      technical_score: 84, commercial_score: 78,
     },
     {
-      rank: 3, berth_code: 'INMAA-B06', berth_name: 'General Purpose D6',
+      rank: 3, berth_code: '2640', berth_name: 'Berth JD2',
       confidence: 58, expected_wait_hours: 1.0, expected_service_hours: 32, suitability_score: 68, risk_score: 25,
       timeline_start: 0, timeline_end: 33, compact_reason: 'Fastest availability (1h) but lower throughput and tight physical margins',
       pros: ['Available within 1h — fastest', 'Multi-purpose with Mobile Crane (40t)'],
@@ -669,48 +653,9 @@ function getSampleResults(form: VesselForm): RecommendationOption[] {
         `600 TPH throughput — ${form.cargo_type} ops ~${(form.cargo_tons / 600).toFixed(1)}h`,
       ],
       explanation: `Fastest availability but sub-optimal throughput for ${form.cargo_type}.`,
-      ai_reasoning: `INMAA-B06 ranks #3. Immediate availability, but 600TPH throughput adds significant service time. Draft UKC ${(11.5 - form.draft).toFixed(1)}m.`,
+      ai_reasoning: `Berth JD2 ranks #3. Immediate availability, but 600TPH throughput adds significant service time. Draft UKC ${(11.5 - form.draft).toFixed(1)}m.`,
       structured_breakdown: buildBreakdown(form, 200, 11.5, 32, false, true, 1.0, 32),
-    },
-    {
-      rank: 4, berth_code: 'INMAA-B03', berth_name: 'Oil Terminal C3',
-      confidence: 45, expected_wait_hours: 3.5, expected_service_hours: 36, suitability_score: 52, risk_score: 30,
-      timeline_start: 0, timeline_end: 39.5, compact_reason: `Oil terminal — liquid cargo equipment not suited for ${form.cargo_type}; physical fit acceptable`,
-      pros: ['Good draft clearance at 13.8m depth', 'Low congestion terminal'],
-      cons: [`Terminal specialized for liquid cargo — ${form.cargo_type} handling inefficient`, 'No bulk cargo handling equipment'],
-      explanation: `Oil terminal not optimized for ${form.cargo_type} — physical fit OK but operational mismatch.`,
-      ai_reasoning: `INMAA-B03 specialized for liquid cargo. Physical dimensions adequate but operational mismatch with ${form.cargo_type}.`,
-      structured_breakdown: buildBreakdown(form, 220, 13.8, 38, false, false, 3.5, 36),
-    },
-    {
-      rank: 5, berth_code: 'INMAA-B04', berth_name: 'CITPL Container Berth',
-      confidence: 38, expected_wait_hours: 5.0, expected_service_hours: 30, suitability_score: 44, risk_score: 35,
-      timeline_start: 0, timeline_end: 35, compact_reason: 'Container-only terminal with high congestion — not recommended for this vessel',
-      pros: ['Modern infrastructure with automated systems'],
-      cons: ['Container-only handling — no bulk/general cargo capability', 'Highest wait time at 5h', `Vessel type ${form.vessel_type} not primary`],
-      explanation: 'Container-specialized terminal — unsuitable for non-container operations.',
-      ai_reasoning: `CITPL is exclusively container-configured. ${form.vessel_type} with ${form.cargo_type} would require complete equipment reconfiguration.`,
-      structured_breakdown: buildBreakdown(form, 350, 15.0, 50, false, false, 5.0, 30),
-    },
-    {
-      rank: 6, berth_code: 'INMAA-B05', berth_name: 'Ambedkar Dock East',
-      confidence: 30, expected_wait_hours: 2.0, expected_service_hours: 40, suitability_score: 35, risk_score: 40,
-      timeline_start: 0, timeline_end: 42, compact_reason: 'Shallow berth with limited equipment — only viable for small vessels',
-      pros: ['Quick availability at 2h wait', 'Flexible multi-cargo handling'],
-      cons: [`Draft restriction — only 9.5m depth vs vessel ${form.draft}m`, 'Limited crane capacity (25t max)', 'No rail connectivity'],
-      explanation: 'Shallow draft berth — may not accommodate vessel safely.',
-      ai_reasoning: `Ambedkar Dock East depth 9.5m vs vessel draft ${form.draft}m. ${form.draft > 9 ? 'CRITICAL: UKC below minimum' : 'Tight clearance'}.`,
-      structured_breakdown: buildBreakdown(form, 180, 9.5, 28, true, true, 2.0, 40),
-    },
-    {
-      rank: 7, berth_code: 'INMAA-B07', berth_name: 'Ro-Ro Terminal West',
-      confidence: 22, expected_wait_hours: 0.5, expected_service_hours: 48, suitability_score: 25, risk_score: 50,
-      timeline_start: 0, timeline_end: 48.5, compact_reason: 'Ro-Ro specialized terminal — cargo handling equipment incompatible',
-      pros: ['Immediate availability (0.5h)', 'Ramp access for vehicle cargo'],
-      cons: [`Ro-Ro only — no crane/conveyor for ${form.cargo_type}`, 'LOA limit 160m may be too small', 'Very slow service for non-RoRo cargo'],
-      explanation: 'Ro-Ro terminal — not designed for this vessel/cargo combination.',
-      ai_reasoning: `Ro-Ro terminal has ramp-only cargo handling. ${form.cargo_type} requires crane infrastructure not available here. LOA limit 160m.`,
-      structured_breakdown: buildBreakdown(form, 160, 10.0, 30, false, false, 0.5, 48),
+      technical_score: 70, commercial_score: 65,
     },
   ];
 }

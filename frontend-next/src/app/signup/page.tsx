@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
@@ -53,6 +53,7 @@ export default function SignupPage() {
   const router = useRouter();
   const { signup, isLoading, error, clearError } = useAuthStore();
 
+  const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState(1);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -66,6 +67,11 @@ export default function SignupPage() {
 
   // Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setMounted(true);
+    clearError();
+  }, [clearError]);
 
   function validateStep(s: number): boolean {
     const errs: Record<string, string> = {};
@@ -114,6 +120,14 @@ export default function SignupPage() {
     } catch {
       // Error from store
     }
+  }
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <div className="animate-spin text-3xl">🚢</div>
+      </div>
+    );
   }
 
   if (showSuccess) {
@@ -193,6 +207,7 @@ export default function SignupPage() {
                   </label>
                   <input
                     type="text"
+                    autoComplete="organization"
                     className={`form-input ${errors.company ? 'error' : ''}`}
                     placeholder="Enter your company name"
                     value={company}
@@ -220,23 +235,23 @@ export default function SignupPage() {
               <div className="space-y-5 animate-fade-in">
                 <div>
                   <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text-secondary)' }}>Full Name *</label>
-                  <input type="text" className={`form-input ${errors.fullName ? 'error' : ''}`} placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                  <input type="text" autoComplete="name" className={`form-input ${errors.fullName ? 'error' : ''}`} placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
                   {errors.fullName && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>{errors.fullName}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text-secondary)' }}>Email Address *</label>
-                  <input type="email" className={`form-input ${errors.email ? 'error' : ''}`} placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <input type="email" autoComplete="email" className={`form-input ${errors.email ? 'error' : ''}`} placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} />
                   {errors.email && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>{errors.email}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text-secondary)' }}>Password *</label>
-                  <input type="password" className={`form-input ${errors.password ? 'error' : ''}`} placeholder="Min 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <input type="password" autoComplete="new-password" className={`form-input ${errors.password ? 'error' : ''}`} placeholder="Min 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} />
                   <PasswordStrength password={password} />
                   {errors.password && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>{errors.password}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text-secondary)' }}>Confirm Password *</label>
-                  <input type="password" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Re-enter password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                  <input type="password" autoComplete="new-password" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Re-enter password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
                   {errors.confirmPassword && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>{errors.confirmPassword}</p>}
                 </div>
                 <div className="flex gap-3">

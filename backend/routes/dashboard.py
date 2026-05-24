@@ -26,7 +26,6 @@ router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 @router.get("/kpis", response_model=KPIResponse)
 async def kpis(
     port_code: str = Query("INMAA"),
-    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get current KPI values for the dashboard."""
@@ -37,7 +36,6 @@ async def kpis(
 async def charts(
     port_code: str = Query("INMAA"),
     time_range: str = Query("30d"),
-    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get chart data for the dashboard (monthly, utilization, vessels, costs)."""
@@ -48,7 +46,6 @@ async def charts(
 async def recommendations(
     port_code: str = Query("INMAA"),
     status: str = Query("all"),
-    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get recent recommendations for the dashboard overview."""

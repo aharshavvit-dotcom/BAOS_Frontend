@@ -69,7 +69,7 @@ def recommend_berth(
     # --- Data-Driven Feasibility Filtering ---
     constraint_lib = None
     try:
-        from data_layer.spec_ingest import build_port_master
+        from legacy.spec_ingest import build_port_master
         from optimization_engine.constraint_library import ConstraintLibrary
 
         sample_data = _ROOT / "sample_data"

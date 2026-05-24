@@ -1,0 +1,25 @@
+{
+  "port_code": "INMAA",
+  "port_name": "Chennai Port",
+  "files": [
+    {
+      "file": "Berth_configurations.xlsx",
+      "type": "berth_config",
+      "berths_loaded": 24
+    },
+    {
+      "file": "Operational_Capability_of_Berth.xlsx",
+      "type": "berth_capability",
+      "capabilities_loaded": 205
+    },
+    {
+      "file": "Chennai_PORTLOG2025JUN-DEC.xlsx",
+      "type": "port_call_log",
+      "total": 908,
+      "inserted": 906,
+      "updated": 2,
+      "rejected": 0,
+      "outlier": 9
+    }
+  ]
+}

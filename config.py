@@ -34,11 +34,66 @@ def _load_port_master_for_config(
     history_df: Optional[pd.DataFrame] = None,
 ):
     """
-    Load PortMaster from spec sheets if available.
-    Returns None if spec files are not found or ingestion fails.
+    Load PortMaster from DB if available.
+    Falls back to Excel files if DB is not reachable or empty.
     """
+    # ── Try Database first ──────────────────────────────────
     try:
-        from data_layer.spec_ingest import build_port_master
+        from backend.database.connection import get_sync_db
+        from backend.database.baos_models import BaosPort, BaosBerth
+        from data_models import PortMaster, BerthSpec, ProvenanceField, QualityGate
+        
+        session = get_sync_db()
+        try:
+            from data_layer.port_store import _get_port_code
+            port_code = _get_port_code(session, port_name)
+            port = session.query(BaosPort).filter(BaosPort.port_code == port_code).first()
+            if port:
+                berths = session.query(BaosBerth).filter(BaosBerth.port_id == port.port_id).all()
+                if berths:
+                    berth_specs = {}
+                    for b in berths:
+                        vessel_types = sorted(set(c.vessel_type for c in b.capabilities if c.vessel_type))
+                        cargo_types = sorted(set(c.cargo_type for c in b.capabilities if c.cargo_type))
+                        
+                        spec = BerthSpec(
+                            berth_code=b.berth_code,
+                            berth_name=b.berth_name or b.berth_code,
+                            terminal_name=b.terminal_name or "",
+                            port_code=port_code,
+                            port_name=port.port_name,
+                        )
+                        spec.max_loa_m = ProvenanceField.from_spec(b.max_loa_m or 400.0)
+                        spec.max_beam_m = ProvenanceField.from_spec(b.max_beam_m or 60.0)
+                        spec.max_draft_m = ProvenanceField.from_spec(b.max_draft_m or 15.0)
+                        spec.max_depth_m = ProvenanceField.from_spec(b.depth_m or 16.0)
+                        spec.allowed_vessel_types = vessel_types
+                        spec.supported_commodities = cargo_types
+                        spec.equipment_types = ["crane", "hose", "gangway"]
+                        try:
+                            spec.data_quality = QualityGate(b.data_quality_level.lower() if b.data_quality_level else "spec")
+                        except Exception:
+                            spec.data_quality = QualityGate.GREEN
+                        berth_specs[b.berth_code] = spec
+                        
+                    port_master = PortMaster(
+                        port_code=port_code,
+                        port_name=port.port_name,
+                        berths=berth_specs,
+                        spec_loaded=True,
+                        operational_loaded=True,
+                        history_loaded=True
+                    )
+                    logger.info(f"Loaded PortMaster from DB: {len(port_master.berths)} berths")
+                    return port_master
+        finally:
+            session.close()
+    except Exception as db_err:
+        logger.warning(f"Failed to load PortMaster from DB: {db_err}. Falling back to Excel files.")
+
+    # ── Fallback to Excel files ─────────────────────────────
+    try:
+        from legacy.spec_ingest import build_port_master
 
         sample_data = _ROOT / "sample_data"
 
@@ -62,7 +117,7 @@ def _load_port_master_for_config(
         )
         return port_master
     except Exception as e:
-        logger.warning(f"Failed to load PortMaster: {e}")
+        logger.warning(f"Failed to load PortMaster from Excel: {e}")
         return None
 
 

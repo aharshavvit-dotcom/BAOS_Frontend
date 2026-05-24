@@ -86,9 +86,8 @@ const sampleRecs: DashboardRecommendation[] = [
 export default function DashboardPage() {
   const user = useAuthStore(s => s.user);
   const [filter, setFilter] = useState<FilterStatus>('all');
-  const [recommendations, setRecommendations] = useState(sampleRecs);
-
-  const { fetchKPIs, fetchCharts, fetchRecommendations: fetchRecs } = useDashboardStore();
+  const { kpis, recommendations: storeRecs, fetchKPIs, fetchCharts, fetchRecommendations: fetchRecs } = useDashboardStore();
+  const [recommendations, setRecommendations] = useState<DashboardRecommendation[]>(sampleRecs);
 
   // Try loading from API on mount (graceful fallback to sample data)
   useEffect(() => {
@@ -97,13 +96,49 @@ export default function DashboardPage() {
     fetchRecs().catch(() => {});
   }, [fetchKPIs, fetchCharts, fetchRecs]);
 
+  useEffect(() => {
+    if (storeRecs && storeRecs.length > 0) {
+      setRecommendations(storeRecs);
+    } else {
+      setRecommendations(sampleRecs);
+    }
+  }, [storeRecs]);
+
   const filtered = filter === 'all' ? recommendations : recommendations.filter(r => r.status === filter);
 
-  function acceptRec(id: string) {
+  async function acceptRec(id: string) {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+      const token = localStorage.getItem('baos_access_token');
+      await fetch(`${apiUrl}/api/recommendations/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ status: 'accepted' }),
+      });
+    } catch (e) {
+      console.error("Failed to accept recommendation in backend", e);
+    }
     setRecommendations(prev => prev.map(r => r.id === id ? { ...r, status: 'accepted' as const } : r));
   }
 
-  function rejectRec(id: string) {
+  async function rejectRec(id: string) {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+      const token = localStorage.getItem('baos_access_token');
+      await fetch(`${apiUrl}/api/recommendations/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ status: 'rejected' }),
+      });
+    } catch (e) {
+      console.error("Failed to reject recommendation in backend", e);
+    }
     setRecommendations(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' as const } : r));
   }
 
@@ -135,10 +170,10 @@ export default function DashboardPage() {
       {/* ── KPI Cards ────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: '🚢', label: 'Active Vessels',     value: 142,  suffix: '', change: '+8.4%', trend: 'up' },
-          { icon: '💰', label: 'Revenue',             value: 480,  prefix: '$', suffix: 'K', change: '+14.3%', trend: 'up' },
-          { icon: '📈', label: 'Berth Utilization',   value: 78,   suffix: '%', change: '+4%', trend: 'up' },
-          { icon: '✅', label: 'SLA Compliance',      value: 94,   suffix: '%', change: '+5.6%', trend: 'up' },
+          { icon: '🚢', label: 'Active Vessels',     value: kpis?.vessels_count ?? 142,  suffix: '', change: '+8.4%', trend: 'up' },
+          { icon: '💰', label: 'Revenue',             value: kpis?.revenue ? Math.round(kpis.revenue / 1000) : 480,  prefix: '$', suffix: 'K', change: '+14.3%', trend: 'up' },
+          { icon: '📈', label: 'Berth Utilization',   value: kpis?.utilization_pct ?? 78,   suffix: '%', change: '+4%', trend: 'up' },
+          { icon: '✅', label: 'SLA Compliance',      value: kpis?.sla_compliance_pct ?? 94,   suffix: '%', change: '+5.6%', trend: 'up' },
         ].map((kpi, i) => (
           <div key={i} className="card" style={{ background: 'var(--color-dark-card)' }}>
             <div className="flex items-center justify-between mb-3">

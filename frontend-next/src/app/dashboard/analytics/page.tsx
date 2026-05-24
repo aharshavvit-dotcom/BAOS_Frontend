@@ -238,7 +238,7 @@ export default function AnalyticsPage() {
               <XAxis type="number" domain={[0, 100]} stroke="#94a3b8" fontSize={12} />
               <YAxis type="category" dataKey="name" stroke="#94a3b8" fontSize={11} width={80} />
               <Tooltip contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8 }}
-                formatter={(v: number) => [`${v}%`, 'Utilization']} />
+                formatter={(v) => [`${v}%`, 'Utilization']} />
               <Bar dataKey="utilization" radius={[0, 6, 6, 0]}>
                 {terminalUtilization.map((_, i) => (
                   <Cell key={i} fill={COLORS[i]} />
@@ -256,7 +256,7 @@ export default function AnalyticsPage() {
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
               <Pie data={vesselTypeDistrib} cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={3} dataKey="value"
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}>
                 {vesselTypeDistrib.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}

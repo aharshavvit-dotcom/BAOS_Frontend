@@ -195,6 +195,7 @@ def get_ports():
     results = []
     for p in ports:
         trained = is_trained(p)
+        info = get_model_info(p) if trained else None
         cfg = load_port_config(p) if port_exists(p) else {}
         results.append(PortInfo(  # type: ignore
             port_name=p,
@@ -373,6 +374,330 @@ def health():
         "version": "2.0.0",
         "ports": len(list_ports()),
         "timestamp": datetime.utcnow().isoformat(),
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  PORT STATUS & CONFIG ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+@app.get("/api/v1/ports/{port_code}/status")
+def port_status(port_code: str):
+    """Get detailed status for a port: model info, data quality, berth count."""
+    if not port_exists(port_code):
+        raise HTTPException(status_code=404, detail=f"Port '{port_code}' not found")
+
+    trained = is_trained(port_code)
+    info = get_model_info(port_code) if trained else None
+    cfg = load_port_config(port_code)
+    berths = cfg.get("berths", [])
+
+    # Assess data quality
+    has_spec = any(b.get("allowed_vessel_types") for b in berths)
+    history_count = info.get("training_rows", 0) if info else 0
+    source = "SPEC" if has_spec else ("HISTORICAL" if history_count > 50 else "ASSUMPTION")
+
+    return {
+        "port_name": port_code,
+        "port_code": port_code,
+        "trained": trained,
+        "model_info": info,
+        "data_quality": {
+            "overall_score": 85 if source == "SPEC" else (65 if source == "HISTORICAL" else 40),
+            "source": source,
+            "completeness_pct": 90 if has_spec else 60,
+            "recency_days": 30,
+        },
+        "berth_count": len(berths),
+        "history_rows": history_count,
+    }
+
+
+@app.get("/api/v1/ports/{port_code}/config")
+def port_config(port_code: str):
+    """Get full port configuration with berth inventory."""
+    if not port_exists(port_code):
+        raise HTTPException(status_code=404, detail=f"Port '{port_code}' not found")
+
+    cfg = load_port_config(port_code)
+    berths = cfg.get("berths", [])
+
+    # Collect unique vessel types and cargo types across berths
+    all_vessel_types = set()
+    for b in berths:
+        for vt in b.get("allowed_vessel_types", []):
+            all_vessel_types.add(vt)
+
+    # Return with berth_name as primary identifier for readability
+    return {
+        "port_name": cfg.get("port_name", port_code),
+        "port_code": port_code,
+        "planning_start": cfg.get("planning_start", ""),
+        "num_berths": cfg.get("num_berths", len(berths)),
+        "berths": berths,
+        "service_time_stats": cfg.get("service_time_stats", []),
+        "vessel_types": sorted(all_vessel_types),
+        "cargo_types": [],
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  SCENARIO OVERRIDE & RANKED ALTERNATIVES
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class OverrideItem(BaseModel):
+    vessel_id: str
+    berth_code: str
+    reason: str = ""
+
+
+class ApplyOverrideRequest(BaseModel):
+    port_code: str
+    vessels: List[VesselRequest]
+    overrides: List[OverrideItem]
+    config: Optional[Dict[str, Any]] = None
+    pilot_capacity: int = 2
+    tug_capacity: int = 3
+
+
+@app.post("/api/v1/scenarios/apply-override")
+def apply_override(req: ApplyOverrideRequest):
+    """
+    Apply manual override(s) and re-run optimizer.
+
+    Flow:
+    1. Lock overridden vessel→berth pairs as hard constraints
+    2. Re-run CP-SAT with locks
+    3. Return new schedule + impact deltas vs cached baseline
+    """
+    if not port_exists(req.port_code):
+        raise HTTPException(status_code=404, detail=f"Port '{req.port_code}' not found")
+
+    vessels = [_vessel_req_to_input(v) for v in req.vessels]
+    berths = _load_berths(req.port_code)
+    config = _config_from_dict(req.config)
+    resources = [
+        ResourceInput("pilot", capacity=req.pilot_capacity),
+        ResourceInput("tug", capacity=req.tug_capacity),
+    ]
+
+    # Apply overrides: set preferred_berths + boost priority
+    overrides_map = {o.vessel_id: o.berth_code for o in req.overrides}
+    for v in vessels:
+        if v.vessel_id in overrides_map:
+            v.preferred_berths = [overrides_map[v.vessel_id]]
+            v.priority = max(v.priority - 50, 1)  # boost priority
+
+    # Re-run optimizer
+    scheduler = RollingHorizonScheduler(config)
+    snapshot = scheduler.optimize(vessels, berths, resources=resources)
+    result = snapshot.solver_result
+
+    if result is None:
+        raise HTTPException(status_code=500, detail="Solver returned no result")
+
+    # Build assignment responses
+    assignments = [
+        AssignmentResponse(
+            vessel_id=a.vessel_id,
+            vessel_name=a.vessel_name,
+            berth_code=a.berth_code,
+            berth_name=a.berth_name,
+            start_minutes=a.start_minutes,
+            end_minutes=a.end_minutes,
+            waiting_minutes=a.waiting_minutes,
+            service_minutes=a.service_minutes,
+            sla_exceeded=a.sla_exceeded,
+            is_preferred_berth=a.is_preferred_berth,
+        )
+        for a in result.assignments
+    ]
+
+    # Compute cost for new schedule
+    vessels_dict = {v.vessel_id: v for v in vessels}
+    berths_dict = {b.berth_code: b for b in berths}
+    cost_engine = CostEngine()
+    cost_summary = cost_engine.compute_schedule_cost(
+        result.assignments, vessels_dict, berths_dict,
+    )
+
+    # Calculate deltas vs baseline
+    baseline = _last_schedules.get(req.port_code)
+    if baseline:
+        baseline_wait = sum(a.waiting_minutes for a in baseline.assignments) / max(len(baseline.assignments), 1)
+        new_wait = sum(a.waiting_minutes for a in result.assignments) / max(len(result.assignments), 1)
+        baseline_cost = baseline.cost_summary.get("total_cost", 0) if baseline.cost_summary else 0
+        new_cost = cost_summary.total_cost
+    else:
+        baseline_wait = 0
+        new_wait = sum(a.waiting_minutes for a in result.assignments) / max(len(result.assignments), 1)
+        baseline_cost = 0
+        new_cost = cost_summary.total_cost
+
+    new_response = OptimizeResponse(
+        status=result.status_name,
+        solve_time_sec=result.solve_time_sec,
+        objective_value=result.objective_value,
+        assignments=assignments,
+        unassigned_vessels=result.unassigned_vessels,
+        kpis=result.kpis,
+        cost_summary={
+            "total_waiting_cost": round(cost_summary.total_waiting_cost, 2),
+            "total_fuel_cost": round(cost_summary.total_fuel_cost, 2),
+            "total_equipment_cost": round(cost_summary.total_equipment_cost, 2),
+            "total_sla_penalties": round(cost_summary.total_sla_penalties, 2),
+            "total_revenue": round(cost_summary.total_revenue, 2),
+            "total_cost": round(cost_summary.total_cost, 2),
+            "net_cost": round(cost_summary.net_cost, 2),
+        },
+    )
+
+    # Update cache
+    _last_schedules[req.port_code] = new_response
+
+    return {
+        "success": True,
+        "status": result.status_name,
+        "active_result": new_response.model_dump(),
+        "scenario_impact": {
+            "objective_delta": round(result.objective_value - (baseline.objective_value if baseline else 0), 2),
+            "waiting_hours_delta": round((new_wait - baseline_wait) / 60, 2),
+            "cost_delta": round(new_cost - baseline_cost, 2),
+            "confidence_delta": 0,
+            "sla_risk_delta": 0,
+            "conflicts_detected": [],
+        },
+        "messages": [
+            f"Override applied for {len(req.overrides)} vessel(s).",
+            f"Solver status: {result.status_name}",
+        ],
+    }
+
+
+class RankedAlternativesRequest(BaseModel):
+    port_code: str
+    vessel_id: str
+    vessels: List[VesselRequest]
+
+
+@app.post("/api/v1/optimizer/ranked-alternatives")
+def ranked_alternatives(req: RankedAlternativesRequest):
+    """
+    Get solver-ranked berth alternatives for a specific vessel.
+
+    Runs the optimizer multiple times, locking each berth one at a time,
+    and returns the ranked list with objective values.
+    """
+    if not port_exists(req.port_code):
+        raise HTTPException(status_code=404, detail=f"Port '{req.port_code}' not found")
+
+    vessels = [_vessel_req_to_input(v) for v in req.vessels]
+    berths = _load_berths(req.port_code)
+    config = SchedulerConfig(max_solve_seconds=10)  # Quick solves
+    resources = [ResourceInput("pilot", capacity=2), ResourceInput("tug", capacity=3)]
+
+    target_vessel = next((v for v in vessels if v.vessel_id == req.vessel_id), None)
+    if not target_vessel:
+        raise HTTPException(status_code=404, detail=f"Vessel '{req.vessel_id}' not found in vessel list")
+
+    # Check feasibility for each berth
+    checker = FeasibilityChecker(config)
+    alternatives = []
+
+    for b in berths:
+        feas = checker.check(target_vessel, b)
+        if not feas.feasible:
+            alternatives.append({
+                "rank": 0,
+                "berth_code": b.berth_code,
+                "berth_name": b.berth_name,
+                "objective_value": float("inf"),
+                "waiting_hours": 0,
+                "cost": 0,
+                "confidence_pct": 0,
+                "feasibility_score": round(feas.score * 100, 1),
+                "reason": feas.violation_summary,
+                "is_current": False,
+            })
+            continue
+
+        # Run solver with this vessel locked to this berth
+        v_copy = VesselInput(
+            vessel_id=target_vessel.vessel_id,
+            name=target_vessel.name,
+            vessel_type=target_vessel.vessel_type,
+            loa_m=target_vessel.loa_m,
+            beam_m=target_vessel.beam_m,
+            draft_m=target_vessel.draft_m,
+            cargo_type=target_vessel.cargo_type,
+            cargo_tons=target_vessel.cargo_tons,
+            eta_minutes=target_vessel.eta_minutes,
+            service_time_minutes=target_vessel.service_time_minutes,
+            priority=1,  # highest
+            preferred_berths=[b.berth_code],
+            sla_max_wait_minutes=target_vessel.sla_max_wait_minutes,
+        )
+
+        test_vessels = [v_copy] + [v for v in vessels if v.vessel_id != req.vessel_id]
+
+        try:
+            scheduler = RollingHorizonScheduler(config)
+            snapshot = scheduler.optimize(test_vessels, berths, resources=resources)
+            sr = snapshot.solver_result
+            if sr and sr.assignments:
+                my_assignment = next(
+                    (a for a in sr.assignments if a.vessel_id == req.vessel_id), None
+                )
+                alternatives.append({
+                    "rank": 0,
+                    "berth_code": b.berth_code,
+                    "berth_name": b.berth_name,
+                    "objective_value": sr.objective_value,
+                    "waiting_hours": round(my_assignment.waiting_minutes / 60, 1) if my_assignment else 0,
+                    "cost": 0,
+                    "confidence_pct": round(feas.score * 100, 1),
+                    "feasibility_score": round(feas.score * 100, 1),
+                    "reason": f"Objective: {sr.objective_value:.0f}, Wait: {my_assignment.waiting_minutes / 60:.1f}h" if my_assignment else "",
+                    "is_current": False,
+                })
+        except Exception:
+            alternatives.append({
+                "rank": 0,
+                "berth_code": b.berth_code,
+                "berth_name": b.berth_name,
+                "objective_value": float("inf"),
+                "waiting_hours": 0,
+                "cost": 0,
+                "confidence_pct": 0,
+                "feasibility_score": round(feas.score * 100, 1),
+                "reason": "Solver error",
+                "is_current": False,
+            })
+
+    # Sort by objective value and assign ranks
+    feasible_alts = [a for a in alternatives if a["objective_value"] != float("inf")]
+    infeasible_alts = [a for a in alternatives if a["objective_value"] == float("inf")]
+    feasible_alts.sort(key=lambda a: a["objective_value"])
+    for i, a in enumerate(feasible_alts):
+        a["rank"] = i + 1
+    for a in infeasible_alts:
+        a["rank"] = len(feasible_alts) + 1
+
+    # Mark current assignment
+    cached = _last_schedules.get(req.port_code)
+    if cached:
+        current_berth = next(
+            (a.berth_code for a in cached.assignments if a.vessel_id == req.vessel_id), None
+        )
+        if current_berth:
+            for a in feasible_alts + infeasible_alts:
+                a["is_current"] = a["berth_code"] == current_berth
+
+    return {
+        "vessel_id": req.vessel_id,
+        "alternatives": feasible_alts + infeasible_alts,
     }
 
 

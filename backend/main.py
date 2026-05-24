@@ -23,12 +23,17 @@ if sys.platform == 'win32':
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from config import settings
+try:
+    from backend.config import settings
+except ImportError:
+    from config import settings
 from database.connection import close_db, init_db
 from middleware.error_handler import register_error_handlers
 from routes.auth import router as auth_router
 from routes.dashboard import router as dashboard_router
 from routes.recommendations import router as recommendations_router
+from routes.ports import router as ports_router
+from routes.assumptions import router as assumptions_router
 from routes.websocket import socket_app
 
 # ── Logging ──────────────────────────────────────────────────────────────────
@@ -53,11 +58,17 @@ if str(_PROJECT_ROOT) not in sys.path:
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
     logger.info("🚀 BAOS AI backend starting up...")
-    await init_db()
-    logger.info("✅ Database tables ready")
+    try:
+        await init_db()
+        logger.info("✅ Database tables ready")
+    except Exception as e:
+        logger.error(f"❌ Database initialization failed (optimization endpoints will still function): {e}")
     yield
     logger.info("🛑 Shutting down...")
-    await close_db()
+    try:
+        await close_db()
+    except Exception as e:
+        logger.error(f"Error closing DB connection: {e}")
 
 
 # ── FastAPI App ──────────────────────────────────────────────────────────────
@@ -90,6 +101,8 @@ register_error_handlers(app)
 app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(recommendations_router)
+app.include_router(ports_router)
+app.include_router(assumptions_router)
 
 # ── Mount existing API endpoints (from parent project) ───────────────────────
 

@@ -14,7 +14,7 @@ from sqlalchemy.engine import URL
 class Settings(BaseSettings):
     # ── Database (individual parts to avoid URL-encoding issues) ──
     DB_USER: str = "postgres"
-    DB_PASS: str = "Harsha@123"
+    DB_PASS: str = "postgres@123"
     DB_HOST: str = "127.0.0.1"
     DB_PORT: int = 5433
     DB_NAME: str = "ML_APP"

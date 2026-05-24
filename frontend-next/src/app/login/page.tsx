@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
@@ -13,11 +13,17 @@ export default function LoginPage() {
   const router = useRouter();
   const { login, isLoading, error, clearError } = useAuthStore();
 
+  const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+
+  useEffect(() => {
+    setMounted(true);
+    clearError();
+  }, [clearError]);
 
   const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
@@ -60,6 +66,14 @@ export default function LoginPage() {
       role: 'operator',
     });
     router.push('/dashboard');
+  }
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-dark)' }}>
+        <div className="animate-spin text-3xl">🚢</div>
+      </div>
+    );
   }
 
   return (
@@ -117,10 +131,10 @@ export default function LoginPage() {
 
           {/* Social login */}
           <div className="flex gap-3 mb-6">
-            <button onClick={() => handleSocialLogin('Google')} className="btn btn-secondary flex-1 text-sm">
+            <button type="button" onClick={() => handleSocialLogin('Google')} className="btn btn-secondary flex-1 text-sm">
               🔵 Google
             </button>
-            <button onClick={() => handleSocialLogin('Microsoft')} className="btn btn-secondary flex-1 text-sm">
+            <button type="button" onClick={() => handleSocialLogin('Microsoft')} className="btn btn-secondary flex-1 text-sm">
               🟦 Microsoft
             </button>
           </div>
@@ -142,6 +156,7 @@ export default function LoginPage() {
                 <span className="icon">📧</span>
                 <input
                   type="email"
+                  autoComplete="username email"
                   className={`form-input ${emailError ? 'error' : ''}`}
                   placeholder="you@company.com"
                   value={email}
@@ -161,6 +176,7 @@ export default function LoginPage() {
                 <span className="icon">🔒</span>
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   className={`form-input ${passwordError ? 'error' : ''}`}
                   placeholder="Enter your password"
                   value={password}

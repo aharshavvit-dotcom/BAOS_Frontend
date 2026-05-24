@@ -22,7 +22,7 @@ DB_CONFIG = {
     "port": 5433,
     "dbname": "ML_APP",
     "user": "postgres",
-    "password": "Harsha@123",
+    "password": "postgres@123",
 }
 
 DSN = (

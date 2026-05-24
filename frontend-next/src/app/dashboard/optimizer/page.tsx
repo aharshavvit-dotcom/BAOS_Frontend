@@ -1,20 +1,30 @@
 /**
  * Optimizer Dashboard — CP-SAT Multi-Vessel Optimizer
- * Features: Feasibility Matrix with rich hover tooltips, AI Explanations,
- * Confidence Scores, Next-Optimal Berth Selection (in schedule + cost),
- * Undo/Redo, Per-Ship-Type Levers, Interactive Berth Timeline
+ *
+ * REFACTORED: Uses real backend API calls instead of mock fallbacks.
+ * - POST /api/v1/optimize for scheduling
+ * - POST /api/v1/scenarios/apply-override for manual berth changes
+ * - Dynamic berth data from port store (no hardcoded arrays)
  */
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 import {
   VesselInput, ScheduleAssignment, OptimizerResult, LeversConfig, ShipTypeLevers,
-  VESSEL_TYPES, CARGO_TYPES, ALL_BERTHS, BERTH_COLORS,
-  defaultLevers, makeVessel, createInitialVessels, getSampleResult, BERTH_SPECS,
+  VESSEL_TYPES, CARGO_TYPES,
+  defaultLevers, makeVessel, createInitialVessels, getSampleResult,
 } from './types';
+import { usePortStore } from '@/store/portStore';
+import { runOptimize } from '@/lib/api/optimizer';
+import { applyOverride } from '@/lib/api/scenarios';
+import { isDemoMode, extractApiError } from '@/lib/api/client';
+import { SolverStatusBanner } from '@/components/optimizer/SolverStatusBanner';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { PortSelector } from '@/components/port/PortSelector';
+import type { SolverStatus } from '@/lib/api/optimizer';
 
 /* ── Lever Slider Config ─────────────────────────────── */
 const LEVER_DEFS: [keyof LeversConfig, string, number, number, number][] = [
@@ -34,6 +44,7 @@ export default function OptimizerPage() {
   const [levers, setLevers] = useState<LeversConfig>(defaultLevers());
   const [pilotCap, setPilotCap] = useState(2);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OptimizerResult | null>(null);
   const [showLevers, setShowLevers] = useState(false);
   const [leverTab, setLeverTab] = useState<'global' | 'ship_type'>('global');
@@ -58,6 +69,16 @@ export default function OptimizerPage() {
   const [hoveredBar, setHoveredBar] = useState<ScheduleAssignment | null>(null);
   const [barPos, setBarPos] = useState({ x: 0, y: 0 });
 
+  // Port store — dynamic berths
+  const { selectedPortCode, portConfig, fetchPorts, getBerths, getBerthColor, getBerthDisplayName } = usePortStore();
+
+  useEffect(() => {
+    fetchPorts();
+  }, [fetchPorts]);
+
+  const allBerths = getBerths();
+  const berthCodes = allBerths.map(b => b.berth_code);
+
   const updateVessel = useCallback((idx: number, key: keyof VesselInput, val: string | number) => {
     setVessels(prev => {
       const copy = [...prev];
@@ -74,40 +95,177 @@ export default function OptimizerPage() {
     });
   }
 
+  // ── Real Backend Optimization ──────────────────────────
+
   async function runOptimizer() {
     setLoading(true);
+    setError(null);
     setOverrides(new Map());
     setExpandedVessel(null);
     setExpandedCostVessel(null);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-      const token = localStorage.getItem('baos_access_token');
-      const res = await fetch(`${apiUrl}/api/recommendations/optimize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ vessels, levers, pilot_capacity: pilotCap, ship_type_levers: shipTypeLevers }),
+      const displayResult = await runOptimize({
+        port_code: selectedPortCode,
+        vessels: vessels.map(v => ({
+          vessel_id: v.vessel_id,
+          name: v.name,
+          vessel_type: v.vessel_type,
+          cargo_type: v.cargo_type,
+          loa_m: v.loa_m,
+          beam_m: v.beam_m,
+          draft_m: v.draft_m,
+          cargo_tons: v.cargo_tons,
+          dwt: 30000,
+          eta_hours: v.eta_hours,
+          service_hours: v.service_hours,
+          priority: 100,
+          preferred_berths: [],
+          sla_max_wait_hours: 24,
+          demurrage_cost_per_hr: 0,
+          needs_tug: true,
+          needs_pilot: true,
+          customs_cleared: true,
+          government_priority: false,
+        })),
+        levers,
+        resources: { pilot_capacity: pilotCap, tug_capacity: 3, channel_capacity: 1 },
       });
-      if (!res.ok) { const r = getSampleResult(vessels); setResult(r); setOriginalResult(r); return; }
-      const data = await res.json();
-      setResult(data);
-      setOriginalResult(data);
-    } catch {
-      const r = getSampleResult(vessels);
-      setResult(r);
-      setOriginalResult(r);
+
+      // Map display result to local OptimizerResult format
+      const localResult: OptimizerResult = {
+        status: displayResult.status,
+        status_message: displayResult.status_message,
+        solve_time_sec: displayResult.solve_time_sec,
+        objective_value: displayResult.objective_value,
+        assignments: displayResult.assignments.map(a => ({
+          vessel_id: a.vessel_id,
+          vessel_name: a.vessel_name,
+          berth_code: a.berth_code,
+          berth_name: a.berth_name || getBerthDisplayName(a.berth_code),
+          start_hours: a.start_hours,
+          end_hours: a.end_hours,
+          waiting_hours: a.waiting_hours,
+          service_hours: a.service_hours,
+          sla_exceeded: a.sla_exceeded,
+          confidence: a.confidence,
+          explanation: a.explanation,
+          source: 'BACKEND',
+        })),
+        costs: displayResult.costs,
+        kpis: displayResult.kpis,
+        feasibility_matrix: [],
+        ranked_alternatives: {},
+        unassigned_vessels: displayResult.unassigned_vessels,
+        warnings: displayResult.warnings,
+        source: 'BACKEND',
+      };
+      setResult(localResult);
+      setOriginalResult(localResult);
+    } catch (err) {
+      const apiErr = extractApiError(err);
+      if (isDemoMode()) {
+        // Demo fallback — clearly labeled
+        const r = getSampleResult(vessels);
+        setResult(r);
+        setOriginalResult(r);
+        setError(`Backend unavailable: ${apiErr.message}. Showing demo data.`);
+      } else {
+        setError(apiErr.message);
+        setResult(null);
+      }
     } finally {
       setLoading(false);
     }
   }
 
-  function selectAlternativeBerth(vesselId: string, berthCode: string) {
+  // ── Real Backend Override ──────────────────────────────
+
+  async function selectAlternativeBerth(vesselId: string, berthCode: string) {
     const newOverrides = new Map(overrides);
     newOverrides.set(vesselId, berthCode);
     setOverrides(newOverrides);
-    const newResult = getSampleResult(vessels, newOverrides);
-    setResult(newResult);
     setExpandedVessel(null);
     setExpandedCostVessel(null);
+
+    // Call backend for re-optimization
+    setLoading(true);
+    setError(null);
+    try {
+      const backendVessels = vessels.map(v => ({
+        vessel_id: v.vessel_id,
+        name: v.name,
+        vessel_type: v.vessel_type,
+        loa_m: v.loa_m,
+        beam_m: v.beam_m,
+        draft_m: v.draft_m,
+        cargo_type: v.cargo_type,
+        cargo_tons: v.cargo_tons,
+        eta_minutes: Math.round(v.eta_hours * 60),
+        service_time_minutes: Math.round(v.service_hours * 60),
+        priority: 100,
+        preferred_berths: [] as string[],
+        sla_max_wait_minutes: 1440,
+        demurrage_cost_per_hr: 0,
+        needs_tug: true,
+        needs_pilot: true,
+        customs_cleared: true,
+        government_priority: false,
+      }));
+
+      const response = await applyOverride({
+        port_code: selectedPortCode,
+        vessels: backendVessels,
+        overrides: [{ vessel_id: vesselId, berth_code: berthCode }],
+        config: { ...levers },
+        pilot_capacity: pilotCap,
+        tug_capacity: 3,
+      });
+
+      if (response.success && response.active_result) {
+        const activeResult = response.active_result;
+        const assignments = (activeResult.assignments as Array<Record<string, unknown>>) || [];
+        const localResult: OptimizerResult = {
+          status: String(activeResult.status || 'FEASIBLE'),
+          status_message: `Override applied. Solver: ${activeResult.status}`,
+          solve_time_sec: Number(activeResult.solve_time_sec || 0),
+          objective_value: Number(activeResult.objective_value || 0),
+          assignments: assignments.map((a: Record<string, unknown>) => ({
+            vessel_id: String(a.vessel_id || ''),
+            vessel_name: String(a.vessel_name || ''),
+            berth_code: String(a.berth_code || ''),
+            berth_name: getBerthDisplayName(String(a.berth_code || '')),
+            start_hours: Number(a.start_minutes || 0) / 60,
+            end_hours: Number(a.end_minutes || 0) / 60,
+            waiting_hours: Number(a.waiting_minutes || 0) / 60,
+            service_hours: Number(a.service_minutes || 0) / 60,
+            sla_exceeded: Boolean(a.sla_exceeded),
+            confidence: 0.85,
+            explanation: newOverrides.has(String(a.vessel_id)) ? `🔄 Manual override to ${getBerthDisplayName(String(a.berth_code))}` : '',
+            source: 'BACKEND',
+          })),
+          costs: [],
+          kpis: {
+            avg_wait: 0,
+            utilization: 0,
+            sla_compliance: 100,
+            total_revenue: 0,
+            total_cost: 0,
+            cargo_tons: vessels.reduce((s, v) => s + v.cargo_tons, 0),
+          },
+          feasibility_matrix: [],
+          ranked_alternatives: {},
+          unassigned_vessels: (activeResult.unassigned_vessels as string[]) || [],
+          warnings: response.messages || [],
+          source: 'BACKEND',
+        };
+        setResult(localResult);
+      }
+    } catch (err) {
+      const apiErr = extractApiError(err);
+      setError(`Override failed: ${apiErr.message}`);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function undoAllChanges() {
@@ -143,10 +301,11 @@ export default function OptimizerPage() {
               Multi-Vessel Optimizer
             </h2>
             <span className="badge badge-success">CP-SAT</span>
+            {result && <StatusBadge source={result.source === 'BACKEND' ? 'BACKEND' : 'DEMO'} size="md" />}
           </div>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: 13, marginTop: 4 }}>
-            CP-SAT constraint-programming scheduler with interactive lever panel
-          </p>
+          <div className="flex items-center gap-4 mt-2">
+            <PortSelector />
+          </div>
         </div>
         <div className="flex gap-2">
           {overrides.size > 0 && (
@@ -159,6 +318,18 @@ export default function OptimizerPage() {
           </button>
         </div>
       </div>
+
+      {/* ── Error Banner ────────────────────────────────── */}
+      {error && (
+        <div style={{
+          background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)',
+          borderRadius: 10, padding: '12px 16px', marginBottom: 16,
+          fontSize: 13, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <span>⚠️</span> {error}
+          <button onClick={() => setError(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}>✕</button>
+        </div>
+      )}
 
       {/* ── Lever Panel ────────────────────────────────── */}
       {showLevers && (
@@ -223,14 +394,14 @@ export default function OptimizerPage() {
                   <div className="mb-4">
                     <label className="block text-xs mb-2 font-semibold" style={{ color: 'var(--color-text-muted)' }}>Step 2: Select Berths to Apply</label>
                     <div className="flex flex-wrap gap-3">
-                      {ALL_BERTHS.map(bc => (
+                      {berthCodes.map(bc => (
                         <label key={bc} className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                           <input type="checkbox" checked={activeShipBerths.includes(bc)}
                             onChange={e => {
                               if (e.target.checked) setActiveShipBerths(prev => [...prev, bc]);
                               else setActiveShipBerths(prev => prev.filter(b => b !== bc));
                             }} />
-                          <span style={{ color: BERTH_COLORS[bc], fontWeight: 600 }}>{bc}</span>
+                          <span style={{ color: getBerthColor(bc), fontWeight: 600 }}>{getBerthDisplayName(bc)}</span>
                         </label>
                       ))}
                     </div>
@@ -260,7 +431,7 @@ export default function OptimizerPage() {
                   {shipTypeLevers.map(stl => (
                     <div key={stl.ship_type} className="card-flat flex items-center justify-between" style={{ padding: '8px 14px' }}>
                       <div style={{ fontSize: 13 }}>
-                        <strong>{stl.ship_type}</strong> → {stl.selected_berths.map(b => <span key={b} style={{ color: BERTH_COLORS[b], fontWeight: 600, marginLeft: 4 }}>{b}</span>)}
+                        <strong>{stl.ship_type}</strong> → {stl.selected_berths.map(b => <span key={b} style={{ color: getBerthColor(b), fontWeight: 600, marginLeft: 4 }}>{getBerthDisplayName(b)}</span>)}
                         <span style={{ color: 'var(--color-text-muted)', marginLeft: 8 }}>W={stl.config.w_waiting} SLA={stl.config.w_sla_penalty}</span>
                       </div>
                       <button onClick={() => removeShipTypeLever(stl.ship_type)} style={{ color: 'var(--color-danger)', cursor: 'pointer', border: 'none', background: 'none', fontWeight: 700 }}>✕</button>
@@ -332,7 +503,13 @@ export default function OptimizerPage() {
 
       {!result && !loading && (
         <div className="card text-center" style={{ padding: 40 }}>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>Click <strong>Run CP-SAT Optimizer</strong> to generate a schedule.</p>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>
+            Click <strong>Run CP-SAT Optimizer</strong> to generate a schedule.
+          </p>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: 12, marginTop: 8 }}>
+            Connected to port: <strong>{selectedPortCode}</strong>
+            {portConfig && ` · ${portConfig.num_berths} berths available`}
+          </p>
         </div>
       )}
 
@@ -345,7 +522,9 @@ export default function OptimizerPage() {
           showFeasibility={showFeasibility} setShowFeasibility={setShowFeasibility}
           hoveredCell={hoveredCell} setHoveredCell={setHoveredCell}
           hoveredBar={hoveredBar} setHoveredBar={setHoveredBar}
-          barPos={barPos} setBarPos={setBarPos} />
+          barPos={barPos} setBarPos={setBarPos}
+          getBerthColor={getBerthColor} getBerthDisplayName={getBerthDisplayName}
+          berthCodes={berthCodes} />
       )}
     </div>
   );
@@ -354,7 +533,7 @@ export default function OptimizerPage() {
 /* ════════════════════════════════════════════════════════
    Results Section
    ════════════════════════════════════════════════════════ */
-function ResultsSection({ result, vessels, overrides, expandedVessel, setExpandedVessel, expandedCostVessel, setExpandedCostVessel, selectAlternativeBerth, showFeasibility, setShowFeasibility, hoveredCell, setHoveredCell, hoveredBar, setHoveredBar, barPos, setBarPos }: {
+function ResultsSection({ result, vessels, overrides, expandedVessel, setExpandedVessel, expandedCostVessel, setExpandedCostVessel, selectAlternativeBerth, showFeasibility, setShowFeasibility, hoveredCell, setHoveredCell, hoveredBar, setHoveredBar, barPos, setBarPos, getBerthColor, getBerthDisplayName, berthCodes }: {
   result: OptimizerResult; vessels: VesselInput[]; overrides: Map<string, string>;
   expandedVessel: string | null; setExpandedVessel: (v: string | null) => void;
   expandedCostVessel: string | null; setExpandedCostVessel: (v: string | null) => void;
@@ -364,24 +543,39 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
   setHoveredCell: (v: { vessel_id: string; berth_code: string; x: number; y: number } | null) => void;
   hoveredBar: ScheduleAssignment | null; setHoveredBar: (v: ScheduleAssignment | null) => void;
   barPos: { x: number; y: number }; setBarPos: (v: { x: number; y: number }) => void;
+  getBerthColor: (code: string) => string;
+  getBerthDisplayName: (code: string) => string;
+  berthCodes: string[];
 }) {
   const timelineRef = useRef<HTMLDivElement>(null);
+
+  // Collect unique berths from assignments for the timeline
+  const assignedBerthCodes = [...new Set(result.assignments.map(a => a.berth_code))];
+  const timelineBerths = berthCodes.length > 0 ? berthCodes : assignedBerthCodes;
+
   return (
     <>
-      {/* Status Banner */}
-      <div style={{
-        background: result.status === 'OPTIMAL' ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
-        border: `1px solid ${result.status === 'OPTIMAL' ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}`,
-        borderLeft: `4px solid ${result.status === 'OPTIMAL' ? '#10b981' : '#f59e0b'}`,
-        borderRadius: 10, padding: '14px 20px', marginBottom: 20,
-        display: 'flex', alignItems: 'center', gap: 12,
-      }}>
-        <span style={{ fontSize: 20 }}>{result.status === 'OPTIMAL' ? '✅' : '⚠️'}</span>
-        <span style={{ color: 'var(--color-text-secondary)', fontSize: 13 }}>
-          Solver: <strong>{result.status}</strong> · {result.solve_time_sec.toFixed(2)}s · {result.assignments.length}/{vessels.length} vessels assigned
-          {overrides.size > 0 && <span style={{ color: '#f59e0b', marginLeft: 8 }}>({overrides.size} manual override{overrides.size > 1 ? 's' : ''})</span>}
-        </span>
-      </div>
+      {/* Solver Status Banner */}
+      <SolverStatusBanner
+        status={result.status as SolverStatus}
+        message={result.status_message || `${result.assignments.length}/${vessels.length} vessels assigned`}
+        solveTimeSec={result.solve_time_sec}
+        assignedCount={result.assignments.length}
+        totalCount={vessels.length}
+        unassignedVessels={result.unassigned_vessels}
+      />
+
+      {/* Warnings */}
+      {result.warnings && result.warnings.length > 0 && (
+        <div style={{
+          background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)',
+          borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 12,
+        }}>
+          {result.warnings.map((w, i) => (
+            <div key={i} style={{ color: '#f59e0b', marginBottom: 2 }}>{w}</div>
+          ))}
+        </div>
+      )}
 
       {/* KPI Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
@@ -389,8 +583,8 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
           { icon: '⏱', value: `${result.kpis.avg_wait.toFixed(1)}h`, label: 'Avg Wait' },
           { icon: '📈', value: `${result.kpis.utilization.toFixed(0)}%`, label: 'Berth Util.' },
           { icon: '✅', value: `${result.kpis.sla_compliance.toFixed(0)}%`, label: 'SLA Compliance' },
-          { icon: '💰', value: `$${result.kpis.total_revenue.toLocaleString()}`, label: 'Revenue' },
-          { icon: '💸', value: `$${result.kpis.total_cost.toLocaleString()}`, label: 'Total Cost' },
+          { icon: '💰', value: `$${result.kpis.total_revenue.toLocaleString()}`, label: 'Estimated Revenue' },
+          { icon: '💸', value: `$${result.kpis.total_cost.toLocaleString()}`, label: 'Estimated Cost' },
           { icon: '📦', value: `${result.kpis.cargo_tons.toLocaleString()}t`, label: 'Cargo' },
           { icon: '🚢', value: `${result.assignments.length}`, label: 'Assigned' },
           { icon: '⚡', value: `${result.solve_time_sec.toFixed(2)}s`, label: 'Solve Time' },
@@ -403,88 +597,7 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
         ))}
       </div>
 
-      {/* ── Feasibility Matrix with Hover Tooltip ──────── */}
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-xl">🧮</span>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>Feasibility Matrix</h3>
-        <button className="btn btn-secondary" onClick={() => setShowFeasibility(!showFeasibility)} style={{ fontSize: 12, padding: '4px 12px' }}>
-          {showFeasibility ? 'Hide' : 'Show'}
-        </button>
-      </div>
-
-      {showFeasibility && result.feasibility_matrix && (
-        <div className="card mb-8" style={{ padding: 20, overflowX: 'auto', position: 'relative' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-            <thead>
-              <tr>
-                <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--color-text-muted)', borderBottom: '2px solid var(--color-border)' }}>Vessel</th>
-                {ALL_BERTHS.map(bc => (
-                  <th key={bc} style={{ padding: '8px 6px', textAlign: 'center', color: BERTH_COLORS[bc], fontWeight: 700, borderBottom: '2px solid var(--color-border)' }}>{bc.replace('INMAA-', '')}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {vessels.map(v => (
-                <tr key={v.vessel_id}>
-                  <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--color-text-primary)', borderBottom: '1px solid var(--color-border)' }}>{v.name}</td>
-                  {ALL_BERTHS.map(bc => {
-                    const cell = result.feasibility_matrix.find(c => c.vessel_id === v.vessel_id && c.berth_code === bc);
-                    const score = cell?.score ?? 0;
-                    const bg = score > 0.8 ? 'rgba(16,185,129,0.15)' : score > 0.3 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)';
-                    const icon = score > 0.8 ? '✅' : score > 0.3 ? '⚠️' : '❌';
-                    return (
-                      <td key={bc} style={{ padding: '6px', textAlign: 'center', background: bg, borderBottom: '1px solid var(--color-border)', cursor: 'pointer', position: 'relative' }}
-                        onMouseEnter={e => {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          setHoveredCell({ vessel_id: v.vessel_id, berth_code: bc, x: rect.left + rect.width / 2, y: rect.bottom + 8 });
-                        }}
-                        onMouseLeave={() => setHoveredCell(null)}
-                      >
-                        <div>{icon}</div>
-                        <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>{(score * 100).toFixed(0)}%</div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="flex gap-4 mt-3" style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-            <span>✅ Feasible (&gt;80%)</span><span>⚠️ Marginal (30-80%)</span><span>❌ Infeasible (&lt;30%)</span>
-            <span style={{ marginLeft: 'auto' }}>Hover cells for constraint details</span>
-          </div>
-
-          {/* Floating Tooltip for Feasibility */}
-          {hoveredCell && (() => {
-            const cell = result.feasibility_matrix.find(c => c.vessel_id === hoveredCell.vessel_id && c.berth_code === hoveredCell.berth_code);
-            if (!cell) return null;
-            const spec = BERTH_SPECS[hoveredCell.berth_code];
-            return (
-              <div style={{
-                position: 'fixed', left: hoveredCell.x, top: hoveredCell.y, transform: 'translateX(-50%)',
-                zIndex: 1000, background: 'white', border: '1px solid #e2e8f0', borderRadius: 10,
-                padding: '14px 18px', maxWidth: 420, boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                fontSize: 12, lineHeight: 1.7, color: 'var(--color-text-secondary)',
-              }}>
-                <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 6, color: 'var(--color-text-primary)' }}>
-                  {hoveredCell.berth_code} — {spec?.name || 'Berth'}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 8 }}>
-                  Score: <strong style={{ color: cell.score > 0.8 ? '#10b981' : cell.score > 0.3 ? '#f59e0b' : '#ef4444' }}>{(cell.score * 100).toFixed(0)}%</strong>
-                  {spec && <> · Max LOA: {spec.max_loa}m · Depth: {spec.depth}m · Equipment: {spec.equipment[0]}</>}
-                </div>
-                {cell.reasons.map((r, i) => (
-                  <div key={i} style={{ padding: '3px 0', borderBottom: i < cell.reasons.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                    {r}
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
-      )}
-
-      {/* ── Schedule Assignments + Next Optimal ─────── */}
+      {/* ── Schedule Assignments ─────── */}
       <div className="flex items-center gap-3 mb-4">
         <span className="text-xl">📋</span>
         <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>Schedule Assignments</h3>
@@ -493,7 +606,6 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
         {result.assignments.map(a => {
           const isOverridden = overrides.has(a.vessel_id);
           const isExpanded = expandedVessel === a.vessel_id;
-          const alternatives = result.ranked_alternatives?.[a.vessel_id] || [];
           return (
             <div key={a.vessel_id}>
               <div className="card-flat" style={{ padding: '12px 16px', borderLeft: `3px solid ${isOverridden ? '#f59e0b' : 'transparent'}` }}>
@@ -508,7 +620,7 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
                     {isOverridden && <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600 }}>MANUAL</span>}
                   </div>
                   <div className="flex items-center gap-3" style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-                    <span>Berth <strong style={{ color: BERTH_COLORS[a.berth_code] || '#0ea5e9' }}>{a.berth_code}</strong></span>
+                    <span>Berth <strong style={{ color: getBerthColor(a.berth_code) }}>{getBerthDisplayName(a.berth_code)}</strong></span>
                     <span>Start {a.start_hours.toFixed(1)}h → End {a.end_hours.toFixed(1)}h</span>
                     <span>Wait {a.waiting_hours.toFixed(1)}h</span>
                     <button onClick={() => setExpandedVessel(isExpanded ? null : a.vessel_id)}
@@ -519,16 +631,36 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
                   </div>
                 </div>
                 {/* AI Explanation */}
-                <details style={{ marginTop: 8 }}>
-                  <summary style={{ fontSize: 12, cursor: 'pointer', color: 'var(--color-text-muted)' }}>🤖 AI Explanation</summary>
-                  <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 6, padding: '10px 14px', background: 'rgba(99,102,241,0.04)', borderRadius: 8, lineHeight: 1.8, borderLeft: '3px solid rgba(99,102,241,0.3)' }}>
-                    {a.explanation}
-                  </p>
-                </details>
+                {a.explanation && (
+                  <details style={{ marginTop: 8 }}>
+                    <summary style={{ fontSize: 12, cursor: 'pointer', color: 'var(--color-text-muted)' }}>🤖 AI Explanation</summary>
+                    <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 6, padding: '10px 14px', background: 'rgba(99,102,241,0.04)', borderRadius: 8, lineHeight: 1.8, borderLeft: '3px solid rgba(99,102,241,0.3)' }}>
+                      {a.explanation}
+                    </p>
+                  </details>
+                )}
               </div>
-              {/* Ranked Alternatives */}
-              {isExpanded && alternatives.length > 0 && (
-                <AlternativesPanel vesselName={a.vessel_name} currentBerth={a.berth_code} alternatives={alternatives} onSelect={(bc) => selectAlternativeBerth(a.vessel_id, bc)} />
+              {/* Show berth options when expanded — user selects from available berths */}
+              {isExpanded && (
+                <div className="card" style={{ padding: 16, marginTop: 4, borderLeft: '3px solid #0ea5e9' }}>
+                  <h5 style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 10 }}>
+                    🏆 Select Alternative Berth for {a.vessel_name}
+                  </h5>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {berthCodes.slice(0, 12).map(bc => (
+                      <button key={bc} onClick={() => selectAlternativeBerth(a.vessel_id, bc)}
+                        disabled={bc === a.berth_code}
+                        style={{
+                          padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                          background: bc === a.berth_code ? 'var(--color-border)' : 'rgba(14,165,233,0.08)',
+                          color: bc === a.berth_code ? 'var(--color-text-muted)' : getBerthColor(bc),
+                          border: `1px solid ${bc === a.berth_code ? 'var(--color-border)' : 'rgba(14,165,233,0.2)'}`,
+                        }}>
+                        {getBerthDisplayName(bc)} {bc === a.berth_code && '(current)'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           );
@@ -546,7 +678,7 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
           const maxH = Math.max(...result.assignments.map(a => a.end_hours), 48);
           return (
             <div style={{ minWidth: 600 }}>
-              {ALL_BERTHS.map(bc => {
+              {timelineBerths.map(bc => {
                 const berthAssignments = result.assignments.filter(a => a.berth_code === bc);
                 const hasVessels = berthAssignments.length > 0;
                 return (
@@ -559,9 +691,10 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
                       const curBerth = e.dataTransfer.getData('current_berth');
                       if (vid && curBerth !== bc) selectAlternativeBerth(vid, bc);
                     }}>
-                    <div style={{ width: 110, fontSize: 11, textAlign: 'right' }}>
-                      <div style={{ fontWeight: 700, color: BERTH_COLORS[bc] || '#94a3b8', opacity: hasVessels ? 1 : 0.5 }}>{bc.replace('INMAA-', '')}</div>
-                      <div style={{ fontSize: 9, color: 'var(--color-text-muted)' }}>{BERTH_SPECS[bc]?.name || ''}</div>
+                    <div style={{ width: 130, fontSize: 11, textAlign: 'right' }}>
+                      <div style={{ fontWeight: 700, color: getBerthColor(bc), opacity: hasVessels ? 1 : 0.5 }}>
+                        {getBerthDisplayName(bc)}
+                      </div>
                     </div>
                     <div className="flex-1 relative" style={{ height: 36, background: hasVessels ? 'rgba(0,0,0,0.03)' : 'rgba(0,0,0,0.015)', borderRadius: 8, border: `1px ${hasVessels ? 'solid' : 'dashed'} rgba(0,0,0,0.06)` }}>
                       {Array.from({ length: Math.ceil(maxH / 8) }, (_, i) => i * 8).map(h => (
@@ -578,7 +711,7 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
                             style={{
                               position: 'absolute', top: 3, height: 30, borderRadius: 6, cursor: 'grab',
                               left: `${(a.start_hours / maxH) * 100}%`, width: `${Math.max(((a.end_hours - a.start_hours) / maxH) * 100, 4)}%`,
-                              background: `linear-gradient(135deg, ${BERTH_COLORS[bc] || '#0ea5e9'}, ${BERTH_COLORS[bc] || '#0ea5e9'}dd)`,
+                              background: `linear-gradient(135deg, ${getBerthColor(bc)}, ${getBerthColor(bc)}dd)`,
                               border: isOvr ? '2px solid #f59e0b' : '1px solid rgba(255,255,255,0.3)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               fontSize: 10, fontWeight: 700, color: 'white', overflow: 'hidden', whiteSpace: 'nowrap',
@@ -595,7 +728,7 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
                 );
               })}
               <div className="flex items-center gap-3" style={{ marginTop: 6 }}>
-                <div style={{ width: 110 }} />
+                <div style={{ width: 130 }} />
                 <div className="flex-1 flex justify-between" style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>
                   {Array.from({ length: 5 }, (_, i) => <span key={i}>{((maxH * i) / 4).toFixed(0)}h</span>)}
                 </div>
@@ -606,7 +739,6 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
 
         {hoveredBar && (() => {
           const v = vessels.find(vv => vv.vessel_id === hoveredBar.vessel_id);
-          const spec = BERTH_SPECS[hoveredBar.berth_code];
           return (
             <div style={{
               position: 'fixed', left: barPos.x, top: barPos.y, transform: 'translate(-50%, -100%)',
@@ -615,7 +747,7 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
               fontSize: 12, lineHeight: 1.6, color: 'var(--color-text-secondary)',
             }}>
               <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--color-text-primary)', marginBottom: 4 }}>
-                {hoveredBar.vessel_name} → {hoveredBar.berth_code}
+                {hoveredBar.vessel_name} → {getBerthDisplayName(hoveredBar.berth_code)}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px', fontSize: 11 }}>
                 <span>⏰ Start: <strong>{hoveredBar.start_hours.toFixed(1)}h</strong></span>
@@ -625,77 +757,64 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
                 <span>📊 Confidence: <strong style={{ color: hoveredBar.confidence > 0.85 ? '#10b981' : '#f59e0b' }}>{(hoveredBar.confidence * 100).toFixed(0)}%</strong></span>
                 {v && <span>📦 Cargo: <strong>{v.cargo_tons.toLocaleString()}t</strong></span>}
               </div>
-              {spec && <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginTop: 4 }}>🏗 {spec.name} · {spec.equipment[0]}</div>}
               <div style={{ fontSize: 10, color: '#0ea5e9', marginTop: 4 }}>🖱 Drag to another berth lane to reassign</div>
             </div>
           );
         })()}
       </div>
 
-      {/* ── Cost Breakdown per Vessel (with Change Berth) ── */}
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-xl">💰</span>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>Cost Breakdown per Vessel</h3>
-      </div>
-      <div className="space-y-2 mb-8">
-        {result.costs.map(bd => {
-          const assignment = result.assignments.find(a => a.vessel_id === bd.vessel_id);
-          const isOverridden = overrides.has(bd.vessel_id);
-          const isCostExpanded = expandedCostVessel === bd.vessel_id;
-          const alternatives = result.ranked_alternatives?.[bd.vessel_id] || [];
-          return (
-            <div key={bd.vessel_id}>
-              <div className="card-flat" style={{ padding: '12px 16px', borderLeft: `3px solid ${isOverridden ? '#f59e0b' : 'transparent'}` }}>
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-text-primary)' }}>{bd.vessel_name}</span>
-                    {assignment && (
-                      <span style={{
-                        padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                        background: assignment.confidence > 0.85 ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
-                        color: assignment.confidence > 0.85 ? '#10b981' : '#f59e0b',
-                      }}>{(assignment.confidence * 100).toFixed(0)}%</span>
-                    )}
-                    {isOverridden && <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600 }}>MANUAL</span>}
-                  </div>
-                  <div className="flex gap-3 flex-wrap items-center" style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                    <span>Berth <strong style={{ color: BERTH_COLORS[bd.berth_code] }}>{bd.berth_code}</strong></span>
-                    <span>Waiting <strong>${bd.waiting_cost.toLocaleString()}</strong></span>
-                    <span>Fuel <strong>${bd.fuel_burn_cost.toLocaleString()}</strong></span>
-                    <span>Equipment <strong>${bd.equipment_rental.toLocaleString()}</strong></span>
-                    <span style={{ fontWeight: 800, color: 'var(--color-text-primary)' }}>Net ${bd.net_cost.toLocaleString()}</span>
-                    <button onClick={() => setExpandedCostVessel(isCostExpanded ? null : bd.vessel_id)}
-                      style={{ padding: '2px 10px', borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                        background: 'rgba(14,165,233,0.1)', color: '#0ea5e9', border: '1px solid rgba(14,165,233,0.3)' }}>
-                      🔄 {isCostExpanded ? 'Close' : 'Change Berth'}
-                    </button>
+      {/* ── Cost Breakdown per Vessel ── */}
+      {result.costs.length > 0 && (
+        <>
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-xl">💰</span>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>Estimated Cost Breakdown</h3>
+            <StatusBadge source="ASSUMPTION" size="sm" />
+          </div>
+          <div className="space-y-2 mb-8">
+            {result.costs.map(bd => {
+              const assignment = result.assignments.find(a => a.vessel_id === bd.vessel_id);
+              const isOverridden = overrides.has(bd.vessel_id);
+              return (
+                <div key={bd.vessel_id}>
+                  <div className="card-flat" style={{ padding: '12px 16px', borderLeft: `3px solid ${isOverridden ? '#f59e0b' : 'transparent'}` }}>
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-text-primary)' }}>{bd.vessel_name}</span>
+                        {isOverridden && <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600 }}>MANUAL</span>}
+                      </div>
+                      <div className="flex gap-3 flex-wrap items-center" style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+                        <span>Berth <strong style={{ color: getBerthColor(bd.berth_code) }}>{getBerthDisplayName(bd.berth_code)}</strong></span>
+                        <span>Waiting <strong>${bd.waiting_cost.toLocaleString()}</strong></span>
+                        <span>Fuel <strong>${bd.fuel_burn_cost.toLocaleString()}</strong></span>
+                        <span>Equipment <strong>${bd.equipment_rental.toLocaleString()}</strong></span>
+                        <span style={{ fontWeight: 800, color: 'var(--color-text-primary)' }}>Net ${bd.net_cost.toLocaleString()}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-              {isCostExpanded && alternatives.length > 0 && (
-                <AlternativesPanel vesselName={bd.vessel_name} currentBerth={bd.berth_code} alternatives={alternatives} onSelect={(bc) => selectAlternativeBerth(bd.vessel_id, bc)} />
-              )}
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
 
-      {/* ── Cost Distribution Chart ─────────────────── */}
-      <div className="card mb-8" style={{ padding: 20 }}>
-        <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>Cost Distribution</h4>
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={result.costs.map(c => ({ name: c.vessel_name, Waiting: c.waiting_cost, Fuel: c.fuel_burn_cost, Equipment: c.equipment_rental, SLA: c.sla_penalty }))}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-            <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
-            <YAxis stroke="#94a3b8" fontSize={12} />
-            <Tooltip contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8 }} />
-            <Bar dataKey="Waiting" stackId="a" fill="#0ea5e9" />
-            <Bar dataKey="Fuel" stackId="a" fill="#f59e0b" />
-            <Bar dataKey="Equipment" stackId="a" fill="#8b5cf6" />
-            <Bar dataKey="SLA" stackId="a" fill="#ef4444" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+          {/* Cost Distribution Chart */}
+          <div className="card mb-8" style={{ padding: 20 }}>
+            <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>Cost Distribution</h4>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={result.costs.map(c => ({ name: c.vessel_name, Waiting: c.waiting_cost, Fuel: c.fuel_burn_cost, Equipment: c.equipment_rental, SLA: c.sla_penalty }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
+                <YAxis stroke="#94a3b8" fontSize={12} />
+                <Tooltip contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8 }} />
+                <Bar dataKey="Waiting" stackId="a" fill="#0ea5e9" />
+                <Bar dataKey="Fuel" stackId="a" fill="#f59e0b" />
+                <Bar dataKey="Equipment" stackId="a" fill="#8b5cf6" />
+                <Bar dataKey="SLA" stackId="a" fill="#ef4444" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
 
       {/* ── Waiting Time Chart ─────────────────── */}
       <div className="card mb-8" style={{ padding: 20 }}>
@@ -714,118 +833,6 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
           </BarChart>
         </ResponsiveContainer>
       </div>
-
-      {/* ── Detailed Berth Analysis — Parameter-Level Breakdown ── */}
-      <details style={{ marginBottom: 24 }}>
-        <summary className="cursor-pointer" style={{
-          fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15,
-          color: 'var(--color-text-primary)', padding: '14px 20px',
-          background: 'rgba(0,0,0,0.02)', border: '1px solid var(--color-border)',
-          borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10,
-        }}>
-          <span style={{ fontSize: 18 }}>🧠</span>
-          Detailed Berth Analysis — Parameter-Level Breakdown
-        </summary>
-        <div style={{ border: '1px solid var(--color-border)', borderTop: 'none', borderBottomLeftRadius: 10, borderBottomRightRadius: 10, padding: 20 }}>
-          {result.assignments.map(a => {
-            const v = vessels.find(vv => vv.vessel_id === a.vessel_id);
-            const spec = BERTH_SPECS[a.berth_code];
-            if (!v || !spec) return null;
-            const loaSlack = spec.max_loa - v.loa_m;
-            const draftSlack = spec.depth - v.draft_m;
-            const beamSlack = (spec.max_beam || 50) - v.beam_m;
-            const checks = [
-              { cat: 'PHYSICAL FIT', emoji: '🔧', items: [
-                { icon: loaSlack > 40 ? '✔' : loaSlack > 10 ? '✔' : loaSlack > 0 ? '⚠' : '❌', color: loaSlack > 10 ? '#10b981' : loaSlack > 0 ? '#f59e0b' : '#ef4444', text: `LOA (${v.loa_m}m) vs limit (${spec.max_loa}m) → margin: ${loaSlack}m` },
-                { icon: draftSlack > 3 ? '✔' : draftSlack > 1 ? '⚠' : '❌', color: draftSlack > 1 ? '#10b981' : draftSlack > 0 ? '#f59e0b' : '#ef4444', text: `Draft (${v.draft_m}m) vs depth (${spec.depth}m) → UKC: ${draftSlack.toFixed(1)}m` },
-                { icon: beamSlack > 5 ? '✔' : beamSlack > 0 ? '⚠' : '❌', color: beamSlack > 0 ? '#10b981' : '#ef4444', text: `Beam (${v.beam_m}m) vs limit (${spec.max_beam || 50}m) → clearance: ${beamSlack}m` },
-              ]},
-              { cat: 'OPERATIONAL', emoji: '⚙️', items: [
-                { icon: '✔', color: '#10b981', text: `Vessel type: ${v.vessel_type}` },
-                { icon: '✔', color: '#10b981', text: `Cargo type: ${v.cargo_type}` },
-              ]},
-              { cat: 'PERFORMANCE', emoji: '📊', items: [
-                { icon: a.waiting_hours < 3 ? '✔' : '⚠', color: a.waiting_hours < 3 ? '#10b981' : '#f59e0b', text: `Wait: ${a.waiting_hours.toFixed(1)}h` },
-                { icon: 'ℹ', color: '#6366f1', text: `Service: ${a.service_hours}h` },
-              ]},
-              { cat: 'COMMERCIAL', emoji: '💰', items: [
-                { icon: 'ℹ', color: '#6366f1', text: `Equipment: ${spec.equipment.join(', ')}` },
-              ]},
-            ];
-            return (
-              <div key={a.vessel_id} style={{ marginBottom: 16, border: '1px solid var(--color-border)', borderRadius: 10, padding: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontWeight: 800, fontSize: 15 }}>🏗️ {a.vessel_name} → {a.berth_code}</span>
-                    <span style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '2px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700 }}>FEASIBLE</span>
-                  </div>
-                  <span style={{ color: a.confidence > 0.6 ? '#10b981' : '#f59e0b', fontWeight: 800, fontSize: 16 }}>{(a.confidence * 100).toFixed(0)}%</span>
-                </div>
-                {checks.map(cat => (
-                  <div key={cat.cat} style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '10px 14px', marginBottom: 6 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span>{cat.emoji}</span><span>{cat.cat}</span>
-                    </div>
-                    {cat.items.map((item, j) => (
-                      <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', borderBottom: j < cat.items.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
-                        <span style={{ color: item.color, fontSize: 14 }}>{item.icon}</span>
-                        <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{item.text}</span>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      </details>
     </>
-  );
-}
-
-/* ── Reusable Alternatives Panel ───────────────────── */
-function AlternativesPanel({ vesselName, currentBerth, alternatives, onSelect }: {
-  vesselName: string; currentBerth: string;
-  alternatives: { berth_code: string; confidence: number; waiting_hours: number; cost_delta: number; reasons: string[] }[];
-  onSelect: (bc: string) => void;
-}) {
-  return (
-    <div className="card" style={{ padding: 16, marginTop: 4, borderLeft: '3px solid #0ea5e9' }}>
-      <h5 style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 10 }}>
-        🏆 Ranked Alternative Berths for {vesselName}
-      </h5>
-      <div className="space-y-2">
-        {alternatives.map((alt, idx) => (
-          <div key={alt.berth_code} className="card-flat" style={{ padding: '8px 14px' }}>
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-3">
-                <span style={{ fontWeight: 800, fontSize: 14, color: idx === 0 ? '#10b981' : 'var(--color-text-primary)' }}>#{idx + 1}</span>
-                <span style={{ color: BERTH_COLORS[alt.berth_code], fontWeight: 700 }}>{alt.berth_code}</span>
-                <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>{BERTH_SPECS[alt.berth_code]?.name}</span>
-                <span style={{
-                  padding: '2px 6px', borderRadius: 10, fontSize: 10, fontWeight: 600,
-                  background: alt.confidence > 0.85 ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
-                  color: alt.confidence > 0.85 ? '#10b981' : '#f59e0b',
-                }}>{(alt.confidence * 100).toFixed(0)}%</span>
-              </div>
-              <div className="flex items-center gap-3" style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-                <span>Wait {alt.waiting_hours.toFixed(1)}h</span>
-                <span>Cost Δ ${alt.cost_delta > 0 ? '+' : ''}{alt.cost_delta.toLocaleString()}</span>
-                <button onClick={() => onSelect(alt.berth_code)}
-                  disabled={alt.berth_code === currentBerth}
-                  style={{ padding: '3px 10px', borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                    background: alt.berth_code === currentBerth ? 'var(--color-border)' : 'var(--color-primary)', color: 'white', border: 'none' }}>
-                  {alt.berth_code === currentBerth ? 'Current' : 'Select'}
-                </button>
-              </div>
-            </div>
-            {/* Show top reasons */}
-            <div style={{ marginTop: 6, fontSize: 11, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-              {alt.reasons.slice(0, 3).map((r, i) => <div key={i}>{r}</div>)}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }

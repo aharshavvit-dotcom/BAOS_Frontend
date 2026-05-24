@@ -11,7 +11,9 @@ import sys, json, shutil
 from pathlib import Path
 from datetime import datetime
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_ROOT / "backend"))
+sys.path.insert(0, str(_ROOT))
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -282,7 +284,7 @@ def test_constraint_library_recommender():
     if not bcfg.exists() or not _has_port_data():
         return
 
-    from data_layer.spec_ingest import build_port_master
+    from legacy.spec_ingest import build_port_master
     from optimization_engine.constraint_library import ConstraintLibrary
 
     pm = build_port_master(
@@ -310,7 +312,7 @@ def test_import_chain():
         "data_models",
         "config",
         "data_layer.quality",
-        "data_layer.spec_ingest",
+        "legacy.spec_ingest",
         "optimization_engine.constraint_library",
         "optimization_engine.feasibility_checker",
         "optimization_engine.scheduler",

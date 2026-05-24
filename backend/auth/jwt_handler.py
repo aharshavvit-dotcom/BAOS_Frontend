@@ -8,7 +8,10 @@ from typing import Any, Dict, Optional
 
 from jose import JWTError, jwt
 
-from config import settings
+try:
+    from backend.config import settings
+except ImportError:
+    from config import settings
 
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:

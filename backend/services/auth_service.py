@@ -18,7 +18,10 @@ from auth.jwt_handler import (
     get_token_expiry,
 )
 from auth.password import hash_password, verify_password
-from config import settings
+try:
+    from backend.config import settings
+except ImportError:
+    from config import settings
 from database.models import Port, Session, User
 
 

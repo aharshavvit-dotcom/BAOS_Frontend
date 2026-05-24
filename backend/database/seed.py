@@ -16,7 +16,10 @@ if str(_BACKEND) not in sys.path:
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session as SyncSession
 
-from config import settings
+try:
+    from backend.config import settings
+except ImportError:
+    from config import settings
 from database.connection import Base
 from database.models import Port, Berth, User, KPI
 from auth.password import hash_password
