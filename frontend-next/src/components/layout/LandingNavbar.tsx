@@ -14,7 +14,7 @@ export default function LandingNavbar() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 h-20 border-b transition-all duration-300 ${
+      className={`sticky top-0 z-50 h-20 border-b transition-all duration-300 ${
         navScrolled
           ? 'border-slate-200 bg-white/95 backdrop-blur-md shadow-sm'
           : 'border-transparent bg-white/90 backdrop-blur-xl'

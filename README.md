@@ -1,254 +1,226 @@
-# BAOS AI — Maritime Decision Intelligence Platform
+# BAOS AI Application
 
-> AI-powered berth allocation optimization for modern ports. Reduce turnaround time, maximize revenue, and ensure SLA compliance.
+BAOS is a FastAPI + Next.js application for berth allocation, berth suitability recommendations, and port operations analytics.
 
----
+The current runtime flow is database-first:
 
-## 🏗 Architecture
+1. `python -m database.seed` creates/updates the database schema, seeds users, and ingests the bundled Excel sample data.
+2. `python run.py` starts the backend and automatically checks the seeded data.
+3. If valid data exists and active ML models are missing or stale, the backend trains and registers the required models automatically.
+4. The frontend reads backend status and uses `port_code` values such as `INMAA` for all API calls.
 
-```
-berth_optimization_poc_app/
-├── frontend-next/          # Next.js 16 + TypeScript + Tailwind CSS + Recharts
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── page.tsx                 # Landing page
-│   │   │   ├── login/page.tsx           # Login page
-│   │   │   ├── signup/page.tsx          # Sign up page
-│   │   │   ├── globals.css              # Design system (CSS tokens)
-│   │   │   └── dashboard/
-│   │   │       ├── layout.tsx           # Sidebar + Topbar layout
-│   │   │       ├── page.tsx             # Dashboard overview
-│   │   │       ├── optimizer/
-│   │   │       │   ├── page.tsx         # CP-SAT Multi-Vessel Optimizer
-│   │   │       │   └── types.ts         # Optimizer types + feasibility engine
-│   │   │       ├── recommend/page.tsx   # AI Recommendation Engine
-│   │   │       └── commercial/page.tsx  # Commercial Intelligence
-│   │   ├── store/                       # Zustand state stores
-│   │   ├── hooks/                       # Custom React hooks (WebSocket)
-│   │   ├── lib/                         # API client, socket client
-│   │   └── types/                       # TypeScript interfaces
-│   └── .env.local                       # API URL config
-│
-├── backend/                # FastAPI + SQLAlchemy + PostgreSQL
-│   ├── main.py             # FastAPI application entry
-│   ├── run.py              # Uvicorn runner (Windows async fix)
-│   ├── config.py           # Pydantic settings (DB, JWT, CORS)
-│   ├── routes/             # API endpoints (auth, recommendations, dashboard)
-│   ├── services/           # Business logic layer
-│   ├── database/           # SQLAlchemy models + migrations + seed
-│   ├── auth/               # JWT authentication dependencies
-│   ├── schemas/            # Pydantic request/response models
-│   └── middleware/          # CORS, logging middleware
-│
-├── optimization_engine/    # CP-SAT constraint solver
-├── commercial_engine/      # XGBoost ranking + pattern discovery
-├── cost_engine/            # Waiting/fuel/SLA cost calculations
-├── decision_engine/        # Multi-factor decision fusion
-├── explanation_engine/     # Natural language explanations
-├── kpi_engine/             # KPI aggregation & dashboards
-├── learning_engine/        # Outcome tracking + adaptive learning
-├── simulation_engine/      # What-if scenario analysis
-├── uncertainty_engine/     # Confidence interval estimation
-├── training_engine/        # Model training pipelines
-├── rl_engine/              # Reinforcement learning agent
-├── scenario_engine/        # Scenario planning
-│
-├── api/                    # Legacy endpoint layer
-├── db/                     # Legacy database layer (schema, seed)
-├── data_layer/             # Data access layer
-├── ports/                  # Port-specific configuration (Chennai)
-├── sample_data/            # Original data sources (Excel, docs)
-├── test_data/              # QA test datasets (5 scenarios)
-├── tests/                  # Unit & integration tests
-├── config.py               # Root-level config (legacy)
-├── models.py               # Root-level models (legacy)
-└── requirements.txt        # Python dependencies
+No separate manual training command is required.
+
+## Prerequisites
+
+- Python 3.10 or newer
+- Node.js 18 or newer
+- PostgreSQL 12 or newer
+- A PostgreSQL database named `ML_APP`
+
+The default backend database configuration expects PostgreSQL on port `5433`:
+
+```env
+DATABASE_URL=postgresql+asyncpg://postgres:postgres%40123@localhost:5433/ML_APP
+DATABASE_URL_SYNC=postgresql+psycopg2://postgres:postgres%40123@localhost:5433/ML_APP
 ```
 
----
+Update `backend/.env` if your local database user, password, host, port, or database name is different.
 
-## 🚀 Quick Start & Database Setup
+## Install Dependencies
 
-### Prerequisites
+From the repository root:
 
-- **Node.js** ≥ 18 (for frontend)
-- **Python** ≥ 3.10 (for backend)
-- **PostgreSQL** ≥ 12 (configured on port `5433` by default)
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt -r backend\requirements.txt
+```
 
-### 1. Database Schema & Ingestion
+Install frontend dependencies:
 
-BAOS now uses a **database-first architecture** with the `baos` schema inside PostgreSQL. All port configs, berth capabilities, operational assumptions, and port-call histories are stored in the database.
+```powershell
+cd frontend-next
+npm install
+cd ..
+```
 
-To initialize the schema and ingest Excel/CSV source files:
+## Seed the Database
 
-1. Ensure PostgreSQL is running on port `5433` (or update credentials in `backend/.env`).
-2. Run the ingestion command:
-   
-   **Option A: PowerShell (Windows)**
-   ```powershell
-   python scripts/ingest_excel_to_db.py `
-       --port-code INMAA `
-       --port-name "Chennai Port" `
-       --berth-config sample_data/Berth_configurations.xlsx `
-       --berth-capability sample_data/Operational_Capability_of_Berth.xlsx `
-       --port-call-log sample_data/Chennai_PORTLOG2025JUN-DEC.xlsx
-   ```
+Run this from the repository root:
 
-   **Option B: Bash (Linux / macOS / Git Bash)**
-   ```bash
-   python scripts/ingest_excel_to_db.py \
-       --port-code INMAA \
-       --port-name "Chennai Port" \
-       --berth-config sample_data/Berth_configurations.xlsx \
-       --berth-capability sample_data/Operational_Capability_of_Berth.xlsx \
-       --port-call-log sample_data/Chennai_PORTLOG2025JUN-DEC.xlsx
-   ```
-
-*Note: The CLI script automatically creates the `baos` schema, executes schema creation (`sql/001_create_baos_schema.sql`), seeds operational assumptions (`sql/002_seed_assumptions.sql`), sets up database indexes (`sql/003_create_indexes.sql`), and loads your Excel sheets idempotently.*
-
-### 2. Backend (FastAPI)
-
-```bash
-cd backend
-# Install dependencies
-pip install -r requirements.txt
-
-# Run seed script for user management/commercial tables (if needed)
+```powershell
 python -m database.seed
+```
 
-# Run FastAPI server
+This command is idempotent. It creates or updates the `baos` schema, applies the SQL setup files, seeds application users, and ingests:
+
+- `sample_data/Berth_configurations.xlsx` into `baos.berth`
+- `sample_data/Operational_Capability_of_Berth.xlsx` into `baos.berth_capability`
+- `sample_data/Chennai_PORTLOG2025JUN-DEC.xlsx` into `baos.port_call`
+
+Seeded login accounts:
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@baos.ai` | `admin123` |
+| Operator | `operator@baos.ai` | `operator123` |
+
+Email login is case-insensitive; emails are normalized to lowercase.
+
+## Run the Backend
+
+From the repository root:
+
+```powershell
 python run.py
 ```
 
-Backend runs at **http://localhost:8001** (or port specified in `run.py`).
+The backend runs at `http://localhost:8001` by default.
 
-### 3. Frontend (Next.js)
+If port `8001` is already in use:
 
-```bash
+```powershell
+$env:BACKEND_PORT="8002"
+python run.py
+```
+
+Useful backend URLs:
+
+- API docs: `http://localhost:8001/docs`
+- Port list and status: `http://localhost:8001/api/v1/ports`
+- Chennai status: `http://localhost:8001/api/v1/ports/INMAA/status`
+
+## Backend Startup Training
+
+On startup, the backend checks these tables:
+
+- `baos.berth`
+- `baos.berth_capability`
+- `baos.port_call`
+
+When enough valid rows exist, it trains and registers these active models in `baos.ml_model_registry`:
+
+- `berth_suitability`
+- `service_time_predictor`
+- `delay_predictor`
+
+If training fails, the backend still starts. Status responses and the frontend will show one of these states:
+
+- `Data Missing`
+- `Data Loaded - Training Pending`
+- `Training In Progress`
+- `Trained`
+- `Training Failed`
+- `Insufficient Data`
+
+## Run the Frontend
+
+Check `frontend-next/.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8001
+NEXT_PUBLIC_WS_URL=http://localhost:8001
+NEXT_PUBLIC_DEMO_MODE=false
+NEXT_PUBLIC_ENABLE_WEBSOCKET=false
+```
+
+If you started the backend on another port, update both URL values before starting the frontend.
+
+Then run:
+
+```powershell
 cd frontend-next
-npm install
 npm run dev
 ```
 
-App runs at **http://localhost:3000**. No authentication redirects are enforced on internal dashboard paths (auth is only required on the `/login` landing page).
+Open `http://localhost:3000`.
 
----
+## Build the Frontend
 
-## ✨ Features
-
-### 🚢 Multi-Vessel Optimizer (CP-SAT)
-- Configure N vessels with LOA, beam, draft, cargo type, vessel type, ETA
-- **Global Levers**: 10+ optimization weights (waiting cost, SLA penalty, demurrage, throughput, UKC margin)
-- **Per Ship Type Levers**: 2-step workflow — select vessel type → select berths → apply custom lever config
-- **Interactive Berth Timeline**: Hoverable/clickable Gantt chart with vessel details tooltip (showing berth name rather than internal berth code)
-- **Feasibility Matrix**: Color-coded grid with rich floating tooltips showing:
-  - LOA/draft/beam clearances with exact margins
-  - UKC (under-keel clearance) analysis with tide access status
-  - Equipment compatibility (crane types, handling capacity)
-  - Cargo handling match with throughput (TPH) estimates
-  - Turnaround time projections
-- **AI Agentic Explanations**: Multi-paragraph, decision-grade reasoning per assignment covering physical fit, equipment matching, and confidence score
-- **Next-Optimal Berth Selection**: Change berth from Schedule Assignments AND Cost Breakdown views
-- **Undo/Redo**: Revert all manual overrides to solver-optimal solution
-
-### 🧠 Get Recommendation
-- Enter vessel details → receive top 3 ranked berth recommendations
-- **Interactive Berth Allocation Timeline**: Shows wait periods and service periods with hover tooltips
-- **Rich Pros/Cons**: Equipment types, throughput rates, logistics context, dollar amounts
-- **AI Agentic Explanations**: Expandable "DECISION ANALYSIS" blocks per recommendation with scoring breakdown and trade-off comparisons
-
-### 📊 Dashboard & Assumptions
-- Real-time KPIs: vessel count, revenue, cost, utilization, SLA compliance
-- Charts: monthly comparison, utilization trend, vessel distribution, cost breakdown
-- **Assumptions Panel**: Modify demurrage rates, wait/fuel costs, and pilot parameters at runtime via backend endpoints. Changes affect optimization cost engine instantly without requiring restart or file changes.
-
----
-
-## 🛠 Technology Stack
-
-| Layer | Technology |
-|---|---|
-| **Frontend** | Next.js 16, TypeScript, Tailwind CSS, Recharts, Zustand, Axios |
-| **Backend** | FastAPI, SQLAlchemy (async), Pydantic v2 |
-| **Database** | PostgreSQL 12+ with `psycopg2` (sync) and `asyncpg` (async) |
-| **Real-time** | Socket.IO (WebSocket) |
-| **Auth** | JWT tokens (access + refresh), bcrypt password hashing (restricted only to login) |
-| **Optimization** | OR-Tools CP-SAT Solver, XGBoost ranking model |
-| **ML/AI** | scikit-learn, pattern discovery engine, adaptive learning |
-
----
-
-## 🔧 Environment Variables
-
-### Frontend (`frontend-next/.env.local`)
-```
-NEXT_PUBLIC_API_URL=http://localhost:8001
-NEXT_PUBLIC_WS_URL=http://localhost:8001
+```powershell
+cd frontend-next
+npm run build
 ```
 
-### Backend (`backend/.env`)
-```
-DB_USER=postgres
-DB_PASS=postgres@123
-DB_HOST=127.0.0.1
-DB_PORT=5433
-DB_NAME=ML_APP
-DATABASE_URL=postgresql+asyncpg://postgres:postgres%40123@localhost:5433/ML_APP
-DATABASE_URL_SYNC=postgresql+psycopg2://postgres:postgres%40123@localhost:5433/ML_APP
-JWT_SECRET_KEY=baos-ai-super-secret-key-change-in-production-2026
+To run the production build:
+
+```powershell
+npm run start
 ```
 
----
+## Normal Local Run Order
 
-## 📁 Data Sources
+Use this order after dependencies are installed:
 
-| File | Description |
-|---|---|
-| `sample_data/Berth_configurations.xlsx` | Master berth dimensional specs & restrictions |
-| `sample_data/Operational_Capability_of_Berth.xlsx` | Allowed vessel types and commodity groups per berth |
-| `sample_data/Chennai_PORTLOG2025JUN-DEC.xlsx` | Historical port call log data from Chennai |
-
----
-
-## 🧪 Testing
-
-The codebase features a robust, tiered testing hierarchy covering ingestion, repositories, constraints, optimization, and integration.
-
-Run the test suites using the virtual environment:
-
-```bash
-# 1. Core Optimizer & Scenario Tests
-python tests/run_tests.py
-
-# 2. Spec-Based Data Pipeline Tests
-python tests/test_spec_pipeline.py
-
-# 3. Data Ingestion Pipeline Unit Tests
-python tests/test_ingestion.py
-
-# 4. Database Repositories Unit Tests
-python tests/test_repositories.py
-
-# 5. End-to-End Integration Tests
-python tests/test_integration.py
+```powershell
+python -m database.seed
+python run.py
 ```
 
----
+In a second terminal:
 
-## 📝 Design Decisions
+```powershell
+cd frontend-next
+npm run dev
+```
 
-1. **Database-First Ingestion**: Port operators load specifications and call histories via a dedicated admin utility CLI (`ingest_excel_to_db.py`). The runtime application operates directly on the SQL database (`baos` schema), eliminating local Excel reads during decision-making.
+Then log in at `http://localhost:3000/login` with `admin@baos.ai` and `admin123`.
 
-2. **Berth Code vs Name representation**: Internal components process logical strings (e.g. `berth_code`), while all visual schedules, timeline tooltips, and recommendation matrices display user-friendly `berth_name` strings.
+## Port Code Rule
 
-3. **No Auth guards on internal dashboard pages**: For seamless operations inside the port network, authentication redirects are removed from dashboard layouts, enabling immediate entry without token checks.
+Use the port code `INMAA` for Chennai in API calls and frontend state. Do not use display names such as `Chennai Port` as API identifiers.
 
-4. **White Theme**: Clean, professional white/light premium aesthetic across all pages.
+Examples:
 
-5. **Modular Engine Architecture**: Each engine (cost, decision, explanation, KPI, learning, optimization, simulation, etc.) is a self-contained package to allow isolated unit testing and future microservice migration.
+```text
+/api/v1/ports/INMAA/status
+/api/v1/ports/INMAA/config
+```
 
----
+## Project Layout
 
-## 📄 License
+```text
+.
+|-- run.py                         # Root backend launcher
+|-- database/                      # Root compatibility wrapper for python -m database.seed
+|-- backend/                       # FastAPI backend
+|   |-- main.py                    # App startup and auto-training hook
+|   |-- run.py                     # Uvicorn runner
+|   |-- database/seed.py           # Schema, user seed, and Excel ingestion
+|   |-- routes/                    # API routes
+|   |-- services/                  # Auth, training, config, recommendation services
+|   `-- .env                       # Backend environment
+|-- frontend-next/                 # Next.js frontend
+|   |-- src/app/                   # App Router pages
+|   |-- src/lib/                   # API clients
+|   |-- src/store/                 # Zustand stores
+|   `-- .env.local                 # Frontend environment
+|-- sample_data/                   # Excel source files
+|-- sql/                           # BAOS schema and indexes
+`-- requirements.txt               # Shared Python dependencies
+```
 
-Proprietary — Chennai Port Authority / BAOS AI Team
+## Troubleshooting
+
+If login returns `401`, reseed the database and try the seeded credentials again:
+
+```powershell
+python -m database.seed
+```
+
+If the frontend cannot reach the backend, confirm `NEXT_PUBLIC_API_URL` matches the backend URL and restart `npm run dev`.
+
+If model status is not `Trained`, check `http://localhost:8001/api/v1/ports/INMAA/status` for `training_message`, `models_missing`, `models_stale`, and `valid_training_rows`.
+
+## Verification Checklist
+
+Before handing off a local run, verify:
+
+- `python -m database.seed` completes successfully.
+- `python run.py` starts the backend without blocking startup on training failures.
+- `GET /api/v1/ports/INMAA/status` reports the expected data/training status.
+- Login works with `admin@baos.ai` / `admin123`.
+- Frontend pages load at `http://localhost:3000`.
+- `npm run build` passes inside `frontend-next`.

@@ -15,7 +15,7 @@ export default function AnalyticsPreviewSection() {
     <section id="analytics" className="baos-section bg-white border-b border-slate-100">
       <div className="baos-container-wide">
         <div className="flex flex-col items-center mb-6">
-          <SourceBadge source="DEMO" className="mb-4" />
+          <SourceBadge source="HISTORICAL" className="mb-4" />
           <SectionHeader
             title="Operational Insights & Analytics"
             subtitle="Explore simulated performance distributions, turnaround rates, and commercial trends"

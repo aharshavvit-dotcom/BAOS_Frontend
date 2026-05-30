@@ -75,11 +75,13 @@ async def init_db():
     """Create all tables (dev/test only)."""
     # Import baos_models to register them with Base.metadata
     import database.baos_models  # noqa: F401
+    from sqlalchemy import text
+
     async with engine.begin() as conn:
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS baos"))
         await conn.run_sync(Base.metadata.create_all)
 
 
 async def close_db():
     """Dispose engine on shutdown."""
     await engine.dispose()
-

@@ -10,7 +10,7 @@ export default function HeatmapPreviewSection() {
     <section className="baos-section bg-slate-50/50 border-b border-slate-100">
       <div className="baos-container">
         <div className="flex flex-col items-center mb-6">
-          <SourceBadge source="DEMO" className="mb-4" />
+          <SourceBadge source="HISTORICAL" className="mb-4" />
           <SectionHeader
             title="Berth Occupancy Heatmap"
             subtitle="Weekly occupancy visualizer detailing high and low traffic periods across berths"

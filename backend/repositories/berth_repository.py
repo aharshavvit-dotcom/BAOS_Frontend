@@ -88,13 +88,20 @@ async def berths_to_legacy_config(
         berth_list.append({
             "berth_code": b.berth_code,
             "berth_name": b.berth_name or b.berth_code,
+            "terminal_code": b.terminal_name or "",
             "terminal_name": b.terminal_name or "",
+            "port_code": port.port_code,
+            "port_name": port.port_name,
             "max_loa_m": b.max_loa_m or 400.0,
             "max_beam_m": b.max_beam_m or 60.0,
             "max_draft_m": b.max_draft_m or 15.0,
             "depth_m": b.depth_m or 16.0,
             "allowed_vessel_types": vessel_types,
             "allowed_cargo_types": cargo_types,
+            "equipment": sorted(set(
+                c.equipment_type for c in (b.capabilities or [])
+                if c.equipment_type
+            )),
             "allow_24x7": True,
             "data_quality_level": b.data_quality_level or "SPEC",
         })

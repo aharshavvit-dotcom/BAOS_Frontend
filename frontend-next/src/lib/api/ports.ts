@@ -14,9 +14,24 @@ export interface PortInfo {
   port_name: string;
   port_code: string;
   trained: boolean;
+  training_status: TrainingStatus;
+  status_label: string;
+  training_message: string;
   num_berths: number;
+  history_rows?: number;
+  valid_training_rows?: number;
+  models_missing?: string[];
+  models_stale?: string[];
   model_info: PortModelInfo | null;
 }
+
+export type TrainingStatus =
+  | 'data_missing'
+  | 'data_loaded_training_pending'
+  | 'training_in_progress'
+  | 'trained'
+  | 'training_failed'
+  | 'insufficient_data';
 
 export interface PortModelInfo {
   model_version?: string;
@@ -34,10 +49,22 @@ export interface PortStatus {
   port_name: string;
   port_code: string;
   trained: boolean;
+  training_status: TrainingStatus;
+  status_label: string;
+  training_message: string;
+  has_enough_data: boolean;
+  is_stale: boolean;
+  models_required: string[];
+  models_active: string[];
+  models_missing: string[];
+  models_stale: string[];
   model_info: PortModelInfo | null;
   data_quality: DataQuality;
   berth_count: number;
+  capability_count: number;
   history_rows: number;
+  valid_training_rows: number;
+  berth_class_count: number;
 }
 
 export interface DataQuality {
@@ -92,13 +119,13 @@ export async function getPorts(): Promise<PortInfo[]> {
 
 /** Get detailed status for a specific port */
 export async function getPortStatus(portCode: string): Promise<PortStatus> {
-  const res = await apiClient.get<PortStatus>(`/api/v1/ports/${portCode}/status`);
+  const res = await apiClient.get<PortStatus>(`/api/v1/ports/${encodeURIComponent(portCode.trim().toUpperCase())}/status`);
   return res.data;
 }
 
 /** Get full port configuration including berth inventory */
 export async function getPortConfig(portCode: string): Promise<PortConfig> {
-  const res = await apiClient.get<PortConfig>(`/api/v1/ports/${portCode}/config`);
+  const res = await apiClient.get<PortConfig>(`/api/v1/ports/${encodeURIComponent(portCode.trim().toUpperCase())}/config`);
   return res.data;
 }
 

@@ -3,7 +3,6 @@
  *
  * Single Axios instance with:
  * - JWT auth interceptor
- * - Demo mode awareness (NEXT_PUBLIC_DEMO_MODE)
  * - Consistent error handling
  * - Token refresh
  */
@@ -12,7 +11,6 @@ import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'ax
 // Config---
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 /** Standardized API error shape */
 export interface ApiError {
@@ -57,8 +55,13 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const requestUrl = originalRequest?.url || '';
+    const isAuthRequest =
+      requestUrl.includes('/api/auth/login') ||
+      requestUrl.includes('/api/auth/signup') ||
+      requestUrl.includes('/api/auth/refresh');
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (originalRequest && error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
       originalRequest._retry = true;
 
       try {
@@ -88,11 +91,6 @@ apiClient.interceptors.response.use(
 );
 
 // Helpers---
-
-/** Check if demo mode is enabled */
-export function isDemoMode(): boolean {
-  return DEMO_MODE;
-}
 
 /** Extract a user-friendly error message from an Axios error */
 export function extractApiError(error: unknown): ApiError {

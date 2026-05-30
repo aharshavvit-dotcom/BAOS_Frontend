@@ -22,14 +22,13 @@ import {
   DEMO_VESSEL_DIST,
   DEMO_COST_DATA,
   DEMO_COST_COLORS,
-  DEMO_SAMPLE_RECS,
 } from '@/lib/demo/dashboardDemoData';
 
 export default function DashboardPage() {
   const user = useAuthStore(s => s.user);
   const [filter, setFilter] = useState<FilterStatus>('all');
   const { kpis, recommendations: storeRecs, fetchKPIs, fetchCharts, fetchRecommendations: fetchRecs } = useDashboardStore();
-  const [recommendations, setRecommendations] = useState<DashboardRecommendation[]>(DEMO_SAMPLE_RECS);
+  const [recommendations, setRecommendations] = useState<DashboardRecommendation[]>([]);
   const [greeting, setGreeting] = useState('Welcome');
 
   // Load greeting safely inside useEffect to avoid hydration mismatch
@@ -40,7 +39,7 @@ export default function DashboardPage() {
     else setGreeting('Good Evening');
   }, []);
 
-  // Try loading from API on mount (graceful fallback to sample data)
+  // Load from API on mount.
   useEffect(() => {
     fetchKPIs().catch(() => {});
     fetchCharts().catch(() => {});
@@ -51,7 +50,7 @@ export default function DashboardPage() {
     if (storeRecs && storeRecs.length > 0) {
       setRecommendations(storeRecs);
     } else {
-      setRecommendations(DEMO_SAMPLE_RECS);
+      setRecommendations([]);
     }
   }, [storeRecs]);
 

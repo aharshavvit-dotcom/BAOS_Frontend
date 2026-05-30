@@ -14,7 +14,7 @@ _WORKSPACE = _BACKEND.parent
 if str(_WORKSPACE) not in sys.path:
     sys.path.insert(0, str(_WORKSPACE))
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from database.connection import SyncSessionFactory
 from database.models import User
 from auth.password import hash_password
@@ -22,14 +22,18 @@ from auth.password import hash_password
 def reset_password(email: str, new_password: str):
     session = SyncSessionFactory()
     try:
-        user = session.execute(select(User).where(User.email == email)).scalar_one_or_none()
+        normalized_email = email.strip().lower()
+        user = session.execute(
+            select(User).where(func.lower(User.email) == normalized_email)
+        ).scalar_one_or_none()
         if not user:
             print(f"[reset_password] Error: User with email '{email}' not found.")
             sys.exit(1)
 
+        user.email = normalized_email
         user.password_hash = hash_password(new_password)
         session.commit()
-        print(f"[reset_password] Successfully reset password for user: {email}")
+        print(f"[reset_password] Successfully reset password for user: {normalized_email}")
     except Exception as e:
         session.rollback()
         print(f"[reset_password] Error resetting password: {e}")

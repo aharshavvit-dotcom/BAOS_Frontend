@@ -9,7 +9,7 @@ type ChartCardProps = {
 
 export default function ChartCard({ title, subtitle, children, className = '' }: ChartCardProps) {
   return (
-    <div className={`baos-card p-6 flex flex-col justify-between ${className}`}>
+    <div className={`baos-card p-6 flex flex-col justify-between overflow-hidden ${className}`}>
       <div className="mb-6">
         <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">
           {title}
@@ -20,7 +20,7 @@ export default function ChartCard({ title, subtitle, children, className = '' }:
           </p>
         )}
       </div>
-      <div className="h-[320px] w-full min-w-0">
+      <div className="h-[320px] w-full min-w-0 max-w-full">
         {children}
       </div>
     </div>

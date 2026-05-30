@@ -2,6 +2,8 @@
 -- BAOS Seed Data — Default Assumptions for Chennai
 -- ============================================================
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Ensure Chennai port exists
 INSERT INTO baos.port (port_id, port_code, port_name, country, timezone)
 VALUES (

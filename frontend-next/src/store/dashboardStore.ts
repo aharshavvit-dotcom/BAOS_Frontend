@@ -1,6 +1,5 @@
-﻿/**
- * Dashboard store — KPIs and chart data.
- * Uses local fallback data when backend API is unavailable.
+/**
+ * Dashboard store: KPIs and chart data from the backend API.
  */
 import { create } from 'zustand';
 import type { KPIData, ChartsData, DashboardRecommendation } from '@/types';
@@ -19,16 +18,9 @@ interface DashboardState {
   addRecommendation: (rec: DashboardRecommendation) => void;
 }
 
-/* --- Fallback data (used when backend is unavailable) --- */
-const FALLBACK_KPIS: KPIData = {
-  vessels_count: 142,
-  revenue: 480000,
-  cost: 175000,
-  utilization_pct: 78,
-  sla_compliance_pct: 94,
-  avg_turnaround_hours: 18.5,
-  kpi_cards: [],
-};
+function normalizePortCode(portCode = 'INMAA') {
+  return encodeURIComponent(portCode.trim().toUpperCase());
+}
 
 export const useDashboardStore = create<DashboardState>((set) => ({
   kpis: null,
@@ -37,52 +29,44 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   loading: false,
   lastUpdated: null,
 
-  fetchKPIs: async (_portCode = 'INMAA') => {
+  fetchKPIs: async (portCode = 'INMAA') => {
+    set({ loading: true });
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-      const res = await fetch(`${apiUrl}/api/dashboard/kpis?port_code=${_portCode}`, {
-        signal: AbortSignal.timeout(3000),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        set({ kpis: data, lastUpdated: new Date().toISOString() });
-        return;
-      }
+      const res = await fetch(`${apiUrl}/api/dashboard/kpis?port_code=${normalizePortCode(portCode)}`);
+      if (!res.ok) throw new Error('Failed to load KPIs');
+      const data = await res.json();
+      set({ kpis: data, lastUpdated: new Date().toISOString(), loading: false });
     } catch {
-      // Backend unavailable — use fallback silently
-    }
-    set({ kpis: FALLBACK_KPIS, lastUpdated: new Date().toISOString() });
-  },
-
-  fetchCharts: async (_portCode = 'INMAA', _timeRange = '30d') => {
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-      const res = await fetch(`${apiUrl}/api/dashboard/charts?port_code=${_portCode}&time_range=${_timeRange}`, {
-        signal: AbortSignal.timeout(3000),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        set({ charts: data });
-        return;
-      }
-    } catch {
-      // Backend unavailable — use fallback silently
+      set({ kpis: null, loading: false });
     }
   },
 
-  fetchRecommendations: async (_portCode = 'INMAA', _status = 'all') => {
+  fetchCharts: async (portCode = 'INMAA', timeRange = '30d') => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-      const res = await fetch(`${apiUrl}/api/dashboard/recommendations?port_code=${_portCode}&status=${_status}`, {
-        signal: AbortSignal.timeout(3000),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        set({ recommendations: data.recommendations || [] });
-        return;
-      }
+      const res = await fetch(
+        `${apiUrl}/api/dashboard/charts?port_code=${normalizePortCode(portCode)}&time_range=${encodeURIComponent(timeRange)}`,
+      );
+      if (!res.ok) throw new Error('Failed to load charts');
+      const data = await res.json();
+      set({ charts: data });
     } catch {
-      // Backend unavailable — use fallback silently
+      set({ charts: null });
+    }
+  },
+
+  fetchRecommendations: async (portCode = 'INMAA', status = 'all') => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+      const res = await fetch(
+        `${apiUrl}/api/dashboard/recommendations?port_code=${normalizePortCode(portCode)}&status=${encodeURIComponent(status)}`,
+      );
+      if (!res.ok) throw new Error('Failed to load recommendations');
+      const data = await res.json();
+      set({ recommendations: data.recommendations || [] });
+    } catch {
+      set({ recommendations: [] });
     }
   },
 
@@ -93,4 +77,3 @@ export const useDashboardStore = create<DashboardState>((set) => ({
       recommendations: [rec, ...state.recommendations],
     })),
 }));
-

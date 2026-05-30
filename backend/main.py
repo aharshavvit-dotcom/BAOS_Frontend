@@ -35,6 +35,7 @@ from routes.recommendations import router as recommendations_router
 from routes.ports import router as ports_router
 from routes.assumptions import router as assumptions_router
 from routes.websocket import socket_app
+from services.model_training_service import auto_train_required_models
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 
@@ -60,10 +61,15 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 BAOS AI backend starting up...")
     try:
         await init_db()
+        app.state.startup_training_task = asyncio.create_task(auto_train_required_models())
+        logger.info("ML model readiness check scheduled")
         logger.info("✅ Database tables ready")
     except Exception as e:
         logger.error(f"❌ Database initialization failed (optimization endpoints will still function): {e}")
     yield
+    training_task = getattr(app.state, "startup_training_task", None)
+    if training_task and not training_task.done():
+        training_task.cancel()
     logger.info("🛑 Shutting down...")
     try:
         await close_db()

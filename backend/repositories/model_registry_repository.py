@@ -3,6 +3,7 @@ ML Model Registry Repository — CRUD for baos.ml_model_registry.
 """
 from __future__ import annotations
 
+from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
@@ -60,6 +61,11 @@ async def register_model(
     validation_rows: int = 0,
     test_rows: int = 0,
     split_strategy: str = "random",
+    training_start_ts: datetime | None = None,
+    training_end_ts: datetime | None = None,
+    data_start_ts: datetime | None = None,
+    data_end_ts: datetime | None = None,
+    baseline_metrics: dict = None,
 ) -> BaosMLModelRegistry:
     """Register a newly trained model, deactivating previous versions."""
     # Deactivate previous active versions
@@ -83,10 +89,15 @@ async def register_model(
         artifact_path=artifact_path,
         feature_schema=feature_schema or {},
         metrics=metrics or {},
+        baseline_metrics=baseline_metrics or {},
+        training_start_ts=training_start_ts,
+        training_end_ts=training_end_ts,
         training_rows=training_rows,
         validation_rows=validation_rows,
         test_rows=test_rows,
         split_strategy=split_strategy,
+        data_start_ts=data_start_ts,
+        data_end_ts=data_end_ts,
         is_active=True,
     )
     db.add(model)

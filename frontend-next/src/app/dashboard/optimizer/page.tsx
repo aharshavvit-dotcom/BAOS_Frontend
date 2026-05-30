@@ -15,12 +15,12 @@ import {
 import {
   VesselInput, ScheduleAssignment, OptimizerResult, LeversConfig, ShipTypeLevers,
   VESSEL_TYPES, CARGO_TYPES,
-  defaultLevers, makeVessel, createInitialVessels, getSampleResult,
+  defaultLevers, makeVessel, createInitialVessels,
 } from './types';
 import { usePortStore } from '@/store/portStore';
 import { runOptimize } from '@/lib/api/optimizer';
 import { applyOverride } from '@/lib/api/scenarios';
-import { isDemoMode, extractApiError } from '@/lib/api/client';
+import { extractApiError } from '@/lib/api/client';
 import { SolverStatusBanner } from '@/components/optimizer/SolverStatusBanner';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { PortSelector } from '@/components/port/PortSelector';
@@ -163,16 +163,8 @@ export default function OptimizerPage() {
       setOriginalResult(localResult);
     } catch (err) {
       const apiErr = extractApiError(err);
-      if (isDemoMode()) {
-        // Demo fallback — clearly labeled
-        const r = getSampleResult(vessels);
-        setResult(r);
-        setOriginalResult(r);
-        setError(`Backend unavailable: ${apiErr.message}. Showing demo data.`);
-      } else {
-        setError(apiErr.message);
-        setResult(null);
-      }
+      setError(apiErr.message);
+      setResult(null);
     } finally {
       setLoading(false);
     }

@@ -26,8 +26,8 @@
   --color-foreground: #0F172A;
 
   /* Fonts */
-  --font-display: 'Montserrat', sans-serif;
-  --font-body: 'Open Sans', sans-serif;
+  --font-display: Arial, Helvetica, sans-serif;
+  --font-body: Arial, Helvetica, sans-serif;
   --font-code: 'Fira Mono', monospace;
 
   /* Shadows */
@@ -763,4 +763,3 @@ a:hover {
 @utility baos-muted {
   @apply text-slate-500;
 }
-

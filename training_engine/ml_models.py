@@ -72,8 +72,13 @@ class ServiceTimePredictor:
         self.model_q25.fit(X, y)
         self.model_q75.fit(X, y)
 
-        # Cross-validation on median model
-        scores = cross_val_score(self.model, X, y, cv=3, scoring="neg_mean_absolute_error")
+        # Cross-validation on median model when there are enough rows.
+        cv = min(3, len(X))
+        scores = (
+            cross_val_score(self.model, X, y, cv=cv, scoring="neg_mean_absolute_error")
+            if cv >= 2
+            else np.array([-0.0])
+        )
         self.metrics = {
             "mae": round(-scores.mean(), 3),
             "mae_std": round(scores.std(), 3),
@@ -187,7 +192,13 @@ class BerthSuitabilityModel:
         X_filtered = self._filter_X(X)
         y_encoded = self.label_encoder.fit_transform(y)
         self.model.fit(X_filtered, y_encoded)
-        scores = cross_val_score(self.model, X_filtered, y_encoded, cv=3, scoring="accuracy")
+        class_counts = pd.Series(y_encoded).value_counts()
+        cv = min(3, len(X_filtered), int(class_counts.min()) if not class_counts.empty else 0)
+        scores = (
+            cross_val_score(self.model, X_filtered, y_encoded, cv=cv, scoring="accuracy")
+            if cv >= 2
+            else np.array([self.model.score(X_filtered, y_encoded)])
+        )
         self.metrics = {
             "accuracy": round(scores.mean(), 4),
             "accuracy_std": round(scores.std(), 4),
@@ -306,7 +317,12 @@ class DelayPredictor:
         self.model_q25.fit(X, y)
         self.model_q75.fit(X, y)
 
-        scores = cross_val_score(self.model, X, y, cv=3, scoring="neg_mean_absolute_error")
+        cv = min(3, len(X))
+        scores = (
+            cross_val_score(self.model, X, y, cv=cv, scoring="neg_mean_absolute_error")
+            if cv >= 2
+            else np.array([-0.0])
+        )
         self.metrics = {
             "mae": round(-scores.mean(), 3),
             "mae_std": round(scores.std(), 3),

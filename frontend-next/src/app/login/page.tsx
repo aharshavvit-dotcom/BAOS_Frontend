@@ -1,6 +1,5 @@
 /**
- * BAOS AI — Login Page
- * 2-column layout matching login.html
+ * BAOS AI login page.
  */
 'use client';
 
@@ -25,7 +24,7 @@ export default function LoginPage() {
     clearError();
   }, [clearError]);
 
-  const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -48,37 +47,20 @@ export default function LoginPage() {
       await login({ email, password });
       router.push('/dashboard');
     } catch {
-      // Error already set in store
+      // Store owns the visible error.
     }
-  }
-
-  function handleSocialLogin(provider: string) {
-    // Mock social login for demo
-    localStorage.setItem('baos_access_token', `demo_${provider}_${Date.now()}`);
-    localStorage.setItem('baos_refresh_token', `refresh_${provider}_${Date.now()}`);
-    useAuthStore.getState().setUser({
-      id: 'demo',
-      email: `user@${provider.toLowerCase()}.com`,
-      full_name: `${provider} User`,
-      company: 'Port Authority',
-      port_code: 'INMAA',
-      port_name: 'Chennai',
-      role: 'operator',
-    });
-    router.push('/dashboard');
   }
 
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-dark)' }}>
-        <div className="animate-spin text-3xl">🚢</div>
+        <div className="text-sm font-semibold" style={{ color: 'var(--color-text-muted)' }}>Loading...</div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--color-dark)' }}>
-      {/* Left Panel (brand) */}
       <div
         className="hidden lg:flex flex-col justify-center p-12 flex-1"
         style={{
@@ -88,7 +70,7 @@ export default function LoginPage() {
       >
         <div className="max-w-[400px]">
           <div className="flex items-center gap-3 mb-8">
-            <span className="text-4xl">🚢</span>
+            <span className="text-4xl" aria-hidden="true">BA</span>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28, color: 'var(--color-text-primary)' }}>
               BAOS <span style={{ color: 'var(--color-primary)' }}>AI</span>
             </span>
@@ -102,25 +84,23 @@ export default function LoginPage() {
           </p>
           <div className="space-y-4">
             {[
-              '🤖 AI-Powered Recommendations',
-              '📊 Real-time Analytics Dashboard',
-              '⚡ CP-SAT Constraint Optimization',
-              '💰 Commercial Intelligence',
-            ].map((f, i) => (
-              <div key={i} className="flex items-center gap-3 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                <span>{f}</span>
+              'AI-powered recommendations',
+              'Operational analytics dashboard',
+              'CP-SAT constraint optimization',
+              'Commercial intelligence',
+            ].map((feature) => (
+              <div key={feature} className="flex items-center gap-3 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                <span className="h-2 w-2 rounded-full" style={{ background: 'var(--color-primary)' }} />
+                <span>{feature}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Right Panel (form) */}
       <div className="flex flex-col justify-center items-center flex-1 p-8">
         <div className="w-full max-w-[400px]">
-          {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-2 mb-8 justify-center">
-            <span className="text-3xl">🚢</span>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, color: 'var(--color-text-primary)' }}>
               BAOS <span style={{ color: 'var(--color-primary)' }}>AI</span>
             </span>
@@ -129,51 +109,27 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: 'var(--font-display)' }}>Welcome Back</h1>
           <p className="text-sm mb-8" style={{ color: 'var(--color-text-muted)' }}>Sign in to your account</p>
 
-          {/* Social login */}
-          <div className="flex gap-3 mb-6">
-            <button type="button" onClick={() => handleSocialLogin('Google')} className="btn btn-secondary flex-1 text-sm">
-              🔵 Google
-            </button>
-            <button type="button" onClick={() => handleSocialLogin('Microsoft')} className="btn btn-secondary flex-1 text-sm">
-              🟦 Microsoft
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex-1 h-px" style={{ background: 'var(--color-dark-border)' }}></div>
-            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>or</span>
-            <div className="flex-1 h-px" style={{ background: 'var(--color-dark-border)' }}></div>
-          </div>
-
-          {/* Login form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text-secondary)' }}>
                 Email Address
               </label>
-              <div className="form-input-icon">
-                <span className="icon">📧</span>
-                <input
-                  type="email"
-                  autoComplete="username email"
-                  className={`form-input ${emailError ? 'error' : ''}`}
-                  placeholder="you@company.com"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
-                  style={{ paddingLeft: 42 }}
-                />
-              </div>
+              <input
+                type="email"
+                autoComplete="username email"
+                className={`form-input ${emailError ? 'error' : ''}`}
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
+              />
               {emailError && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>{emailError}</p>}
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text-secondary)' }}>
                 Password
               </label>
-              <div className="form-input-icon relative">
-                <span className="icon">🔒</span>
+              <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
@@ -181,20 +137,20 @@ export default function LoginPage() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setPasswordError(''); }}
-                  style={{ paddingLeft: 42, paddingRight: 42 }}
+                  style={{ paddingRight: 92 }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-lg cursor-pointer bg-transparent border-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer border-none bg-transparent text-sm font-semibold"
+                  style={{ color: 'var(--color-primary)' }}
                 >
-                  {showPassword ? '🙈' : '👁'}
+                  {showPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
               {passwordError && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>{passwordError}</p>}
             </div>
 
-            {/* Remember + Forgot */}
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--color-text-muted)' }}>
                 <input type="checkbox" className="accent-[var(--color-primary)]" />
@@ -203,14 +159,12 @@ export default function LoginPage() {
               <a href="#" className="text-sm" style={{ color: 'var(--color-primary)' }}>Forgot password?</a>
             </div>
 
-            {/* Global error */}
             {error && (
               <div className="p-3 rounded-lg text-sm" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid var(--color-danger)', color: 'var(--color-danger)' }}>
                 {error}
               </div>
             )}
 
-            {/* Submit */}
             <button type="submit" disabled={isLoading} className="btn btn-primary w-full btn-lg">
               {isLoading ? 'Signing in...' : 'Sign In'}
             </button>

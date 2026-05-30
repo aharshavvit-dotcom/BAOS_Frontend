@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import List
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 from sqlalchemy.engine import URL
 
@@ -58,6 +59,17 @@ class Settings(BaseSettings):
     APP_NAME: str = "BAOS AI - Maritime Decision Intelligence"
     APP_VERSION: str = "3.0.0"
     DEBUG: bool = True
+
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def parse_debug(cls, value):
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"release", "production", "prod", "false", "0", "no", "off"}:
+                return False
+            if normalized in {"debug", "development", "dev", "true", "1", "yes", "on"}:
+                return True
+        return value
 
     @property
     def cors_origins_list(self) -> List[str]:

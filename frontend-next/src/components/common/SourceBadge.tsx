@@ -1,5 +1,5 @@
 type SourceBadgeProps = {
-  source: 'DEMO' | 'HISTORICAL' | 'ASSUMPTION' | 'LIVE';
+  source: 'DEMO' | 'HISTORICAL' | 'ASSUMPTION' | 'LIVE' | 'SOLVER';
   className?: string;
 };
 
@@ -20,6 +20,10 @@ export default function SourceBadge({ source, className = '' }: SourceBadgeProps
     LIVE: {
       bg: 'bg-emerald-100 text-emerald-800 border-emerald-200',
       label: 'Live DB Connect',
+    },
+    SOLVER: {
+      bg: 'bg-sky-100 text-sky-800 border-sky-200',
+      label: 'Solver Output',
     },
   };
 

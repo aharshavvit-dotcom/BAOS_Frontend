@@ -47,4 +47,4 @@ def decode_token(token: str) -> Optional[Dict[str, Any]]:
 
 def get_token_expiry(days: int = 0, minutes: int = 0) -> datetime:
     """Get a future datetime for token expiry."""
-    return datetime.now(timezone.utc) + timedelta(days=days, minutes=minutes)
+    return datetime.utcnow() + timedelta(days=days, minutes=minutes)

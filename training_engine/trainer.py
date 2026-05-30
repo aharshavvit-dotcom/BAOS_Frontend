@@ -52,7 +52,8 @@ def train_port_models(port_name: str, test_size: float = 0.15, val_size: float =
 
     # ── Stratified Split: train(70%) / val(15%) / test(15%) ──
     # Stratify by berth code when possible
-    stratify_col = y_berth if y_berth.nunique() >= 3 else None
+    berth_counts = y_berth.value_counts()
+    stratify_col = y_berth if y_berth.nunique() >= 3 and berth_counts.min() >= 2 else None
 
     X_trainval, X_test, yb_trainval, yb_test, ys_trainval, ys_test, yd_trainval, yd_test = \
         train_test_split(
@@ -62,7 +63,12 @@ def train_port_models(port_name: str, test_size: float = 0.15, val_size: float =
         )
 
     # Split train into train + val
-    strat_trainval = yb_trainval if yb_trainval.nunique() >= 3 else None
+    trainval_counts = yb_trainval.value_counts()
+    strat_trainval = (
+        yb_trainval
+        if yb_trainval.nunique() >= 3 and trainval_counts.min() >= 2
+        else None
+    )
     val_frac = val_size / (1.0 - test_size)  # Adjust for remaining data
     X_train, X_val, yb_train, yb_val, ys_train, ys_val, yd_train, yd_val = \
         train_test_split(

@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { usePortStore } from '@/store/portStore';
 import { getRecommendation, type BerthRecommendation, type ParameterCheck } from '@/lib/api/recommendations';
-import { extractApiError, isDemoMode } from '@/lib/api/client';
+import { extractApiError } from '@/lib/api/client';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { PortSelector } from '@/components/port/PortSelector';
 import SourceBadge from '@/components/common/SourceBadge';
@@ -95,14 +95,8 @@ export default function RecommendPage() {
       setError(null);
     } catch (err) {
       const apiErr = extractApiError(err);
-      if (isDemoMode()) {
-        const sample = getSampleResults(form);
-        setResults(sample);
-        setError(`Backend unavailable: ${apiErr.message}. Showing demo data.`);
-      } else {
-        setError(apiErr.message);
-        setResults(null);
-      }
+      setError(apiErr.message);
+      setResults(null);
     } finally {
       setLoading(false);
     }

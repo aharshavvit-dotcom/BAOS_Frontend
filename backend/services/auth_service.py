@@ -3,11 +3,11 @@ Authentication service — user creation, credential verification, token managem
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional, Tuple
 from uuid import UUID
 
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -25,6 +25,11 @@ except ImportError:
 from database.models import Port, Session, User
 
 
+def normalize_email(email: str) -> str:
+    """Normalize email addresses consistently for lookup and storage."""
+    return email.strip().lower()
+
+
 async def create_user(
     db: AsyncSession,
     email: str,
@@ -34,23 +39,28 @@ async def create_user(
     port_code: str = "INMAA",
 ) -> User:
     """Register a new user. Raises ValueError if email exists."""
+    normalized_email = normalize_email(email)
+    normalized_port_code = port_code.strip().upper() if port_code else ""
+
     # Check duplicate
     existing = await db.execute(
-        select(User).options(selectinload(User.port)).where(User.email == email)
+        select(User)
+        .options(selectinload(User.port))
+        .where(func.lower(User.email) == normalized_email)
     )
     if existing.scalar_one_or_none():
         raise ValueError("Email already registered")
 
     # Resolve port
     port_id = None
-    if port_code:
-        port_result = await db.execute(select(Port).where(Port.code == port_code))
+    if normalized_port_code:
+        port_result = await db.execute(select(Port).where(Port.code == normalized_port_code))
         port = port_result.scalar_one_or_none()
         if port:
             port_id = port.id
 
     user = User(
-        email=email,
+        email=normalized_email,
         password_hash=hash_password(password),
         full_name=full_name,
         company=company,
@@ -68,14 +78,18 @@ async def authenticate_user(
     password: str,
 ) -> Optional[User]:
     """Verify credentials. Returns User if valid, None otherwise."""
+    normalized_email = normalize_email(email)
     result = await db.execute(
         select(User)
         .options(selectinload(User.port))
-        .where(User.email == email, User.is_active == True)
+        .where(func.lower(User.email) == normalized_email, User.is_active == True)
     )
     user = result.scalar_one_or_none()
     if user is None:
         return None
+    if user.email != normalized_email:
+        user.email = normalized_email
+        await db.flush()
     if not verify_password(password, user.password_hash):
         return None
     return user
@@ -113,7 +127,7 @@ async def refresh_access_token(
     result = await db.execute(
         select(Session).where(
             Session.refresh_token == refresh_token,
-            Session.expires_at > datetime.now(timezone.utc),
+            Session.expires_at > datetime.utcnow(),
         )
     )
     session = result.scalar_one_or_none()
@@ -121,7 +135,7 @@ async def refresh_access_token(
         return None
 
     # Update last activity
-    session.last_activity = datetime.now(timezone.utc)
+    session.last_activity = datetime.utcnow()
     await db.flush()
 
     # Fetch user

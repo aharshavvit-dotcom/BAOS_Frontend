@@ -14,7 +14,7 @@ _WORKSPACE = _BACKEND.parent
 if str(_WORKSPACE) not in sys.path:
     sys.path.insert(0, str(_WORKSPACE))
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from database.connection import SyncSessionFactory
 from database.models import User, Port
 from auth.password import hash_password
@@ -35,7 +35,7 @@ def seed_admin():
             session.flush()
 
         email = "admin@baos.ai"
-        user = session.execute(select(User).where(User.email == email)).scalar_one_or_none()
+        user = session.execute(select(User).where(func.lower(User.email) == email)).scalar_one_or_none()
         if not user:
             user = User(
                 email=email,
@@ -49,6 +49,7 @@ def seed_admin():
             session.add(user)
             print(f"[seed_admin] Created admin user: {email}")
         else:
+            user.email = email
             user.password_hash = hash_password("admin123")
             user.role = "admin"
             user.is_active = True

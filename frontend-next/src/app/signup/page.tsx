@@ -59,7 +59,7 @@ export default function SignupPage() {
 
   // Form data
   const [company, setCompany] = useState('');
-  const [port, setPort] = useState('Chennai');
+  const [portCode, setPortCode] = useState('INMAA');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -103,8 +103,6 @@ export default function SignupPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     clearError();
-
-    const portCode = port === 'Chennai' ? 'INMAA' : 'INMAA';
 
     try {
       await signup({
@@ -219,11 +217,8 @@ export default function SignupPage() {
                   <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text-secondary)' }}>
                     Port
                   </label>
-                  <select className="form-input" value={port} onChange={(e) => setPort(e.target.value)}>
-                    <option>Chennai</option>
-                    <option>Mumbai</option>
-                    <option>Kolkata</option>
-                    <option>Visakhapatnam</option>
+                  <select className="form-input" value={portCode} onChange={(e) => setPortCode(e.target.value)}>
+                    <option value="INMAA">INMAA</option>
                   </select>
                 </div>
                 <button type="button" onClick={nextStep} className="btn btn-primary w-full btn-lg">Next Step →</button>
@@ -269,7 +264,7 @@ export default function SignupPage() {
                   <div className="space-y-3 text-sm">
                     {[
                       ['Company', company],
-                      ['Port', port],
+                      ['Port', portCode],
                       ['Name', fullName],
                       ['Email', email],
                     ].map(([label, value]) => (

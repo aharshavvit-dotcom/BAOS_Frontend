@@ -82,11 +82,12 @@ export const usePortStore = create<PortState>((set, get) => ({
   },
 
   selectPort: async (portCode: string) => {
-    set({ loading: true, error: null, selectedPortCode: portCode });
+    const normalizedPortCode = portCode.trim().toUpperCase();
+    set({ loading: true, error: null, selectedPortCode: normalizedPortCode });
     try {
       const [config, status] = await Promise.all([
-        getPortConfig(portCode),
-        getPortStatus(portCode),
+        getPortConfig(normalizedPortCode),
+        getPortStatus(normalizedPortCode),
       ]);
       set({
         portConfig: config,
