@@ -23,19 +23,11 @@ if sys.platform == 'win32':
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-try:
-    from backend.config import settings
-except ImportError:
-    from config import settings
-from database.connection import close_db, init_db
-from middleware.error_handler import register_error_handlers
-from routes.auth import router as auth_router
-from routes.dashboard import router as dashboard_router
-from routes.recommendations import router as recommendations_router
-from routes.ports import router as ports_router
-from routes.assumptions import router as assumptions_router
-from routes.websocket import socket_app
-from services.model_training_service import auto_train_required_models
+from backend.config import settings
+from backend.db.session import close_db, init_db
+from backend.middleware.error_handler import register_error_handlers
+from backend.routes import all_routers, socket_app
+from backend.services.model_training_service import auto_train_required_models
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 
@@ -104,11 +96,8 @@ register_error_handlers(app)
 
 # ── Routes ───────────────────────────────────────────────────────────────────
 
-app.include_router(auth_router)
-app.include_router(dashboard_router)
-app.include_router(recommendations_router)
-app.include_router(ports_router)
-app.include_router(assumptions_router)
+for router in all_routers:
+    app.include_router(router)
 
 # ── Mount existing API endpoints (from parent project) ───────────────────────
 
@@ -129,17 +118,6 @@ except ImportError as e:
 app.mount("/ws", socket_app)
 
 # ── Health check ─────────────────────────────────────────────────────────────
-
-@app.get("/health", tags=["System"])
-async def health():
-    """Health check endpoint."""
-    from datetime import datetime, timezone
-    return {
-        "status": "healthy",
-        "version": settings.APP_VERSION,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
-
 
 @app.get("/", tags=["System"])
 async def root():

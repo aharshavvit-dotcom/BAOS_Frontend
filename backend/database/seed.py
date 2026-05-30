@@ -24,9 +24,9 @@ for _path in (_BACKEND, _ROOT):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
-from auth.password import hash_password, verify_password
-from database.connection import Base, SyncSessionFactory, sync_engine
-from database.models import Berth, KPI, Port, User
+from backend.auth.password import hash_password, verify_password
+from backend.db.session import Base, SyncSessionFactory, sync_engine
+from backend.db.models.app_models import Berth, KPI, Port, User
 
 
 PORT_CODE = "INMAA"
@@ -48,7 +48,7 @@ def _run_sql_file(path: Path) -> None:
 
 
 def _create_schema() -> None:
-    import database.baos_models  # noqa: F401
+    import backend.db.models.baos_models  # noqa: F401
 
     print("[Seed] Creating schemas and tables...")
     with sync_engine.connect() as conn:
@@ -177,11 +177,11 @@ def _ensure_legacy_kpi(session, port_id) -> None:
 
 
 def _load_sample_data(session) -> None:
-    from database.baos_models import BaosPort, IngestionBatch
-    from data_ingestion.excel_loader import compute_file_hash
-    from data_ingestion.load_berths import load_berths_from_excel
-    from data_ingestion.load_capabilities import load_capabilities_from_excel
-    from data_ingestion.load_port_calls import load_port_calls_from_file
+    from backend.db.models.baos_models import BaosPort, IngestionBatch
+    from engines.ingestion.excel_loader import compute_file_hash
+    from engines.ingestion.load_berths import load_berths_from_excel
+    from engines.ingestion.load_capabilities import load_capabilities_from_excel
+    from engines.ingestion.load_port_calls import load_port_calls_from_file
 
     sample_dir = _ROOT / "sample_data"
     berth_config = sample_dir / "Berth_configurations.xlsx"

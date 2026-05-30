@@ -7,11 +7,11 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.connection import get_db
-from repositories.port_repository import list_ports, get_port_by_code
-from repositories.port_call_repository import get_port_call_stats
-from repositories.model_registry_repository import get_active_model
-from services.model_training_service import evaluate_port_training_status
+from backend.db.repositories.model_registry_repository import get_active_model
+from backend.db.repositories.port_call_repository import get_port_call_stats
+from backend.db.repositories.port_repository import get_port_by_code, list_ports
+from backend.db.session import get_db
+from backend.services.model_training_service import evaluate_port_training_status
 
 router = APIRouter(prefix="/api/v1/ports", tags=["Ports"])
 
@@ -110,7 +110,7 @@ async def get_port_status_details(port_code: str, db: AsyncSession = Depends(get
 @router.get("/{port_code}/config", response_model=dict)
 async def get_port_config_details(port_code: str, db: AsyncSession = Depends(get_db)):
     """Get full port configuration including berth inventory."""
-    from services.port_config_service import load_port_config_from_db
+    from backend.services.port_config_service import load_port_config_from_db
     normalized_port_code = port_code.strip().upper()
     config = await load_port_config_from_db(db, normalized_port_code)
     if not config:

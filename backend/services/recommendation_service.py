@@ -10,8 +10,8 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import Recommendation, Vessel
-from schemas.recommendations import BerthRecommendation, RecommendationResponse
+from backend.db.models.app_models import Recommendation, Vessel
+from backend.schemas.recommendations import BerthRecommendation, RecommendationResponse
 
 # Add parent project to path so we can import existing engines
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -22,8 +22,8 @@ if str(_PROJECT_ROOT) not in sys.path:
 def _get_decision_engine():
     """Lazy-load the existing decision engine modules."""
     try:
-        from decision_engine.recommender import BerthRecommender
-        from data_layer.port_store import load_port_config, port_exists
+        from engines.core.decision.recommender import BerthRecommender
+        from backend.db.repositories.port_store import load_port_config, port_exists
         return BerthRecommender, load_port_config, port_exists
     except ImportError:
         return None, None, None

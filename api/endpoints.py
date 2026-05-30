@@ -26,17 +26,17 @@ _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from data_layer.port_store import list_ports, port_exists, load_port_config, is_trained, get_model_info
-from optimization_engine.constraint_model import (
+from backend.db.repositories.port_store import list_ports, port_exists, load_port_config, is_trained, get_model_info
+from engines.simulation.optimization.constraint_model import (
     VesselInput, BerthInput, SchedulerConfig, ResourceInput,
     build_and_solve, OPTIMAL, FEASIBLE,
 )
-from optimization_engine.feasibility_checker import FeasibilityChecker
-from optimization_engine.scheduler import RollingHorizonScheduler
-from cost_engine.cost_model import CostEngine, CostConfig
-from decision_engine.confidence import ConfidenceCalculator
-from kpi_engine.kpi_calculator import KPICalculator
-from explanation_engine.explainer import AgenticExplainer
+from engines.simulation.optimization.feasibility_checker import FeasibilityChecker
+from engines.simulation.optimization.scheduler import RollingHorizonScheduler
+from engines.analytics.cost.cost_model import CostEngine, CostConfig
+from engines.core.decision.confidence import ConfidenceCalculator
+from engines.analytics.kpi.kpi_calculator import KPICalculator
+from engines.analytics.explanation.explainer import AgenticExplainer
 
 
 # ── Pydantic Models ────────────────────────────────────────────────────────
@@ -706,12 +706,12 @@ def ranked_alternatives(req: RankedAlternativesRequest):
 # ══════════════════════════════════════════════════════════════════════════════
 
 try:
-    from commercial_engine.commercial_scorer import (
+    from engines.analytics.commercial.commercial_scorer import (
         CommercialScorer, CommercialDecisionConfig as EngineDecisionConfig,
     )
-    from commercial_engine.partnership_manager import PartnershipManager
-    from commercial_engine.berth_economics import BerthEconomicsCalculator
-    from commercial_engine.dynamic_pricing import DynamicPricingEngine
+    from engines.analytics.commercial.partnership_manager import PartnershipManager
+    from engines.analytics.commercial.berth_economics import BerthEconomicsCalculator
+    from engines.analytics.commercial.dynamic_pricing import DynamicPricingEngine
     from db.commercial_repository import (
         get_all_companies, get_all_berth_economics, upsert_company,
         get_recent_assignments,
@@ -820,7 +820,7 @@ def list_partnerships():
 def upsert_partnership(company_id: str, payload: PartnershipUpsert):
     if not COMMERCIAL_AVAILABLE:
         raise HTTPException(503, "Commercial Intelligence module not available")
-    from commercial_engine.partnership_manager import VesselCompany, PartnershipTier
+    from engines.analytics.commercial.partnership_manager import VesselCompany, PartnershipTier
     try:
         tier = PartnershipTier(payload.tier)
     except ValueError:

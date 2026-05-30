@@ -34,12 +34,12 @@ def run_optimization(self, port_code: str, vessels: list, config: Dict[str, Any]
     self.update_state(state="PROGRESS", meta={"progress": 10, "message": "Loading port config..."})
 
     try:
-        from data_layer.port_store import load_port_config, port_exists
-        from optimization_engine.constraint_model import (
+        from backend.db.repositories.port_store import load_port_config, port_exists
+        from engines.simulation.optimization.constraint_model import (
             VesselInput, BerthInput, SchedulerConfig, ResourceInput,
             build_and_solve, OPTIMAL, FEASIBLE,
         )
-        from optimization_engine.scheduler import RollingHorizonScheduler
+        from engines.simulation.optimization.scheduler import RollingHorizonScheduler
 
         if not port_exists(port_code):
             return {"status": "error", "message": f"Port '{port_code}' not found"}

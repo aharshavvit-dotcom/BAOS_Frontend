@@ -4,10 +4,7 @@ Celery application configuration.
 from celery import Celery
 from celery.schedules import crontab
 
-try:
-    from backend.config import settings
-except ImportError:
-    from config import settings
+from backend.config import settings
 
 celery_app = Celery(
     "baos_ai",

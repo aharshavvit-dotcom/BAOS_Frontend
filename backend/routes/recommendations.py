@@ -7,17 +7,17 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.dependencies import get_current_user
-from database.connection import get_db
-from database.models import Recommendation, User
-from schemas.recommendations import (
+from backend.auth.dependencies import get_current_user
+from backend.db.models.app_models import Recommendation, User
+from backend.db.session import get_db
+from backend.schemas.recommendations import (
     RecommendationItem,
     RecommendationListResponse,
     RecommendationRequest,
     RecommendationResponse,
     UpdateRecommendationRequest,
 )
-from services.recommendation_service import generate_recommendation
+from backend.services.recommendation_service import generate_recommendation
 
 router = APIRouter(prefix="/api/recommendations", tags=["Recommendations"])
 

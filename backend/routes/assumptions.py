@@ -9,8 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.connection import get_db
-from repositories.assumption_repository import get_assumptions, update_assumption
+from backend.db.repositories.assumption_repository import get_assumptions, update_assumption
+from backend.db.session import get_db
 
 router = APIRouter(prefix="/api/v1/assumptions", tags=["Assumptions"])
 

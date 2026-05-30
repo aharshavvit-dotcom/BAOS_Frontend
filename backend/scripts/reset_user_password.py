@@ -15,9 +15,9 @@ if str(_WORKSPACE) not in sys.path:
     sys.path.insert(0, str(_WORKSPACE))
 
 from sqlalchemy import func, select
-from database.connection import SyncSessionFactory
-from database.models import User
-from auth.password import hash_password
+from backend.auth.password import hash_password
+from backend.db.models.app_models import User
+from backend.db.session import SyncSessionFactory
 
 def reset_password(email: str, new_password: str):
     session = SyncSessionFactory()

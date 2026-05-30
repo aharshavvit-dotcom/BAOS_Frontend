@@ -17,18 +17,18 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.baos_models import (
+from backend.db.models.baos_models import (
     BaosBerth,
     BaosBerthCapability,
     BaosMLModelRegistry,
     BaosPort,
     BaosPortCall,
 )
-from database.connection import async_session_factory
-from repositories.model_registry_repository import get_active_model, register_model
-from repositories.port_repository import get_port_by_code, list_ports
-from services.port_config_service import load_port_config_from_db
-from services.training_data_service import load_history_from_db
+from backend.db.repositories.model_registry_repository import get_active_model, register_model
+from backend.db.repositories.port_repository import get_port_by_code, list_ports
+from backend.db.session import async_session_factory
+from backend.services.port_config_service import load_port_config_from_db
+from backend.services.training_data_service import load_history_from_db
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +80,8 @@ def _train_port_models_from_data(port_code: str, df_history, port_config: dict) 
 
     from sklearn.model_selection import train_test_split
 
-    from training_engine.feature_builder import build_training_features
-    from training_engine.ml_models import (
+    from engines.learning.training.feature_builder import build_training_features
+    from engines.learning.training.ml_models import (
         BerthSuitabilityModel,
         DecisionRanker,
         DelayPredictor,

@@ -1,7 +1,7 @@
 import sys
 sys.path.insert(0, ".")
 
-from decision_engine.recommender import recommend_berth
+from engines.core.decision.recommender import recommend_berth
 
 test_cases = [
     {

@@ -50,7 +50,7 @@ def main():
 
     # ── Setup DB connection ──────────────────────────────────
     from backend.config import settings  # noqa: E402
-    from backend.database.connection import SyncSessionFactory, sync_engine  # noqa: E402
+    from backend.db.session import SyncSessionFactory, sync_engine  # noqa: E402
 
     # Ensure baos schema exists
     from sqlalchemy import text
@@ -88,11 +88,11 @@ def main():
 
 
 def _run_ingestion(db, args, port_name: str):
-    from database.baos_models import BaosPort, IngestionBatch
-    from data_ingestion.excel_loader import compute_file_hash
-    from data_ingestion.load_berths import load_berths_from_excel
-    from data_ingestion.load_capabilities import load_capabilities_from_excel
-    from data_ingestion.load_port_calls import load_port_calls_from_file
+    from backend.db.models.baos_models import BaosPort, IngestionBatch
+    from engines.ingestion.excel_loader import compute_file_hash
+    from engines.ingestion.load_berths import load_berths_from_excel
+    from engines.ingestion.load_capabilities import load_capabilities_from_excel
+    from engines.ingestion.load_port_calls import load_port_calls_from_file
 
     # ── 1. Ensure port exists ────────────────────────────────
     port = db.query(BaosPort).filter(BaosPort.port_code == args.port_code).first()

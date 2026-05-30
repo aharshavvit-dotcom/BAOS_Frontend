@@ -6,10 +6,10 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.dependencies import get_current_user
-from database.connection import get_db
-from database.models import User
-from schemas.auth import (
+from backend.auth.dependencies import get_current_user
+from backend.db.models.app_models import User
+from backend.db.session import get_db
+from backend.auth.schemas import (
     AccessTokenResponse,
     LoginRequest,
     MessageResponse,
@@ -18,7 +18,7 @@ from schemas.auth import (
     TokenResponse,
     UserResponse,
 )
-from services.auth_service import (
+from backend.auth.service import (
     authenticate_user,
     build_user_response,
     create_tokens,

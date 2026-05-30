@@ -9,9 +9,9 @@ _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "backend"))
 sys.path.insert(0, str(_ROOT))
 
-from data_ingestion.transformers import safe_float, safe_datetime, compute_derived_durations
-from data_ingestion.schema_mapping import normalize_columns, resolve_column
-from data_ingestion.validators import validate_port_call_row
+from engines.ingestion.transformers import safe_float, safe_datetime, compute_derived_durations
+from engines.ingestion.schema_mapping import normalize_columns, resolve_column
+from engines.ingestion.validators import validate_port_call_row
 
 
 def test_safe_float():

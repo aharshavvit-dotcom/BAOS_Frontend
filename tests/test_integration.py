@@ -20,7 +20,7 @@ sys.path.insert(0, str(_ROOT))
 
 def _has_port_data():
     """Check if port data exists for integration tests."""
-    from data_layer.port_store import port_exists, is_trained
+    from backend.db.repositories.port_store import port_exists, is_trained
     return port_exists("chennai") and is_trained("chennai")
 
 
@@ -33,7 +33,7 @@ def test_recommender_with_uncertainty():
     if not _has_port_data():
         return  # Skip
 
-    from decision_engine.recommender import recommend_berth
+    from engines.core.decision.recommender import recommend_berth
 
     vessel = {
         "name": "Test Vessel",
@@ -70,7 +70,7 @@ def test_recommender_infeasible_vessel():
     if not _has_port_data():
         return
 
-    from decision_engine.recommender import recommend_berth
+    from engines.core.decision.recommender import recommend_berth
 
     vessel = {"name": "Giant", "loa": 9999, "draft": 99, "beam": 200, "dwt": 999999}
     options = recommend_berth(vessel, "chennai")
@@ -83,7 +83,7 @@ def test_recommender_infeasible_vessel():
 
 def test_learning_engine_spec_tracking():
     """Assignment tracker records spec-backed flag and prediction errors."""
-    from learning_engine.assignment_tracker import (
+    from engines.learning.assignment_tracker import (
         record_assignment, get_prediction_accuracy, _learning_path,
     )
 
@@ -136,7 +136,7 @@ def test_learning_engine_spec_tracking():
 
 def test_learning_compatibility_history():
     """Compatibility history returns correct success rates."""
-    from learning_engine.assignment_tracker import (
+    from engines.learning.assignment_tracker import (
         record_assignment, get_compatibility_history, _learning_path,
     )
 
@@ -168,9 +168,9 @@ def test_ml_enrichment():
     if not _has_port_data():
         return
 
-    from decision_engine.ml_enrichment import enrich_vessels_with_ml
-    from optimization_engine.constraint_model import VesselInput, BerthInput
-    from data_layer.port_store import load_port_config
+    from engines.core.decision.ml_enrichment import enrich_vessels_with_ml
+    from engines.simulation.optimization.constraint_model import VesselInput, BerthInput
+    from backend.db.repositories.port_store import load_port_config
 
     # Load actual port config to get real berth codes
     pcfg = load_port_config("chennai")
@@ -212,7 +212,7 @@ def test_ml_enrichment():
 
 def test_confidence_data_quality():
     """Confidence engine uses compatibility factor from spec data."""
-    from decision_engine.confidence import ConfidenceCalculator
+    from engines.core.decision.confidence import ConfidenceCalculator
 
     calc = ConfidenceCalculator()
 
@@ -238,19 +238,19 @@ def test_full_pipeline():
         return
 
     # 1. Load port config (use load_port_config, not build_port_config_from_history)
-    from data_layer.port_store import load_port_config
+    from backend.db.repositories.port_store import load_port_config
     cfg = load_port_config("chennai")
     assert "berths" in cfg
     assert len(cfg["berths"]) > 0
 
     # 2. Training completes
-    from training_engine.trainer import train_port_models
+    from engines.learning.training.trainer import train_port_models
     metadata = train_port_models("chennai")
     assert metadata["training_samples"] > 0
     assert "version" in metadata
 
     # 3. Recommendation works
-    from decision_engine.recommender import recommend_berth
+    from engines.core.decision.recommender import recommend_berth
     vessel = {
         "name": "Pipeline Test",
         "loa": 150, "draft": 8, "beam": 22,
@@ -261,7 +261,7 @@ def test_full_pipeline():
     assert options[0].berth_code != "NONE"
 
     # 4. Can record to learning engine
-    from learning_engine.assignment_tracker import record_assignment
+    from engines.learning.assignment_tracker import record_assignment
     record_assignment(
         "chennai", "PIPELINE_TEST", "BULK CARRIER",
         options[0].berth_code,
@@ -284,8 +284,8 @@ def test_constraint_library_recommender():
     if not bcfg.exists() or not _has_port_data():
         return
 
-    from legacy.spec_ingest import build_port_master
-    from optimization_engine.constraint_library import ConstraintLibrary
+    from engines.ingestion.spec_ingest import build_port_master
+    from engines.simulation.optimization.constraint_library import ConstraintLibrary
 
     pm = build_port_master(
         port_name="chennai",
@@ -309,21 +309,21 @@ def test_constraint_library_recommender():
 def test_import_chain():
     """All modules import without circular dependencies."""
     modules = [
-        "data_models",
-        "config",
-        "data_layer.quality",
-        "legacy.spec_ingest",
-        "optimization_engine.constraint_library",
-        "optimization_engine.feasibility_checker",
-        "optimization_engine.scheduler",
-        "training_engine.feature_builder",
-        "training_engine.ml_models",
-        "training_engine.trainer",
-        "decision_engine.recommender",
-        "decision_engine.confidence",
-        "decision_engine.ml_enrichment",
-        "learning_engine.assignment_tracker",
-        "scenario_engine.scenario_manager",
+        "backend.db.models.data_models",
+        "backend.config.port_config",
+        "backend.db.repositories.quality",
+        "engines.ingestion.spec_ingest",
+        "engines.simulation.optimization.constraint_library",
+        "engines.simulation.optimization.feasibility_checker",
+        "engines.simulation.optimization.scheduler",
+        "engines.learning.training.feature_builder",
+        "engines.learning.training.ml_models",
+        "engines.learning.training.trainer",
+        "engines.core.decision.recommender",
+        "engines.core.decision.confidence",
+        "engines.core.decision.ml_enrichment",
+        "engines.learning.assignment_tracker",
+        "engines.simulation.scenario.scenario_manager",
     ]
     failed = []
     for mod in modules:

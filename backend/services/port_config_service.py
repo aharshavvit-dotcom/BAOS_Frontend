@@ -7,10 +7,10 @@ import logging
 from typing import Any, Dict
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from repositories.port_repository import get_port_by_code
-from repositories.berth_repository import berths_to_legacy_config
-from repositories.port_call_repository import get_historical_service_medians
-from repositories.assumption_repository import get_assumptions_as_dict
+from backend.db.repositories.assumption_repository import get_assumptions_as_dict
+from backend.db.repositories.berth_repository import berths_to_legacy_config
+from backend.db.repositories.port_call_repository import get_historical_service_medians
+from backend.db.repositories.port_repository import get_port_by_code
 
 logger = logging.getLogger(__name__)
 

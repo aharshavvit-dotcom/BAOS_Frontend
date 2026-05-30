@@ -10,10 +10,10 @@ from datetime import datetime
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
 
-from commercial_engine.berth_economics import BerthEconomicsCalculator, BERTH_CLASS_PREMIUM
-from commercial_engine.dynamic_pricing import DynamicPricingEngine
-from commercial_engine.partnership_manager import PartnershipManager, PartnershipTier
-from commercial_engine.commercial_scorer import CommercialScorer, CommercialDecisionConfig
+from engines.analytics.commercial.berth_economics import BerthEconomicsCalculator, BERTH_CLASS_PREMIUM
+from engines.analytics.commercial.dynamic_pricing import DynamicPricingEngine
+from engines.analytics.commercial.partnership_manager import PartnershipManager, PartnershipTier
+from engines.analytics.commercial.commercial_scorer import CommercialScorer, CommercialDecisionConfig
 
 
 # ── 1. Berth Economics Tests ───────────────────────────────────────────────

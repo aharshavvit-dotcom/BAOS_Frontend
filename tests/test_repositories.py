@@ -10,10 +10,10 @@ _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "backend"))
 sys.path.insert(0, str(_ROOT))
 
-from database.connection import async_session_factory
-from repositories.port_repository import list_ports, get_port_by_code, upsert_port, port_exists
-from repositories.assumption_repository import get_assumptions, get_assumption_value, get_assumptions_as_dict, update_assumption
-from repositories.berth_repository import list_berths
+from backend.db.repositories.assumption_repository import get_assumptions, get_assumption_value, get_assumptions_as_dict, update_assumption
+from backend.db.repositories.berth_repository import list_berths
+from backend.db.repositories.port_repository import list_ports, get_port_by_code, upsert_port, port_exists
+from backend.db.session import async_session_factory
 
 
 async def async_test_port_repository():
@@ -53,7 +53,7 @@ async def async_test_assumption_repository():
         port = await upsert_port(db, port_code, "Temp Port", country="TestLand", timezone="UTC")
         
         # Add a temp assumption
-        from database.baos_models import BaosAssumptionConfig
+        from backend.db.models.baos_models import BaosAssumptionConfig
         assumption_id = uuid.uuid4()
         asm = BaosAssumptionConfig(
             assumption_id=assumption_id,

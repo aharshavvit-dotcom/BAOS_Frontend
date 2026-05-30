@@ -7,10 +7,10 @@ import logging
 from typing import Any, Dict, List
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from repositories.berth_repository import list_berths
-from repositories.port_repository import get_port_by_code
-from repositories.assumption_repository import get_assumptions_as_dict
-from optimization_engine.constraint_model import BerthInput, ResourceInput, SchedulerConfig
+from backend.db.repositories.assumption_repository import get_assumptions_as_dict
+from backend.db.repositories.berth_repository import list_berths
+from backend.db.repositories.port_repository import get_port_by_code
+from engines.simulation.optimization.constraint_model import BerthInput, ResourceInput, SchedulerConfig
 
 logger = logging.getLogger(__name__)
 

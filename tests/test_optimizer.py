@@ -9,7 +9,7 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
 
-from optimization_engine.constraint_model import (
+from engines.simulation.optimization.constraint_model import (
     VesselInput, BerthInput, SchedulerConfig,
     ResourceInput, TideWindowInput,
     DowntimeWindowInput, WeatherWindowInput,
@@ -17,13 +17,13 @@ from optimization_engine.constraint_model import (
     AssignmentResult,
     OPTIMAL, FEASIBLE,
 )
-from optimization_engine.feasibility_checker import FeasibilityChecker
-from optimization_engine.scheduler import RollingHorizonScheduler
-from cost_engine.cost_model import CostEngine, CostConfig
-from decision_engine.confidence import ConfidenceCalculator
-from kpi_engine.kpi_calculator import KPICalculator
-from explanation_engine.explainer import AgenticExplainer
-from simulation_engine.digital_twin import PortDigitalTwin
+from engines.simulation.optimization.feasibility_checker import FeasibilityChecker
+from engines.simulation.optimization.scheduler import RollingHorizonScheduler
+from engines.analytics.cost.cost_model import CostEngine, CostConfig
+from engines.core.decision.confidence import ConfidenceCalculator
+from engines.analytics.kpi.kpi_calculator import KPICalculator
+from engines.analytics.explanation.explainer import AgenticExplainer
+from engines.simulation.digital_twin import PortDigitalTwin
 
 
 def test_basic_assignment():
@@ -365,7 +365,7 @@ def test_downtime_blocking():
 
 def test_deviation_penalty():
     """Test: re-optimization with deviation penalty keeps assignments stable."""
-    from optimization_engine.constraint_model import AssignmentResult
+    from engines.simulation.optimization.constraint_model import AssignmentResult
     vessels = [
         VesselInput("V1", loa_m=150, draft_m=8,
                      eta_minutes=0, service_time_minutes=600),
@@ -400,7 +400,7 @@ def test_ukc_margin():
     berth = BerthInput("B1", max_loa_m=200, max_draft_m=14.3, depth_m=16)
 
     # Without margin (0.0): draft 14.0 <= 14.3 → passes
-    from optimization_engine.feasibility_checker import FeasibilityChecker
+    from engines.simulation.optimization.feasibility_checker import FeasibilityChecker
     checker_no_margin = FeasibilityChecker(SchedulerConfig(ukc_margin_m=0.0))
     r1 = checker_no_margin.check(vessel, berth)
     draft_check_1 = [c for c in r1.checks if c.name == "Draft clearance"][0]
@@ -512,7 +512,7 @@ def test_manual_override():
 
 def test_ranked_alternatives():
     """Test: ranked alternatives computed for each vessel."""
-    from scenario_engine.scenario_manager import ScenarioManager
+    from engines.simulation.scenario.scenario_manager import ScenarioManager
 
     vessels = [
         VesselInput("V1", name="Ship A", loa_m=180, draft_m=9,
@@ -542,7 +542,7 @@ def test_ranked_alternatives():
 
 def test_conflict_detection():
     """Test: conflict detector identifies overlaps."""
-    from scenario_engine.conflict_detector import detect_conflicts
+    from engines.simulation.scenario.conflict_detector import detect_conflicts
 
     vessels = {
         "V1": VesselInput("V1", loa_m=180, draft_m=9,
@@ -595,7 +595,7 @@ def test_feasibility_reasons():
 
 def test_scenario_impact():
     """Test: override produces valid ScenarioImpact."""
-    from scenario_engine.scenario_manager import ScenarioManager, ManualOverride
+    from engines.simulation.scenario.scenario_manager import ScenarioManager, ManualOverride
 
     vessels = [
         VesselInput("V1", name="Ship A", loa_m=180, draft_m=9,
@@ -632,7 +632,7 @@ def test_scenario_impact():
 
 def test_cascading_conflict_resolution():
     """Test: cascading conflict resolver auto-reassigns displaced vessel."""
-    from scenario_engine.conflict_resolver import resolve_cascading_conflicts
+    from engines.simulation.scenario.conflict_resolver import resolve_cascading_conflicts
 
     vessels = {
         "V1": VesselInput("V1", name="Ship A", loa_m=180, draft_m=9,
@@ -686,7 +686,7 @@ def test_ship_type_config_resolution():
     ship_cfg = SchedulerConfig(w_waiting=3.0)
     bs_cfg = SchedulerConfig(w_waiting=4.0)
 
-    from optimization_engine.constraint_model import BerthSchedulerConfig as BSC
+    from engines.simulation.optimization.constraint_model import BerthSchedulerConfig as BSC
     bsc = BSC(
         global_config=global_cfg,
         berth_configs={"B1": berth_cfg},
@@ -718,7 +718,7 @@ def test_ship_type_config_resolution():
 
 def test_ship_type_objective_weights():
     """Test: solver uses ship-type-specific weights."""
-    from optimization_engine.constraint_model import BerthSchedulerConfig as BSC
+    from engines.simulation.optimization.constraint_model import BerthSchedulerConfig as BSC
 
     # Container ship has high waiting weight → should minimize its wait
     container_cfg = SchedulerConfig(w_waiting=5.0, w_sla_penalty=0.0)
@@ -844,7 +844,7 @@ def test_beam_feasibility():
 
 def test_dynamic_vessel_type_all_types():
     """Test: ALL vessel types get a compatibility score > 0 (never rejected outright when berth has equipment)."""
-    from optimization_engine.vessel_type_knowledge import compute_compatibility_score
+    from engines.simulation.optimization.vessel_type_knowledge import compute_compatibility_score
 
     all_types = [
         "Bulk dry", "General cargo", "Container", "Tanker",
@@ -886,7 +886,7 @@ def test_vessel_type_soft_constraint():
 
 def test_compatibility_scoring():
     """Test: compute_compatibility_score returns correct relative scores."""
-    from optimization_engine.vessel_type_knowledge import compute_compatibility_score
+    from engines.simulation.optimization.vessel_type_knowledge import compute_compatibility_score
 
     equipment = ["crane", "hose", "gangway", "conveyor"]
 
@@ -917,7 +917,7 @@ def test_confidence_high_for_good_match():
     This is intentional to avoid overconfidence when feasibility checks and
     historical data are not provided.
     """
-    from decision_engine.confidence import ConfidenceCalculator
+    from engines.core.decision.confidence import ConfidenceCalculator
 
     calc = ConfidenceCalculator()
     result = calc.compute(
@@ -933,7 +933,7 @@ def test_confidence_high_for_good_match():
 
 def test_confidence_moderate_for_fair_match():
     """Test: moderate compatibility → confidence 65-84%."""
-    from decision_engine.confidence import ConfidenceCalculator
+    from engines.core.decision.confidence import ConfidenceCalculator
 
     calc = ConfidenceCalculator()
     result = calc.compute(
@@ -949,7 +949,7 @@ def test_learning_system_record_and_retrieve():
     """Test: assignment recording and retrieval."""
     import tempfile
     import shutil
-    from learning_engine.assignment_tracker import (
+    from engines.learning.assignment_tracker import (
         record_assignment, get_berth_performance, get_compatibility_history,
         _PORTS_DIR,
     )

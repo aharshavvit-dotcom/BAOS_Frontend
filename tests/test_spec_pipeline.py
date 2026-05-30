@@ -16,13 +16,13 @@ _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "backend"))
 sys.path.insert(0, str(_ROOT))
 
-from data_models import (
+from backend.db.models.data_models import (
     BerthSpec, PortMaster, ProvenanceField, DataSource, QualityGate,
     ConstraintDefinition, ConstraintCategory, ConstraintSeverity,
     FeasibilityResult, ConstraintCheckResult,
 )
-from optimization_engine.constraint_model import VesselInput, BerthInput, SchedulerConfig
-from optimization_engine.feasibility_checker import FeasibilityChecker
+from engines.simulation.optimization.constraint_model import VesselInput, BerthInput, SchedulerConfig
+from engines.simulation.optimization.feasibility_checker import FeasibilityChecker
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -133,7 +133,7 @@ def test_berth_spec_legacy_dict():
 
 def test_constraint_library_builds():
     """ConstraintLibrary builds typed constraints from BerthSpec."""
-    from optimization_engine.constraint_library import ConstraintLibrary
+    from engines.simulation.optimization.constraint_library import ConstraintLibrary
 
     spec = _make_berth_spec(
         max_loa=200, max_draft=12, max_depth=14, max_beam=32, ukc=1.0,
@@ -160,7 +160,7 @@ def test_constraint_library_builds():
 
 def test_constraint_library_feasibility_pass():
     """Vessel within all limits passes feasibility."""
-    from optimization_engine.constraint_library import ConstraintLibrary
+    from engines.simulation.optimization.constraint_library import ConstraintLibrary
 
     spec = _make_berth_spec(max_loa=250, max_draft=15, max_depth=18, max_beam=40)
     pm = _make_port_master(spec)
@@ -175,7 +175,7 @@ def test_constraint_library_feasibility_pass():
 
 def test_constraint_library_feasibility_fail_loa():
     """Vessel exceeding LOA limit is correctly rejected."""
-    from optimization_engine.constraint_library import ConstraintLibrary
+    from engines.simulation.optimization.constraint_library import ConstraintLibrary
 
     spec = _make_berth_spec(max_loa=150, max_draft=15, max_depth=18, max_beam=40)
     pm = _make_port_master(spec)
@@ -190,7 +190,7 @@ def test_constraint_library_feasibility_fail_loa():
 
 def test_constraint_library_feasibility_fail_draft():
     """Vessel exceeding draft limit is correctly rejected."""
-    from optimization_engine.constraint_library import ConstraintLibrary
+    from engines.simulation.optimization.constraint_library import ConstraintLibrary
 
     spec = _make_berth_spec(max_loa=300, max_draft=9.5, max_depth=12, max_beam=40)
     pm = _make_port_master(spec)
@@ -205,7 +205,7 @@ def test_constraint_library_feasibility_fail_draft():
 
 def test_constraint_library_suitability_score():
     """Suitability score ranks matching berths higher."""
-    from optimization_engine.constraint_library import ConstraintLibrary
+    from engines.simulation.optimization.constraint_library import ConstraintLibrary
 
     spec_bulk = _make_berth_spec(
         bc="B_BULK", max_loa=250, max_draft=15, max_depth=18, max_beam=40,
@@ -303,7 +303,7 @@ def test_checker_backward_compat():
 
 def test_quality_scoring():
     """Quality scoring produces expected gates."""
-    from data_layer.quality import score_berth_quality
+    from backend.db.repositories.quality import score_berth_quality
 
     # Well-specified berth -> GREEN
     spec_good = _make_berth_spec(
@@ -335,7 +335,7 @@ def test_spec_ingestion():
     if not bcfg.exists():
         return  # Skip if no spec files
 
-    from legacy.spec_ingest import build_port_master
+    from engines.ingestion.spec_ingest import build_port_master
 
     pm = build_port_master(
         port_name="test_chennai",
@@ -363,8 +363,8 @@ def test_constraint_library_from_excel():
     if not bcfg.exists():
         return  # Skip
 
-    from legacy.spec_ingest import build_port_master
-    from optimization_engine.constraint_library import ConstraintLibrary
+    from engines.ingestion.spec_ingest import build_port_master
+    from engines.simulation.optimization.constraint_library import ConstraintLibrary
 
     pm = build_port_master(
         port_name="test",
@@ -394,7 +394,7 @@ def test_config_load_port_master():
     if not bcfg.exists():
         return  # Skip
 
-    from config import _load_port_master_for_config
+    from backend.config.port_config import _load_port_master_for_config
 
     pm = _load_port_master_for_config(port_name="test")
     assert pm is not None, "_load_port_master_for_config should return PortMaster"

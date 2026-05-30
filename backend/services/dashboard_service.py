@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from schemas.dashboard import (
+from backend.schemas.dashboard import (
     ChartData,
     ChartDataset,
     ChartsResponse,

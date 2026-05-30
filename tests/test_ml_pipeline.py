@@ -19,12 +19,12 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from training_engine.feature_builder import (
+from engines.learning.training.feature_builder import (
     VESSEL_FEATURES, CONTEXT_FEATURES, BERTH_FEATURES, DERIVED_FEATURES,
     build_training_features, build_inference_features,
     _cyclical_encode,
 )
-from training_engine.ml_models import (
+from engines.learning.training.ml_models import (
     ServiceTimePredictor, BerthSuitabilityModel,
     DelayPredictor, DecisionRanker, QuantilePrediction,
 )
@@ -300,7 +300,7 @@ def test_ranker_with_uncertainty():
 
 def test_berth_option_fields():
     """BerthOption includes Phase 2 uncertainty fields."""
-    from training_engine.ml_models import BerthOption
+    from engines.learning.training.ml_models import BerthOption
     opt = BerthOption(
         berth_code="B1", berth_name="Test",
         service_time_lower=20.0, service_time_upper=28.0,
@@ -318,11 +318,11 @@ def test_berth_option_fields():
 
 def test_training_pipeline():
     """Full training pipeline runs successfully (if port data exists)."""
-    from data_layer.port_store import port_exists
+    from backend.db.repositories.port_store import port_exists
     if not port_exists("chennai"):
         return  # Skip if no port data
 
-    from training_engine.trainer import train_port_models
+    from engines.learning.training.trainer import train_port_models
     metadata = train_port_models("chennai")
 
     assert metadata["training_samples"] > 0
@@ -347,8 +347,8 @@ def test_training_pipeline():
 
 def test_ui_import():
     """Core explanation engine components can be imported (Next.js app — no Streamlit UI)."""
-    from explanation_engine.structured_explanation import StructuredExplanationEngine
-    from explanation_engine.explainer import AgenticExplainer
+    from engines.analytics.explanation.structured_explanation import StructuredExplanationEngine
+    from engines.analytics.explanation.explainer import AgenticExplainer
     # Just verify they're callable / importable
     assert callable(StructuredExplanationEngine)
     assert callable(AgenticExplainer)

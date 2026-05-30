@@ -6,15 +6,15 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.dependencies import get_current_user
-from database.connection import get_db
-from database.models import User
-from schemas.dashboard import (
+from backend.auth.dependencies import get_current_user
+from backend.db.models.app_models import User
+from backend.db.session import get_db
+from backend.schemas.dashboard import (
     ChartsResponse,
     DashboardRecommendationsResponse,
     KPIResponse,
 )
-from services.dashboard_service import (
+from backend.services.dashboard_service import (
     get_charts,
     get_dashboard_recommendations,
     get_kpis,

@@ -57,7 +57,7 @@ class TestPatternDiscovery:
         return pd.DataFrame(data)
 
     def test_compute_specialization(self):
-        from training_engine.pattern_discovery import _compute_specialization
+        from engines.learning.training.pattern_discovery import _compute_specialization
 
         df = self._make_sample_df()
         df["_berth"] = df["berthcode"]
@@ -72,7 +72,7 @@ class TestPatternDiscovery:
             "Bulk dry should prefer BD1 over GC1"
 
     def test_compute_factor_importance(self):
-        from training_engine.pattern_discovery import _compute_factor_importance
+        from engines.learning.training.pattern_discovery import _compute_factor_importance
 
         df = self._make_sample_df()
         result = _compute_factor_importance(df, "berthcode", "vesseltype", "loa", "adraft")
@@ -83,7 +83,7 @@ class TestPatternDiscovery:
             "Factor importances should sum to ~1.0"
 
     def test_detect_constraints(self):
-        from training_engine.pattern_discovery import _compute_specialization, _detect_constraints
+        from engines.learning.training.pattern_discovery import _compute_specialization, _detect_constraints
 
         df = self._make_sample_df()
         df["_berth"] = df["berthcode"]
@@ -97,7 +97,7 @@ class TestPatternDiscovery:
         assert len(constraints) > 0, "Should detect at least one constraint"
 
     def test_profile_berths(self):
-        from training_engine.pattern_discovery import _profile_berths
+        from engines.learning.training.pattern_discovery import _profile_berths
 
         df = self._make_sample_df()
         df["_berth"] = df["berthcode"]
@@ -111,7 +111,7 @@ class TestPatternDiscovery:
             assert info["flexibility"] in ("highly_specialized", "moderately_specialized", "flexible")
 
     def test_cramers_v(self):
-        from training_engine.pattern_discovery import _cramers_v
+        from engines.learning.training.pattern_discovery import _cramers_v
 
         # Perfectly correlated
         x = pd.Series(["A", "A", "B", "B", "C", "C"])
@@ -146,7 +146,7 @@ class TestXGBoostRanker:
         return X, y
 
     def test_train_and_predict(self):
-        from training_engine.xgboost_ranker import XGBoostBerthRanker
+        from engines.learning.training.xgboost_ranker import XGBoostBerthRanker
 
         X, y = self._make_training_data()
         ranker = XGBoostBerthRanker()
@@ -162,7 +162,7 @@ class TestXGBoostRanker:
         assert all(0 <= v <= 1 for v in proba.values()), "Probabilities should be [0,1]"
 
     def test_predict_top_k(self):
-        from training_engine.xgboost_ranker import XGBoostBerthRanker
+        from engines.learning.training.xgboost_ranker import XGBoostBerthRanker
 
         X, y = self._make_training_data()
         ranker = XGBoostBerthRanker()
@@ -177,7 +177,7 @@ class TestXGBoostRanker:
             assert 0 <= prob <= 1
 
     def test_save_and_load(self, tmp_path):
-        from training_engine.xgboost_ranker import XGBoostBerthRanker
+        from engines.learning.training.xgboost_ranker import XGBoostBerthRanker
 
         X, y = self._make_training_data()
         ranker = XGBoostBerthRanker()
@@ -196,7 +196,7 @@ class TestXGBoostRanker:
             assert abs(orig[bc] - new[bc]) < 1e-6
 
     def test_evaluate(self):
-        from training_engine.xgboost_ranker import XGBoostBerthRanker
+        from engines.learning.training.xgboost_ranker import XGBoostBerthRanker
 
         X, y = self._make_training_data()
         ranker = XGBoostBerthRanker()
@@ -215,7 +215,7 @@ class TestCommercialObjective:
     """Tests for commercial terms in constraint_model.py."""
 
     def test_scheduler_config_has_commercial_fields(self):
-        from optimization_engine.constraint_model import SchedulerConfig
+        from engines.simulation.optimization.constraint_model import SchedulerConfig
 
         cfg = SchedulerConfig()
         assert hasattr(cfg, "w_commercial"), "Should have w_commercial field"
@@ -226,7 +226,7 @@ class TestCommercialObjective:
         assert cfg.decision_mode == "technical_only"
 
     def test_commercial_config_modes(self):
-        from optimization_engine.constraint_model import SchedulerConfig
+        from engines.simulation.optimization.constraint_model import SchedulerConfig
 
         # Revenue first mode
         revenue_cfg = SchedulerConfig(
@@ -247,7 +247,7 @@ class TestCommercialObjective:
 
     def test_build_objective_with_commercial_terms(self):
         """Verify the CP-SAT model builds successfully with commercial weights."""
-        from optimization_engine.constraint_model import (
+        from engines.simulation.optimization.constraint_model import (
             BerthConstraintModel, VesselInput, BerthInput, SchedulerConfig,
         )
 
@@ -292,7 +292,7 @@ class TestWeeklyRefresh:
     """Tests for learning_engine/weekly_refresh.py."""
 
     def test_compare_metrics_improved(self):
-        from learning_engine.weekly_refresh import _compare_metrics
+        from engines.learning.weekly_refresh import _compare_metrics
 
         old = {
             "results": {
@@ -313,7 +313,7 @@ class TestWeeklyRefresh:
         assert comparison["suitability_delta"] == pytest.approx(0.05)
 
     def test_compare_metrics_degraded(self):
-        from learning_engine.weekly_refresh import _compare_metrics
+        from engines.learning.weekly_refresh import _compare_metrics
 
         old = {
             "results": {
@@ -333,7 +333,7 @@ class TestWeeklyRefresh:
         assert comparison["improved"] is False
 
     def test_compare_no_baseline(self):
-        from learning_engine.weekly_refresh import _compare_metrics
+        from engines.learning.weekly_refresh import _compare_metrics
 
         comparison = _compare_metrics(None, {"results": {}})
         assert comparison["improved"] is True

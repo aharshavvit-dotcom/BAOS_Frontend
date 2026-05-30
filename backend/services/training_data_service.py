@@ -7,7 +7,7 @@ import logging
 import pandas as pd
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from repositories.port_call_repository import get_training_rows
+from backend.db.repositories.port_call_repository import get_training_rows
 
 logger = logging.getLogger(__name__)
 

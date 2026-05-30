@@ -12,9 +12,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from auth.jwt_handler import decode_token
-from database.connection import get_db
-from database.models import User
+from backend.auth.jwt import decode_token
+from backend.db.models.app_models import User
+from backend.db.session import get_db
 
 security = HTTPBearer(auto_error=False)
 
@@ -92,3 +92,13 @@ async def get_optional_user(
         return await get_current_user(credentials, db)
     except HTTPException:
         return None
+
+
+async def require_admin(user: User = Depends(get_current_user)) -> User:
+    """Require the current user to have the admin role."""
+    if user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return user

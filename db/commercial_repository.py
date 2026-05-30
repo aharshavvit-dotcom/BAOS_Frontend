@@ -20,8 +20,8 @@ try:
 except Exception:
     DB_AVAILABLE = False
 
-from commercial_engine.berth_economics import BerthEconomics, DEFAULT_BERTH_ECONOMICS
-from commercial_engine.partnership_manager import (
+from engines.analytics.commercial.berth_economics import BerthEconomics, DEFAULT_BERTH_ECONOMICS
+from engines.analytics.commercial.partnership_manager import (
     VesselCompany, PartnershipTier, ContractObligation, DEFAULT_PARTNERSHIPS
 )
 
