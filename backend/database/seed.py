@@ -56,9 +56,9 @@ def _create_schema() -> None:
         conn.commit()
 
     for sql_file in (
-        _ROOT / "sql" / "001_create_baos_schema.sql",
-        _ROOT / "sql" / "002_seed_assumptions.sql",
-        _ROOT / "sql" / "003_create_indexes.sql",
+        _BACKEND / "migrations" / "sql" / "001_create_baos_schema.sql",
+        _BACKEND / "migrations" / "sql" / "002_seed_assumptions.sql",
+        _BACKEND / "migrations" / "sql" / "003_create_indexes.sql",
     ):
         _run_sql_file(sql_file)
 
@@ -289,6 +289,18 @@ def seed() -> None:
 
     session = SyncSessionFactory()
     try:
+        existing_count = session.execute(
+            text("SELECT COUNT(*) FROM baos.port_call")
+        ).scalar()
+        if existing_count > 0:
+            print(f"[seed] Skipping - {existing_count} port_call rows already exist.")
+            return {
+                "status": "skipped",
+                "reason": "data already present",
+                "existing_rows": existing_count,
+            }
+        print("[seed] No existing data found. Proceeding with seed...")
+
         legacy_port = _ensure_legacy_port_and_berths(session)
         _ensure_user(
             session,

@@ -3,6 +3,8 @@ Recommendation service — wraps the existing decision_engine for API use.
 """
 from __future__ import annotations
 
+import asyncio
+from functools import partial
 import sys
 import uuid
 from pathlib import Path
@@ -12,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.models.app_models import Recommendation, Vessel
 from backend.schemas.recommendations import BerthRecommendation, RecommendationResponse
+from backend.utils.exceptions import TrainingError
 
 # Add parent project to path so we can import existing engines
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -22,11 +25,60 @@ if str(_PROJECT_ROOT) not in sys.path:
 def _get_decision_engine():
     """Lazy-load the existing decision engine modules."""
     try:
-        from engines.core.decision.recommender import BerthRecommender
-        from backend.db.repositories.port_store import load_port_config, port_exists
-        return BerthRecommender, load_port_config, port_exists
+        from engines.core.decision.recommender import recommend_berth
+        from backend.db.repositories.port_store import port_exists
+        return recommend_berth, port_exists
     except ImportError:
-        return None, None, None
+        return None, None
+
+
+def _run_decision_engine_recommendation(
+    *,
+    vessel_name: str,
+    vessel_type: str,
+    loa_m: float,
+    beam_m: float,
+    draft_m: float,
+    cargo_type: str,
+    cargo_tons: float,
+    port_code: str,
+) -> list[dict] | None:
+    """Run the legacy synchronous recommendation stack."""
+    recommend_berth, port_exists = _get_decision_engine()
+    if not (recommend_berth and port_exists and port_exists(port_code)):
+        return None
+
+    # FIX (Phase 5): Use the real recommender function so model integrity errors cannot fall through to samples.
+    options = recommend_berth(
+        {
+            "name": vessel_name,
+            "vessel_type": vessel_type,
+            "loa": loa_m,
+            "beam": beam_m,
+            "draft": draft_m,
+            "dwt": cargo_tons,
+            "cargo_type": cargo_type,
+            "cargo_tons": cargo_tons,
+        },
+        port_code,
+        top_k=3,
+    )
+    return [
+        {
+            "berth_code": option.berth_code,
+            "berth_name": option.berth_name,
+            "confidence": option.confidence,
+            "technical_score": option.suitability_score,
+            "commercial_score": 0.0,
+            "reasoning": {
+                "headline": option.compact_reason or option.explanation,
+                "pros": option.pros,
+                "cons": option.cons,
+            },
+            "expected_turnaround_hours": option.expected_service_hours,
+        }
+        for option in options
+    ]
 
 
 async def generate_recommendation(
@@ -46,16 +98,17 @@ async def generate_recommendation(
     Generate berth recommendations using existing decision engine.
     Falls back to sample recommendations if engine unavailable.
     """
-    BerthRecommender, load_port_config, port_exists = _get_decision_engine()
-
     recommendations: List[BerthRecommendation] = []
     rec_id = str(uuid.uuid4())
 
-    if BerthRecommender and port_exists and port_exists(port_code):
-        try:
-            # Use existing recommender
-            recommender = BerthRecommender(port_code)
-            results = recommender.recommend(
+    try:
+        loop = asyncio.get_event_loop()
+        # FIX (Phase 4): Legacy recommender uses sync DB/model work -> run it off the async event loop.
+        # TODO: convert legacy port_store/recommender DB access to AsyncSession.
+        results = await loop.run_in_executor(
+            None,
+            partial(
+                _run_decision_engine_recommendation,
                 vessel_name=vessel_name,
                 vessel_type=vessel_type,
                 loa_m=loa_m,
@@ -63,21 +116,26 @@ async def generate_recommendation(
                 draft_m=draft_m,
                 cargo_type=cargo_type,
                 cargo_tons=cargo_tons,
-            )
+                port_code=port_code,
+            ),
+        )
+    except TrainingError:
+        # FIX (Phase 5): Feature-hash/model integrity failures must surface to the API caller.
+        raise
+    except Exception:
+        results = None
 
-            for r in results[:3]:
-                recommendations.append(BerthRecommendation(
-                    berth_code=r.get("berth_code", ""),
-                    berth_name=r.get("berth_name", ""),
-                    confidence=r.get("confidence", 0.0),
-                    technical_score=r.get("technical_score", 0.0),
-                    commercial_score=r.get("commercial_score", 0.0),
-                    reasoning=r.get("reasoning", {}),
-                    expected_turnaround_hours=r.get("expected_turnaround_hours"),
-                ))
-        except Exception:
-            # Fall back to sample data
-            recommendations = _sample_recommendations(vessel_type)
+    if results:
+        for r in results[:3]:
+            recommendations.append(BerthRecommendation(
+                berth_code=r.get("berth_code", ""),
+                berth_name=r.get("berth_name", ""),
+                confidence=r.get("confidence", 0.0),
+                technical_score=r.get("technical_score", 0.0),
+                commercial_score=r.get("commercial_score", 0.0),
+                reasoning=r.get("reasoning", {}),
+                expected_turnaround_hours=r.get("expected_turnaround_hours"),
+            ))
     else:
         recommendations = _sample_recommendations(vessel_type)
 

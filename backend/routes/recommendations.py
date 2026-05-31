@@ -1,121 +1,61 @@
-"""
-Recommendation API routes.
-"""
+"""Recommendation API routes."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth.dependencies import get_current_user
-from backend.db.models.app_models import Recommendation, User
 from backend.db.session import get_db
+from backend.handlers.recommendations_handler import (
+    generate_recommendation_handler,
+    list_recommendations_handler,
+    update_recommendation_handler,
+)
 from backend.schemas.recommendations import (
-    RecommendationItem,
     RecommendationListResponse,
     RecommendationRequest,
     RecommendationResponse,
+    UpdateRecommendationResponse,
     UpdateRecommendationRequest,
 )
-from backend.services.recommendation_service import generate_recommendation
 
-router = APIRouter(prefix="/api/recommendations", tags=["Recommendations"])
+legacy_router = APIRouter(prefix="/api/recommendations", tags=["Recommendations"])
+router = APIRouter(prefix="/api/v1/recommendations", tags=["Recommendations"])
 
 
+@legacy_router.post("/get-recommendation", response_model=RecommendationResponse)
 @router.post("/get-recommendation", response_model=RecommendationResponse)
 async def get_recommendation(
     req: RecommendationRequest,
     db: AsyncSession = Depends(get_db),
+    _current_user=Depends(get_current_user),
 ):
     """Generate berth recommendations for a vessel."""
-    return await generate_recommendation(
-        db=db,
-        vessel_name=req.vessel_name,
-        vessel_type=req.vessel_type,
-        loa_m=req.loa_m,
-        beam_m=req.beam_m,
-        draft_m=req.draft_m,
-        dwt=req.dwt,
-        cargo_type=req.cargo_type,
-        cargo_tons=req.cargo_tons,
-        port_code=req.port_code,
-        eta=req.eta,
-    )
+    return await generate_recommendation_handler(db, req)
 
 
+@legacy_router.get("", response_model=RecommendationListResponse)
 @router.get("", response_model=RecommendationListResponse)
 async def list_recommendations(
     port_code: str = Query("INMAA"),
     rec_status: str = Query("all", alias="status"),
-    limit: int = Query(20, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
+    _current_user=Depends(get_current_user),
 ):
     """List recommendations with filtering and pagination."""
-    query = select(Recommendation).where(Recommendation.port_code == port_code)
-
-    if rec_status != "all":
-        query = query.where(Recommendation.status == rec_status)
-
-    # Count total
-    count_query = select(func.count()).select_from(query.subquery())
-    total_result = await db.execute(count_query)
-    total = total_result.scalar() or 0
-
-    # Fetch page
-    query = query.order_by(Recommendation.created_at.desc()).offset(offset).limit(limit)
-    result = await db.execute(query)
-    recs = result.scalars().all()
-
-    items = []
-    for r in recs:
-        vessel_data = r.vessel_data_json or {}
-        items.append(RecommendationItem(
-            id=str(r.id),
-            vessel_name=vessel_data.get("vessel_name", "Unknown"),
-            vessel_type=vessel_data.get("vessel_type", ""),
-            berth_code=r.berth_code,
-            berth_name=r.berth_name,
-            confidence=r.confidence_score,
-            status=r.status,
-            created_at=r.created_at.isoformat() if r.created_at else "",
-        ))
-
-    return RecommendationListResponse(
-        recommendations=items,
-        total=total,
-        page=(offset // limit) + 1,
-        per_page=limit,
-    )
+    # FIX (Phase 4): Recommendation history used limit/offset -> expose page/page_size capped at 100.
+    return await list_recommendations_handler(db, port_code, rec_status, page, page_size)
 
 
-@router.patch("/{recommendation_id}")
+@legacy_router.patch("/{recommendation_id}", response_model=UpdateRecommendationResponse)
+@router.patch("/{recommendation_id}", response_model=UpdateRecommendationResponse)
 async def update_recommendation(
     recommendation_id: str,
     req: UpdateRecommendationRequest,
     db: AsyncSession = Depends(get_db),
+    _current_user=Depends(get_current_user),
 ):
     """Accept or reject a recommendation."""
-    from uuid import UUID
-
-    try:
-        rec_uuid = UUID(recommendation_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid recommendation ID")
-
-    result = await db.execute(
-        select(Recommendation).where(Recommendation.id == rec_uuid)
-    )
-    rec = result.scalar_one_or_none()
-
-    if rec is None:
-        raise HTTPException(status_code=404, detail="Recommendation not found")
-
-    rec.status = req.status
-    await db.flush()
-
-    return {
-        "id": str(rec.id),
-        "status": rec.status,
-        "message": f"Recommendation {req.status} successfully",
-    }
+    return await update_recommendation_handler(db, recommendation_id, req)

@@ -1,5 +1,7 @@
 /* --- Optimizer Types & Helpers --- */
 
+import { VESSEL_TYPES as SHARED_VESSEL_TYPES } from '@/lib/constants';
+
 /**
  * NOTE: This file has been refactored. Hardcoded berth arrays (ALL_BERTHS,
  * BERTH_SPECS, BERTH_COLORS) have been REMOVED. All berth data now comes
@@ -111,11 +113,7 @@ export interface ShipTypeLevers {
 
 // --- Constants ---
 
-export const VESSEL_TYPES = [
-  'Bulk Dry', 'Chemical', 'Container', 'General Cargo', 'Oil',
-  'Other Dry Cargo', 'Ro-Ro Cargo', 'Bulk Carrier', 'Crude Oil Tanker',
-  'Chemical Tanker', 'RoRo', 'LPG Tanker', 'LNG Tanker', 'Multipurpose', 'Passenger',
-];
+export const VESSEL_TYPES = [...SHARED_VESSEL_TYPES];
 
 export const CARGO_TYPES = [
   'COAL', 'IRON ORE', 'CONTAINER', 'CRUDE OIL', 'CHEMICALS', 'GENERAL',

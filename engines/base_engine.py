@@ -4,7 +4,10 @@ from typing import Any, Dict
 
 
 class BaseEngine(ABC):
-    """Base engine interface."""
+    """
+    All engines must implement train(), predict(), and status().
+    The main implementation file in each engine folder is called processor.py.
+    """
 
     name: str = ""
 

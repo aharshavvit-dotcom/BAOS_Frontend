@@ -7,10 +7,11 @@
  * - Token refresh
  */
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import { API_BASE_URL } from '@/lib/constants';
 
 // Config---
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+const API_BASE = API_BASE_URL;
 
 /** Standardized API error shape */
 export interface ApiError {
@@ -65,9 +66,12 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
+        if (typeof window === 'undefined') {
+          return Promise.reject(error);
+        }
         const refreshToken = localStorage.getItem('baos_refresh_token');
         if (refreshToken) {
-          const res = await axios.post(`${API_BASE}/api/auth/refresh`, {
+          const res = await axios.post(`${API_BASE}/api/v1/auth/refresh`, {
             refresh_token: refreshToken,
           });
           const newToken = res.data.access_token;
@@ -78,9 +82,10 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest);
         }
       } catch {
-        localStorage.removeItem('baos_access_token');
-        localStorage.removeItem('baos_refresh_token');
         if (typeof window !== 'undefined') {
+          localStorage.removeItem('baos_access_token');
+          localStorage.removeItem('baos_refresh_token');
+          localStorage.removeItem('baos_token');
           window.location.href = '/login';
         }
       }

@@ -44,6 +44,8 @@ class IngestionBatch(Base):
     error_message = Column(Text)
     started_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -234,6 +236,7 @@ class BaosMLModelRegistry(Base):
     data_end_ts = Column(DateTime)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     port = relationship("BaosPort", back_populates="models")
 
@@ -261,6 +264,8 @@ class BaosOptimizationRun(Base):
     result_summary = Column(JSON)
     started_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     assignments = relationship("BaosOptimizationAssignment", back_populates="run", cascade="all, delete-orphan")
 
@@ -294,6 +299,7 @@ class BaosOptimizationAssignment(Base):
     risk_level = Column(Text)
     explanation = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     run = relationship("BaosOptimizationRun", back_populates="assignments")
 
@@ -312,6 +318,25 @@ class BaosRecommendationLog(Base):
     recommendations = Column(JSON, nullable=False)
     assumptions_used = Column(JSON)
     model_versions = Column(JSON)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class TrainingRun(Base):
+    __tablename__ = "training_runs"
+    __table_args__ = {"schema": "baos"}
+
+    id = Column(Integer, primary_key=True, index=True)
+    model_name = Column(String(100), nullable=False, index=True)
+    version = Column(Integer, nullable=False, default=1)
+    trained_at = Column(DateTime, default=datetime.utcnow)
+    train_score = Column(Float, nullable=True)
+    val_score = Column(Float, nullable=True)
+    data_rows = Column(Integer, nullable=True)
+    feature_hash = Column(String(64), nullable=True)
+    hyperparameters = Column(JSON, nullable=True)
+    status = Column(String(20), default="completed")
+    error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

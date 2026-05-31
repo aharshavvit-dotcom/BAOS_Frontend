@@ -52,6 +52,7 @@ class Session(Base):
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_activity = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="sessions")
 
@@ -69,6 +70,7 @@ class Port(Base):
     country = Column(String(100), default="India")
     config_json = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     users = relationship("User", back_populates="port")
     berths = relationship("Berth", back_populates="port", cascade="all, delete-orphan")
@@ -94,6 +96,7 @@ class Berth(Base):
     is_available = Column(Boolean, default=True)
     allow_24x7 = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     port = relationship("Port", back_populates="berths")
     assignments = relationship("Assignment", back_populates="berth")
@@ -118,6 +121,7 @@ class Vessel(Base):
     imo_number = Column(String(20), default="")
     company = Column(String(200), default="")
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     assignments = relationship("Assignment", back_populates="vessel")
     recommendations = relationship("Recommendation", back_populates="vessel")
@@ -146,6 +150,8 @@ class Assignment(Base):
     assigned_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     assigned_at = Column(DateTime, default=datetime.utcnow)
     notes = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     vessel = relationship("Vessel", back_populates="assignments")
     berth = relationship("Berth", back_populates="assignments")
@@ -193,6 +199,7 @@ class KPI(Base):
     avg_turnaround_hours = Column(Float, default=0.0)
     data_json = Column(JSON, default=dict)  # additional chart data
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     port = relationship("Port", back_populates="kpis")
 
@@ -212,3 +219,4 @@ class AuditLog(Base):
     changes_json = Column(JSON, default=dict)
     ip_address = Column(String(45), default="")
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

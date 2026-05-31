@@ -16,6 +16,7 @@ from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
 
+from backend.config.settings import settings
 from backend.db.models.domain import (
     Berth, PortConfig, TideWindow, WeatherWindow, ChannelWindow,
     ResourceSlot, ContractRule, GoIOverrideRule, LeverConfig,
@@ -25,6 +26,10 @@ from backend.db.models.domain import (
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).resolve().parents[2]
+_INFERRED_BERTH_LIMIT_WARNING = (
+    "Berth specs unavailable for one or more berths; using conservative inferred limits "
+    "from historical vessel dimensions."
+)
 
 
 def _load_port_master_for_config(
@@ -150,20 +155,11 @@ def build_berths_from_history(df: pd.DataFrame, port_master=None) -> List[Berth]
 
         if spec:
             # Use spec-derived limits (authoritative)
-            max_loa = spec.get_max_loa() if spec.get_max_loa() > 0 else (
-                float(pd.to_numeric(part.get("loa"), errors="coerce").max() * 1.10)
-                if pd.to_numeric(part.get("loa"), errors="coerce").max() > 0 else 400.0
-            )
-            max_draft = spec.get_max_draft() if spec.get_max_draft() > 0 else (
-                float(pd.to_numeric(part.get("adraft"), errors="coerce").max() * 1.10)
-                if pd.to_numeric(part.get("adraft"), errors="coerce").max() > 0 else 15.0
-            )
+            # FIX (Phase 5): Missing spec fields must not inflate berth limits from historical assignments.
+            max_loa = spec.get_max_loa() if spec.get_max_loa() > 0 else 400.0
+            max_draft = spec.get_max_draft() if spec.get_max_draft() > 0 else 15.0
             depth = spec.get_depth() if spec.get_depth() > 0 else max_draft * 1.1
-            max_beam = spec.get_max_beam() if spec.get_max_beam() > 0 else (
-                float(pd.to_numeric(part.get("beam"), errors="coerce").max() * 1.10)
-                if "beam" in part.columns and pd.to_numeric(part.get("beam"), errors="coerce").max() > 0
-                else 60.0
-            )
+            max_beam = spec.get_max_beam() if spec.get_max_beam() > 0 else 60.0
             vessel_types = spec.allowed_vessel_types if spec.allowed_vessel_types else sorted(set(
                 x.strip() for x in part.get("vesseltype", pd.Series([], dtype=str)).dropna().astype(str).tolist()
                 if x.strip()
@@ -171,15 +167,17 @@ def build_berths_from_history(df: pd.DataFrame, port_master=None) -> List[Berth]
             equipment = spec.equipment_types if spec.equipment_types else ["crane", "hose", "gangway"]
             cargo_types = sorted(spec.supported_commodities) if spec.supported_commodities else []
         else:
-            # Fallback to historical inference (original behavior)
+            # FIX (Phase 5): History-derived limits are conservative and flagged because specs are absent.
+            logger.warning("%s berth_code=%s", _INFERRED_BERTH_LIMIT_WARNING, bc_str)
             hist_max_loa = pd.to_numeric(part.get("loa"), errors="coerce").max()
             hist_max_draft = pd.to_numeric(part.get("adraft"), errors="coerce").max()
             hist_max_beam = pd.to_numeric(part.get("beam"), errors="coerce").max() if "beam" in part.columns else None
+            factor = settings.berth_limit_inference_factor
             
-            max_loa = float(hist_max_loa * 1.10) if pd.notna(hist_max_loa) else 400.0
-            max_draft = float(hist_max_draft * 1.10) if pd.notna(hist_max_draft) else 15.0
-            depth = float(hist_max_draft * 1.20) if pd.notna(hist_max_draft) else 16.0
-            max_beam = float(hist_max_beam * 1.10) if pd.notna(hist_max_beam) and hist_max_beam > 0 else 60.0
+            max_loa = float(hist_max_loa * factor) if pd.notna(hist_max_loa) else 400.0
+            max_draft = float(hist_max_draft * factor) if pd.notna(hist_max_draft) else 15.0
+            depth = float(hist_max_draft * factor) if pd.notna(hist_max_draft) else 16.0
+            max_beam = float(hist_max_beam * factor) if pd.notna(hist_max_beam) and hist_max_beam > 0 else 60.0
             vessel_types = sorted(set(
                 x.strip() for x in part.get("vesseltype", pd.Series([], dtype=str)).dropna().astype(str).tolist()
                 if x.strip()

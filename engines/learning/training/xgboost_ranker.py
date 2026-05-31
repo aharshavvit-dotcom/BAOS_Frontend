@@ -29,6 +29,9 @@ if str(_ROOT) not in sys.path:
 
 logger = logging.getLogger(__name__)
 
+from backend.config.settings import settings
+from engines.learning.training.ml_models import verify_feature_hash, write_feature_hash
+
 # Try to import XGBoost; fall back to Random Forest if unavailable
 try:
     from xgboost import XGBClassifier
@@ -61,7 +64,8 @@ class XGBoostBerthRanker:
                 min_child_weight=3,
                 eval_metric="mlogloss",
                 use_label_encoder=False,
-                random_state=42,
+                # FIX (Phase 5): Use the shared deterministic seed across optional ranker backends.
+                random_state=settings.ml_random_state,
                 n_jobs=1,
                 verbosity=0,
             )
@@ -70,7 +74,7 @@ class XGBoostBerthRanker:
                 n_estimators=200,
                 max_depth=10,
                 min_samples_split=5,
-                random_state=42,
+                random_state=settings.ml_random_state,
                 n_jobs=1,
             )
         self.label_encoder = LabelEncoder()
@@ -177,11 +181,15 @@ class XGBoostBerthRanker:
                 "metrics": self.metrics,
                 "feature_importances": self.feature_importances_,
             }, f)
+        # FIX (Phase 5): Ranker artifacts carry the same feature-extractor guard as core models.
+        write_feature_hash(path)
         logger.info("Saved XGBoost ranker to %s", path)
 
     @classmethod
     def load(cls, path: Path) -> "XGBoostBerthRanker":
         """Load model from disk."""
+        # FIX (Phase 5): Refuse stale ranker artifacts after feature extractor changes.
+        verify_feature_hash(path)
         inst = cls.__new__(cls)
         with open(path, "rb") as f:
             data = pickle.load(f)

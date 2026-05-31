@@ -27,8 +27,12 @@ from backend.db.models.data_models import (
     BerthSpec, DataSource, PortMaster, ProvenanceField, QualityGate,
 )
 from backend.db.repositories.quality import score_berth_quality, QualityReport, score_history_quality
+from backend.config.settings import settings
 
 logger = logging.getLogger(__name__)
+_INFERRED_BERTH_LIMIT_WARNING = (
+    "Berth spec limit missing; using conservative inferred limit from historical dimensions."
+)
 
 
 def _safe_float(val, default: float = 0.0) -> float:
@@ -342,16 +346,21 @@ def enrich_from_history(
 
         # Fallback for LOA/draft limits if spec doesn't have them
         if spec.get_max_loa() <= 0 and spec.historical_max_loa_seen > 0:
-            # Use 10% buffer over historical max — YELLOW quality
+            # FIX (Phase 5): Use a conservative factor, not a behavior-cloning buffer above history.
+            logger.warning("%s berth_code=%s field=max_loa_m", _INFERRED_BERTH_LIMIT_WARNING, bc_str)
+            factor = settings.berth_limit_inference_factor
             spec.max_loa_m = ProvenanceField.from_history(
-                spec.historical_max_loa_seen * 1.10,
-                f"Derived from history max {spec.historical_max_loa_seen:.0f}m + 10% buffer"
+                spec.historical_max_loa_seen * factor,
+                f"Derived conservatively from history max {spec.historical_max_loa_seen:.0f}m * {factor:.2f}"
             )
 
         if spec.get_max_draft() <= 0 and spec.historical_max_draft_seen > 0:
+            # FIX (Phase 5): Draft fallback also uses the same conservative inference policy.
+            logger.warning("%s berth_code=%s field=max_draft_m", _INFERRED_BERTH_LIMIT_WARNING, bc_str)
+            factor = settings.berth_limit_inference_factor
             spec.max_draft_m = ProvenanceField.from_history(
-                spec.historical_max_draft_seen * 1.10,
-                f"Derived from history max {spec.historical_max_draft_seen:.1f}m + 10% buffer"
+                spec.historical_max_draft_seen * factor,
+                f"Derived conservatively from history max {spec.historical_max_draft_seen:.1f}m * {factor:.2f}"
             )
 
         # Equipment — always assumed for now (no data source)

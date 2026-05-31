@@ -7,7 +7,6 @@ Phase 2 Enhancements:
   - Cyclical time encoding (sin/cos for hour, day)
   - Equipment match score from vessel_type_knowledge
   - Berth specialization ratio (% of vessel type at berth)
-  - Cargo handling rate features
   - Spec-aware berth quality features
   - Beam dimension added to vessel features
 """
@@ -26,7 +25,8 @@ if str(_ROOT) not in sys.path:
 
 # ── Feature Column Groups ───────────────────────────────────────────────────
 VESSEL_FEATURES = [
-    "loa", "adraft", "ddraught", "dwt", "beam",
+    # FIX (Phase 5): Departure draft is unknown at arrival time, so exclude it from the feature set.
+    "loa", "adraft", "dwt", "beam",
 ]
 CONTEXT_FEATURES = [
     "hour_sin", "hour_cos", "dow_sin", "dow_cos",
@@ -42,7 +42,6 @@ DERIVED_FEATURES = [
     "historical_svc_median",
     "equipment_match_score",
     "berth_specialization_ratio",
-    "cargo_handling_rate",
 ]
 
 
@@ -110,7 +109,7 @@ def build_training_features(
     # ── Vessel Features ──────────────────────────────────────────────
     df["loa"] = _safe_numeric(df.get("loa", pd.Series(dtype=float)))
     df["adraft"] = _safe_numeric(df.get("adraft", pd.Series(dtype=float)))
-    df["ddraught"] = _safe_numeric(df.get("ddraught", df.get("adraft", pd.Series(dtype=float))))
+    # FIX (Phase 5): Do not derive or train on departure draft because it leaks future state.
     df["dwt"] = _safe_numeric(df.get("dwt", pd.Series(dtype=float)))
 
     # Beam — new in Phase 2
@@ -222,18 +221,7 @@ def build_training_features(
     else:
         df["berth_specialization_ratio"] = 0.0
 
-    # Cargo handling rate — cargo_tons / avg_service_time
-    cargo_col = None
-    for c in ["cargo_qty", "cargo_tons", "cargo_quantity", "dwt"]:
-        if c in df.columns:
-            cargo_col = c
-            break
-    if cargo_col and df["berth_occupancy_h"].mean() > 0:
-        cargo_vals = _safe_numeric(df[cargo_col])
-        avg_svc = df["berth_occupancy_h"].replace(0, 12).clip(lower=0.5)
-        df["cargo_handling_rate"] = (cargo_vals / avg_svc).clip(lower=0, upper=50000)
-    else:
-        df["cargo_handling_rate"] = 0.0
+    # FIX (Phase 5): Removed cargo_handling_rate because it divided cargo by the service-time target.
 
     # ── Build X Matrix ───────────────────────────────────────────────
     feature_cols = VESSEL_FEATURES + CONTEXT_FEATURES + BERTH_FEATURES + DERIVED_FEATURES
@@ -287,13 +275,7 @@ def build_inference_features(
     # Berth specialization from stats
     berth_spec_ratio = berth_info.get("specialization_ratio", 0.0)
 
-    # Cargo handling rate
-    cargo_tons = float(vessel.get("cargo_tons", vessel.get("dwt", 0)))
-    avg_svc = svc_stats.get(
-        (str(berth_info.get("berth_code", "")), vessel_type),
-        12.0,
-    )
-    cargo_rate = cargo_tons / max(avg_svc, 0.5) if cargo_tons > 0 else 0.0
+    # FIX (Phase 5): Inference mirrors the leakage-free training feature set.
 
     loa = float(vessel.get("loa", 0))
     draft = float(vessel.get("draft", vessel.get("adraft", 0)))
@@ -311,7 +293,6 @@ def build_inference_features(
         # Vessel features
         "loa": loa,
         "adraft": draft,
-        "ddraught": float(vessel.get("ddraught", draft)),
         "dwt": float(vessel.get("dwt", 0)),
         "beam": beam,
         # Context features
@@ -338,7 +319,6 @@ def build_inference_features(
         ),
         "equipment_match_score": equip_score,
         "berth_specialization_ratio": berth_spec_ratio,
-        "cargo_handling_rate": min(cargo_rate, 50000),
     }
 
     # Add vessel type dummy column to match training features

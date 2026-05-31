@@ -3,11 +3,13 @@ import asyncio
 import os
 import uvicorn
 
+from backend.config import settings
+
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 async def main():
-    port = int(os.getenv("BACKEND_PORT", "8001"))
+    port = int(os.getenv("BACKEND_PORT", str(settings.APP_PORT)))
     config = uvicorn.Config("main:app", host="127.0.0.1", port=port, reload=False)
     server = uvicorn.Server(config)
     await server.serve()

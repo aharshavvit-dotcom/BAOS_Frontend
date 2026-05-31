@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import List
 
-from pydantic import field_validator
+from pydantic import ConfigDict, field_validator
 from pydantic_settings import BaseSettings
 from sqlalchemy.engine import URL
 
@@ -42,9 +42,9 @@ class Settings(BaseSettings):
         return self.get_database_url("postgresql+psycopg2")
 
     # ── JWT ───────────────────────────────────────────────
-    JWT_SECRET_KEY: str = "baos-ai-super-secret-key-change-in-production-2026"
+    JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # ── Redis / Celery ────────────────────────────────────
@@ -58,7 +58,38 @@ class Settings(BaseSettings):
     # ── App ───────────────────────────────────────────────
     APP_NAME: str = "BAOS AI - Maritime Decision Intelligence"
     APP_VERSION: str = "3.0.0"
+    APP_ENV: str = "development"
+    APP_PORT: int = 8001
     DEBUG: bool = True
+
+    # ML and defaults
+    MODEL_ARTIFACTS_DIR: str = "model_artifacts"
+    MIN_TRAINING_ROWS: int = 100
+    DEFAULT_PORT_CODE: str = "INMAA"
+    # FIX (Phase 5): Keep inferred berth limits conservative and configurable instead of cloning history maxima.
+    BERTH_LIMIT_INFERENCE_FACTOR: float = 0.95
+    # FIX (Phase 5): Centralize deterministic training controls used by every ML pipeline.
+    ML_RANDOM_STATE: int = 42
+    ML_VALIDATION_SIZE: float = 0.20
+    KPI_DEFAULT_DAYS: int = 90
+    # FIX (Phase 5): RL reward weights are explicit knobs while the agent remains experimental.
+    RL_DELAY_WEIGHT: float = 1.0
+    RL_IDLE_WEIGHT: float = 0.3
+    RL_MISMATCH_WEIGHT: float = 0.5
+
+    @field_validator("JWT_SECRET_KEY")
+    @classmethod
+    def validate_jwt_secret(cls, value: str):
+        if not value:
+            raise ValueError(
+                "JWT_SECRET_KEY is required. Generate one with: "
+                "python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        if len(value) < 32:
+            raise ValueError("JWT_SECRET_KEY must be at least 32 characters.")
+        if value == "baos-ai-super-secret-key-change-in-production-2026":
+            raise ValueError("JWT_SECRET_KEY must not use the bundled development default.")
+        return value
 
     @field_validator("DEBUG", mode="before")
     @classmethod
@@ -78,10 +109,76 @@ class Settings(BaseSettings):
         except (json.JSONDecodeError, TypeError):
             return ["http://localhost:3000"]
 
-    class Config:
-        env_file = str(Path(__file__).resolve().parent.parent / ".env")
-        env_file_encoding = "utf-8"
-        extra = "ignore"
+    @property
+    def database_url(self) -> str:
+        return str(self.DATABASE_URL)
+
+    @property
+    def jwt_secret(self) -> str:
+        return self.JWT_SECRET_KEY
+
+    @property
+    def jwt_algorithm(self) -> str:
+        return self.JWT_ALGORITHM
+
+    @property
+    def jwt_expire_minutes(self) -> int:
+        return self.ACCESS_TOKEN_EXPIRE_MINUTES
+
+    @property
+    def allowed_origins(self) -> str:
+        return self.CORS_ORIGINS
+
+    @property
+    def app_env(self) -> str:
+        return self.APP_ENV
+
+    @property
+    def app_port(self) -> int:
+        return self.APP_PORT
+
+    @property
+    def model_artifacts_dir(self) -> str:
+        return self.MODEL_ARTIFACTS_DIR
+
+    @property
+    def min_training_rows(self) -> int:
+        return self.MIN_TRAINING_ROWS
+
+    @property
+    def default_port_code(self) -> str:
+        return self.DEFAULT_PORT_CODE
+
+    @property
+    def berth_limit_inference_factor(self) -> float:
+        return self.BERTH_LIMIT_INFERENCE_FACTOR
+
+    @property
+    def ml_random_state(self) -> int:
+        return self.ML_RANDOM_STATE
+
+    @property
+    def ml_validation_size(self) -> float:
+        return self.ML_VALIDATION_SIZE
+
+    @property
+    def kpi_default_days(self) -> int:
+        return self.KPI_DEFAULT_DAYS
+
+    @property
+    def training_hyperparameters(self) -> dict:
+        # FIX (Phase 5): Persist the effective training knobs with each training run.
+        return {
+            "min_training_rows": self.MIN_TRAINING_ROWS,
+            "validation_size": self.ML_VALIDATION_SIZE,
+            "random_state": self.ML_RANDOM_STATE,
+        }
+
+    model_config = ConfigDict(
+        env_file=str(Path(__file__).resolve().parent.parent / ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 settings = Settings()

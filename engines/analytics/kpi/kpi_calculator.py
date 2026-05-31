@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import sys
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -22,6 +23,9 @@ _ROOT = Path(__file__).resolve().parents[3]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
+import pandas as pd
+
+from backend.config.settings import settings
 from engines.simulation.optimization.constraint_model import SolverResult, AssignmentResult
 from engines.analytics.cost.cost_model import CostEngine, CostConfig, ScheduleCostSummary
 
@@ -83,10 +87,13 @@ class KPICalculator:
         berths: Dict[str, any],
         horizon_hours: float = 168.0,
         cost_summary: Optional[ScheduleCostSummary] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
     ) -> KPIDashboard:
         """Compute full KPI dashboard from solver result."""
         dash = KPIDashboard()
 
+        # FIX (Phase 5): KPI callers may pass explicit date windows; solver assignments are relative minutes.
         assignments = result.assignments
         dash.total_vessels = len(vessels)
         dash.vessels_assigned = len(assignments)
@@ -157,3 +164,50 @@ class KPICalculator:
             dash.risk_exposure_index = result.kpis.get("risk_score", 0)
 
         return dash
+
+    def compute_historical(
+        self,
+        port_calls,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+    ) -> dict:
+        """Compute historical KPIs from port-call rows with a default 90-day window."""
+        df = pd.DataFrame(port_calls)
+        if df.empty:
+            return KPIDashboard().to_dict()
+
+        # FIX (Phase 5): Historical KPI reporting defaults to a bounded recent window instead of all history.
+        date_col = next((c for c in ["eosp", "eosp_ts", "date", "arrival_ts"] if c in df.columns), None)
+        if date_col:
+            df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
+            max_date = df[date_col].max()
+            window_end = end_date or (max_date.to_pydatetime() if pd.notna(max_date) else datetime.utcnow())
+            window_start = start_date or (window_end - timedelta(days=settings.kpi_default_days))
+            df = df[(df[date_col] >= window_start) & (df[date_col] <= window_end)]
+
+        if df.empty:
+            return KPIDashboard().to_dict()
+
+        zero = pd.Series(0.0, index=df.index)
+        wait = pd.to_numeric(df.get("pilot_wait_h", df.get("pilot_wait_hours", zero)), errors="coerce").fillna(0)
+        service = pd.to_numeric(
+            df.get("berth_occupancy_h", df.get("berth_occupancy_hours", zero)),
+            errors="coerce",
+        ).fillna(0)
+        cargo = pd.to_numeric(df.get("cargo_tons", zero), errors="coerce").fillna(0)
+
+        berth_count = int(df.get("berthcode", df.get("berth_code_raw", pd.Series(dtype=str))).nunique() or 1)
+        horizon_hours = max(settings.kpi_default_days * 24, 1)
+        total_service = float(service.clip(lower=0).sum())
+        sla_violations = int((wait > 24).sum())
+
+        return {
+            "avg_waiting_hours": round(float(wait.mean()), 2),
+            "max_waiting_hours": round(float(wait.max()), 2),
+            "total_vessels": int(len(df)),
+            "berth_utilization_pct": round((total_service / (berth_count * horizon_hours)) * 100, 2),
+            "sla_violations": sla_violations,
+            "sla_compliance_pct": round((1 - sla_violations / max(len(df), 1)) * 100, 2),
+            "throughput_tons_per_hour": round(float(cargo.sum()) / horizon_hours, 2),
+            "total_cargo_tons": round(float(cargo.sum()), 2),
+        }

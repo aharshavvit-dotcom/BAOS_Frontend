@@ -17,23 +17,29 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.config.settings import settings
 from backend.db.models.baos_models import (
     BaosBerth,
     BaosBerthCapability,
     BaosMLModelRegistry,
     BaosPort,
     BaosPortCall,
+    TrainingRun,
 )
 from backend.db.repositories.model_registry_repository import get_active_model, register_model
 from backend.db.repositories.port_repository import get_port_by_code, list_ports
 from backend.db.session import async_session_factory
 from backend.services.port_config_service import load_port_config_from_db
 from backend.services.training_data_service import load_history_from_db
+from backend.utils.exceptions import InsufficientDataError
 
 logger = logging.getLogger(__name__)
 
 
-MIN_VALID_TRAINING_ROWS = 30
+_training_lock = asyncio.Lock()
+_training_in_progress = False
+
+MIN_VALID_TRAINING_ROWS = settings.min_training_rows
 MIN_BERTH_CLASSES = 2
 REQUIRED_MODELS = {
     "berth_suitability": {
@@ -74,8 +80,29 @@ INSUFFICIENT_DATA = TrainingStatusValue("insufficient_data", "Insufficient Data"
 _runtime_status: dict[str, dict[str, Any]] = {}
 
 
+class TrainingAlreadyInProgressError(RuntimeError):
+    """Raised when a duplicate training request is rejected."""
+
+
+def _primary_score(metrics: dict[str, Any], model_type: str, split: str) -> float | None:
+    values = metrics.get(split, metrics)
+    if not isinstance(values, dict):
+        return None
+    key = "accuracy" if model_type == "classifier" else "r2"
+    value = values.get(key)
+    return float(value) if value is not None else None
+
+
+def get_training_lock_status() -> dict[str, bool]:
+    return {
+        "in_progress": _training_in_progress,
+        "lock_held": _training_lock.locked(),
+    }
+
+
 def _train_port_models_from_data(port_code: str, df_history, port_config: dict) -> dict:
     import json
+    import math
     import time
 
     from sklearn.model_selection import train_test_split
@@ -86,57 +113,57 @@ def _train_port_models_from_data(port_code: str, df_history, port_config: dict) 
         DecisionRanker,
         DelayPredictor,
         ServiceTimePredictor,
+        compute_feature_hash,
     )
 
     start_time = time.time()
     X, y_berth, y_service, y_delay = build_training_features(df_history, port_config)
 
+    if len(X) < settings.min_training_rows or y_berth.nunique() < MIN_BERTH_CLASSES:
+        # FIX (Phase 5): Training data gates are explicit and configurable before artifacts are produced.
+        raise InsufficientDataError(
+            f"Insufficient training data: rows={len(X)} classes={y_berth.nunique()}"
+        )
+
     berth_counts = y_berth.value_counts()
-    stratify_col = y_berth if y_berth.nunique() >= 3 and berth_counts.min() >= 2 else None
-    X_trainval, X_test, yb_trainval, yb_test, ys_trainval, ys_test, yd_trainval, yd_test = train_test_split(
+    validation_rows = math.ceil(len(X) * settings.ml_validation_size)
+    stratify_col = (
+        y_berth
+        if (
+            y_berth.nunique() >= 3
+            and berth_counts.min() >= 2
+            and validation_rows >= y_berth.nunique()
+            and (len(X) - validation_rows) >= y_berth.nunique()
+        )
+        else None
+    )
+    # FIX (Phase 5): Use a deterministic train/validation split only; holdout testing was not real backtesting.
+    X_train, X_val, yb_train, yb_val, ys_train, ys_val, yd_train, yd_val = train_test_split(
         X,
         y_berth,
         y_service,
         y_delay,
-        test_size=0.15,
-        random_state=42,
+        test_size=settings.ml_validation_size,
+        random_state=settings.ml_random_state,
         stratify=stratify_col,
-    )
-
-    trainval_counts = yb_trainval.value_counts()
-    strat_trainval = (
-        yb_trainval
-        if yb_trainval.nunique() >= 3 and trainval_counts.min() >= 2
-        else None
-    )
-    X_train, X_val, yb_train, yb_val, ys_train, ys_val, yd_train, yd_val = train_test_split(
-        X_trainval,
-        yb_trainval,
-        ys_trainval,
-        yd_trainval,
-        test_size=0.15 / 0.85,
-        random_state=42,
-        stratify=strat_trainval,
     )
 
     for col in X_train.columns:
         if col not in X_val.columns:
             X_val[col] = 0
-        if col not in X_test.columns:
-            X_test[col] = 0
     X_val = X_val[X_train.columns]
-    X_test = X_test[X_train.columns]
 
     models_dir = Path("ports") / port_code.lower() / "models"
     models_dir.mkdir(parents=True, exist_ok=True)
     results: dict[str, Any] = {}
+    feature_hash = compute_feature_hash()
 
     service_time = ServiceTimePredictor()
     service_time.train(X_train, ys_train)
     results["service_time"] = {
         **service_time.metrics,
+        "train": service_time.evaluate(X_train, ys_train),
         "val": service_time.evaluate(X_val, ys_val),
-        "test": service_time.evaluate(X_test, ys_test),
         "top_features": [
             {"feature": feature, "importance": round(importance, 4)}
             for feature, importance in service_time.get_top_features(8)
@@ -148,8 +175,8 @@ def _train_port_models_from_data(port_code: str, df_history, port_config: dict) 
     berth_suitability.train(X_train, yb_train)
     results["berth_suitability"] = {
         **berth_suitability.metrics,
+        "train": berth_suitability.evaluate(X_train, yb_train),
         "val": berth_suitability.evaluate(X_val, yb_val),
-        "test": berth_suitability.evaluate(X_test, yb_test),
         "top_features": [
             {"feature": feature, "importance": round(importance, 4)}
             for feature, importance in berth_suitability.get_top_features(8)
@@ -161,8 +188,8 @@ def _train_port_models_from_data(port_code: str, df_history, port_config: dict) 
     delay.train(X_train, yd_train)
     results["delay_predictor"] = {
         **delay.metrics,
+        "train": delay.evaluate(X_train, yd_train),
         "val": delay.evaluate(X_val, yd_val),
-        "test": delay.evaluate(X_test, yd_test),
         "top_features": [
             {"feature": feature, "importance": round(importance, 4)}
             for feature, importance in delay.get_top_features(8)
@@ -181,17 +208,22 @@ def _train_port_models_from_data(port_code: str, df_history, port_config: dict) 
         "port_name": port_code,
         "version": version,
         "trained_at": datetime.utcnow().isoformat(),
+        "total_samples": len(X),
         "training_samples": len(X_train),
         "validation_samples": len(X_val),
-        "test_samples": len(X_test),
+        "test_samples": 0,
+        "feature_hash": feature_hash,
         "feature_count": len(feature_cols),
         "feature_columns": feature_cols,
+        "removed_leakage_features": ["ddraught", "cargo_handling_rate"],
         "elapsed_seconds": round(time.time() - start_time, 2),
         "split_ratios": {
             "train": round(len(X_train) / len(X), 2),
             "val": round(len(X_val) / len(X), 2),
-            "test": round(len(X_test) / len(X), 2),
+            "test": 0.0,
         },
+        "split_strategy": "train_val_80_20",
+        "hyperparameters": settings.training_hyperparameters,
         "results": results,
     }
     (models_dir / "metadata.json").write_text(
@@ -408,7 +440,7 @@ async def evaluate_port_training_status(db: AsyncSession, port_code: str) -> dic
     }
 
 
-async def _train_and_register_port(db: AsyncSession, port: BaosPort) -> None:
+async def _train_and_register_port(db: AsyncSession, port: BaosPort, *, force: bool = False) -> None:
     port_code = port.port_code
     port_id = port.port_id
     status = await evaluate_port_training_status(db, port_code)
@@ -418,7 +450,7 @@ async def _train_and_register_port(db: AsyncSession, port: BaosPort) -> None:
         logger.info("Skipping ML training for %s: %s", port_code, status["training_message"])
         return
 
-    if status["trained"]:
+    if status["trained"] and not force:
         _set_runtime_status(port_code, TRAINED, "Trained", **status)
         logger.info("Active ML models for %s are current", port_code)
         return
@@ -442,8 +474,10 @@ async def _train_and_register_port(db: AsyncSession, port: BaosPort) -> None:
         feature_schema = {
             "features": feature_columns,
             "feature_count": len(feature_columns),
+            "feature_hash": metadata.get("feature_hash"),
         }
         models_dir = Path("ports") / port_code.lower() / "models"
+        training_run_version = int(training_end.timestamp())
 
         for model_name, config in REQUIRED_MODELS.items():
             metrics = metadata.get("results", {}).get(config["metadata_key"], {})
@@ -459,13 +493,25 @@ async def _train_and_register_port(db: AsyncSession, port: BaosPort) -> None:
                 metrics=metrics,
                 training_rows=int(metadata.get("training_samples", 0) or 0),
                 validation_rows=int(metadata.get("validation_samples", 0) or 0),
-                test_rows=int(metadata.get("test_samples", 0) or 0),
-                split_strategy="train_val_test_70_15_15",
+                test_rows=0,
+                split_strategy="train_val_80_20",
                 training_start_ts=training_start,
                 training_end_ts=training_end,
                 data_start_ts=datetime.fromisoformat(status["data_start_ts"]) if status.get("data_start_ts") else None,
                 data_end_ts=datetime.fromisoformat(status["data_end_ts"]) if status.get("data_end_ts") else None,
             )
+            # FIX (Phase 5): Persist training history with train/validation scores and the feature hash.
+            db.add(TrainingRun(
+                model_name=model_name,
+                version=training_run_version,
+                trained_at=training_end,
+                train_score=_primary_score(metrics, config["model_type"], "train"),
+                val_score=_primary_score(metrics, config["model_type"], "val"),
+                data_rows=int(metadata.get("total_samples", 0) or 0),
+                feature_hash=metadata.get("feature_hash"),
+                hyperparameters=metadata.get("hyperparameters") or settings.training_hyperparameters,
+                status="completed",
+            ))
 
         await db.commit()
         final_status = await evaluate_port_training_status(db, port_code)
@@ -473,6 +519,23 @@ async def _train_and_register_port(db: AsyncSession, port: BaosPort) -> None:
         logger.info("Registered ML models for %s version %s", port_code, version)
     except Exception as exc:
         await db.rollback()
+        failure_time = _utcnow()
+        for model_name in REQUIRED_MODELS:
+            # FIX (Phase 5): Failed training attempts are visible in the training history endpoint.
+            db.add(TrainingRun(
+                model_name=model_name,
+                version=int(failure_time.timestamp()),
+                trained_at=failure_time,
+                data_rows=0,
+                hyperparameters=settings.training_hyperparameters,
+                status="failed",
+                error_message=str(exc),
+            ))
+        try:
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            logger.exception("Failed to persist training failure rows for %s", port_code)
         failed_status = await evaluate_port_training_status(db, port_code)
         _set_runtime_status(
             port_code,
@@ -484,21 +547,43 @@ async def _train_and_register_port(db: AsyncSession, port: BaosPort) -> None:
         logger.exception("ML training failed for %s", port_code)
 
 
-async def auto_train_required_models(port_codes: list[str] | None = None) -> None:
+async def auto_train_required_models(
+    port_codes: list[str] | None = None,
+    *,
+    raise_on_busy: bool = False,
+    force: bool = False,
+) -> None:
     """Entry point used by FastAPI startup."""
-    async with async_session_factory() as db:
-        try:
-            if port_codes:
-                ports = []
-                for port_code in port_codes:
-                    port = await get_port_by_code(db, port_code.strip().upper())
-                    if port is not None:
-                        ports.append(port)
-            else:
-                ports = await list_ports(db, active_only=True)
+    global _training_in_progress
+    if _training_in_progress:
+        if raise_on_busy:
+            raise TrainingAlreadyInProgressError("Training is already in progress. Please wait for it to complete.")
+        logger.warning("Training is already in progress; skipping duplicate request")
+        return
+    if _training_lock.locked():
+        if raise_on_busy:
+            raise TrainingAlreadyInProgressError("Training lock is held.")
+        logger.warning("Training lock is held; skipping duplicate request")
+        return
 
-            for port in ports:
-                await _train_and_register_port(db, port)
-        except Exception:
-            await db.rollback()
-            logger.exception("Startup ML model check failed")
+    async with _training_lock:
+        _training_in_progress = True
+        try:
+            async with async_session_factory() as db:
+                try:
+                    if port_codes:
+                        ports = []
+                        for port_code in port_codes:
+                            port = await get_port_by_code(db, port_code.strip().upper())
+                            if port is not None:
+                                ports.append(port)
+                    else:
+                        ports = await list_ports(db, active_only=True)
+
+                    for port in ports:
+                        await _train_and_register_port(db, port, force=force)
+                except Exception:
+                    await db.rollback()
+                    logger.exception("Startup ML model check failed")
+        finally:
+            _training_in_progress = False

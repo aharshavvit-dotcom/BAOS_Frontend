@@ -6,20 +6,37 @@ from __future__ import annotations
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.models.baos_models import BaosPort
 
 
-async def list_ports(db: AsyncSession, active_only: bool = True) -> List[BaosPort]:
+async def list_ports(
+    db: AsyncSession,
+    active_only: bool = True,
+    page: int | None = None,
+    page_size: int | None = None,
+) -> List[BaosPort]:
     """Return all ports, optionally filtered to active only."""
     q = select(BaosPort)
     if active_only:
         q = q.where(BaosPort.is_active == True)  # noqa: E712
     q = q.order_by(BaosPort.port_name)
+    if page is not None and page_size is not None:
+        # FIX (Phase 4): Port lists were unbounded -> apply offset/limit in the repository.
+        q = q.offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(q)
     return list(result.scalars().all())
+
+
+async def count_ports(db: AsyncSession, active_only: bool = True) -> int:
+    """Return the number of ports."""
+    q = select(func.count(BaosPort.port_id))
+    if active_only:
+        q = q.where(BaosPort.is_active == True)  # noqa: E712
+    result = await db.execute(q)
+    return int(result.scalar() or 0)
 
 
 async def get_port_by_code(db: AsyncSession, port_code: str) -> Optional[BaosPort]:

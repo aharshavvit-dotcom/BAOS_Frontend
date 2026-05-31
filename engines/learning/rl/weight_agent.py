@@ -16,6 +16,8 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
+from backend.config.settings import settings
+
 
 @dataclass
 class RLState:
@@ -74,13 +76,17 @@ class BerthingRLAgent:
 
     def compute_reward(
         self,
-        revenue: float,
-        waiting_penalty: float,
-        sla_violation_count: int,
-        idle_berth_hours: float,
+        delay_minutes: float,
+        idle_minutes: float,
+        capacity_mismatch: float,
     ) -> float:
         """Compute reward signal."""
-        return revenue - waiting_penalty - (sla_violation_count * 1000) - (idle_berth_hours * 50)
+        # FIX (Phase 5): RL is experimental, but reward direction now penalizes delay, idle time, and mismatch.
+        return -(
+            settings.RL_DELAY_WEIGHT * max(delay_minutes, 0)
+            + settings.RL_IDLE_WEIGHT * max(idle_minutes, 0)
+            + settings.RL_MISMATCH_WEIGHT * max(capacity_mismatch, 0)
+        )
 
     def train_offline(self, trajectories: list):
         """Train on historical trajectories (Phase 7+8)."""

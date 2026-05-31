@@ -2,8 +2,9 @@
  * Socket.IO client singleton.
  */
 import { io, Socket } from 'socket.io-client';
+import { WS_BASE_URL } from '@/lib/constants';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8001';
+const SOCKET_URL = WS_BASE_URL;
 
 let socket: Socket | null = null;
 

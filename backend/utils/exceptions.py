@@ -15,3 +15,15 @@ class TrainingError(BAOSException):
 
 class InsufficientDataError(BAOSException):
     """Raised when a model or report lacks enough input data."""
+
+
+class BerthCapacityError(BAOSException):
+    """Raised when a berth cannot safely handle the requested vessel."""
+
+
+class AuthError(BAOSException):
+    """Raised for authentication or authorization failures."""
+
+
+class SeedAlreadyRunError(BAOSException):
+    """Raised when a seed operation is blocked by existing data."""

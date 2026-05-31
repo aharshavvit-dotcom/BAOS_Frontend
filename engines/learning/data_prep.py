@@ -11,6 +11,8 @@ from typing import Dict, List, Tuple
 import pandas as pd
 import numpy as np
 
+from backend.config.settings import settings
+
 
 TS_COLS = ["EOSP", "POB", "ALL FAST", "LAST LINE", "COSP"]
 
@@ -99,7 +101,7 @@ def default_berth_master(df_enriched: pd.DataFrame) -> pd.DataFrame:
     """
     Builds a practical starting config from history:
     - Each berth seen in logs becomes a row.
-    - max_loa/max_draft are set to 10% above observed max (editable in UI).
+    - max_loa/max_draft are conservatively inferred from observed max (editable in UI).
     - allowed vessel types are derived from observed types (editable).
     """
     df = df_enriched.copy()
@@ -123,8 +125,9 @@ def default_berth_master(df_enriched: pd.DataFrame) -> pd.DataFrame:
             "terminal": terminal,
             "berth_code": berthcode,
             "berth": berth,
-            "max_loa_m": float(max_loa_obs * 1.10) if pd.notna(max_loa_obs) else None,
-            "max_draft_m": float(max_draft_obs * 1.10) if pd.notna(max_draft_obs) else None,
+            # FIX (Phase 5): Do not inflate inferred berth limits above observed history.
+            "max_loa_m": float(max_loa_obs * settings.berth_limit_inference_factor) if pd.notna(max_loa_obs) else None,
+            "max_draft_m": float(max_draft_obs * settings.berth_limit_inference_factor) if pd.notna(max_draft_obs) else None,
             "allowed_vessel_types": ", ".join(vessel_types) if vessel_types else None,
             "allow_24x7": True,
             "work_start": "00:00",

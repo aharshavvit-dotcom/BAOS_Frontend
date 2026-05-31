@@ -10,6 +10,7 @@ Phase 2 Enhancements:
   - All models: Feature importance tracking
 """
 from __future__ import annotations
+import hashlib
 import pickle
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -20,6 +21,37 @@ import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import cross_val_score
+
+from backend.config.settings import settings
+from backend.utils.exceptions import TrainingError
+
+
+# FIX (Phase 5): Model artifacts are only valid for the feature extractor version they were trained with.
+FEATURE_HASH_ERROR = "Feature extractor has changed since this model was trained. Retrain the model before using it."
+
+
+def compute_feature_hash() -> str:
+    feature_builder_path = Path(__file__).with_name("feature_builder.py")
+    return hashlib.sha256(feature_builder_path.read_bytes()).hexdigest()
+
+
+def _feature_hash_path(path: Path) -> Path:
+    return path.with_suffix(path.suffix + ".hash")
+
+
+def write_feature_hash(path: Path) -> None:
+    _feature_hash_path(path).write_text(compute_feature_hash(), encoding="utf-8")
+
+
+def verify_feature_hash(path: Path) -> None:
+    if not path.exists():
+        raise FileNotFoundError(path)
+    hash_path = _feature_hash_path(path)
+    if not hash_path.exists():
+        raise TrainingError(FEATURE_HASH_ERROR)
+    stored_hash = hash_path.read_text(encoding="utf-8").strip()
+    if stored_hash != compute_feature_hash():
+        raise TrainingError(FEATURE_HASH_ERROR)
 
 
 # ── Quantile Prediction Result ──────────────────────────────────────────────
@@ -50,18 +82,18 @@ class ServiceTimePredictor:
         # Median model (point estimate)
         self.model = GradientBoostingRegressor(
             n_estimators=100, max_depth=5, learning_rate=0.1,
-            min_samples_split=5, random_state=42,
+            min_samples_split=5, random_state=settings.ml_random_state,
         )
         # Quantile models for uncertainty
         self.model_q25 = GradientBoostingRegressor(
             n_estimators=80, max_depth=4, learning_rate=0.1,
             loss="quantile", alpha=0.25,
-            min_samples_split=5, random_state=42,
+            min_samples_split=5, random_state=settings.ml_random_state,
         )
         self.model_q75 = GradientBoostingRegressor(
             n_estimators=80, max_depth=4, learning_rate=0.1,
             loss="quantile", alpha=0.75,
-            min_samples_split=5, random_state=42,
+            min_samples_split=5, random_state=settings.ml_random_state,
         )
         self.metrics: dict = {}
         self.feature_importance_: Optional[Dict[str, float]] = None
@@ -152,9 +184,11 @@ class ServiceTimePredictor:
                 "metrics": self.metrics,
                 "feature_importance": self.feature_importance_,
             }, f)
+        write_feature_hash(path)
 
     @classmethod
     def load(cls, path: Path) -> "ServiceTimePredictor":
+        verify_feature_hash(path)
         inst = cls()
         with open(path, "rb") as f:
             data = pickle.load(f)
@@ -176,7 +210,7 @@ class BerthSuitabilityModel:
     def __init__(self):
         self.model = RandomForestClassifier(
             n_estimators=300, max_depth=None, min_samples_split=2,
-            random_state=42, n_jobs=1,
+            random_state=settings.ml_random_state, n_jobs=1,
         )
         self.label_encoder = LabelEncoder()
         self.metrics: dict = {}
@@ -274,9 +308,11 @@ class BerthSuitabilityModel:
                 "metrics": self.metrics,
                 "feature_importance": self.feature_importance_,
             }, f)
+        write_feature_hash(path)
 
     @classmethod
     def load(cls, path: Path) -> "BerthSuitabilityModel":
+        verify_feature_hash(path)
         inst = cls()
         with open(path, "rb") as f:
             data = pickle.load(f)
@@ -297,17 +333,17 @@ class DelayPredictor:
     def __init__(self):
         self.model = GradientBoostingRegressor(
             n_estimators=80, max_depth=4, learning_rate=0.1,
-            min_samples_split=5, random_state=42,
+            min_samples_split=5, random_state=settings.ml_random_state,
         )
         self.model_q25 = GradientBoostingRegressor(
             n_estimators=60, max_depth=3, learning_rate=0.1,
             loss="quantile", alpha=0.25,
-            min_samples_split=5, random_state=42,
+            min_samples_split=5, random_state=settings.ml_random_state,
         )
         self.model_q75 = GradientBoostingRegressor(
             n_estimators=60, max_depth=3, learning_rate=0.1,
             loss="quantile", alpha=0.75,
-            min_samples_split=5, random_state=42,
+            min_samples_split=5, random_state=settings.ml_random_state,
         )
         self.metrics: dict = {}
         self.feature_importance_: Optional[Dict[str, float]] = None
@@ -380,9 +416,11 @@ class DelayPredictor:
                 "metrics": self.metrics,
                 "feature_importance": self.feature_importance_,
             }, f)
+        write_feature_hash(path)
 
     @classmethod
     def load(cls, path: Path) -> "DelayPredictor":
+        verify_feature_hash(path)
         inst = cls()
         with open(path, "rb") as f:
             data = pickle.load(f)
@@ -479,8 +517,8 @@ class DecisionRanker:
             )
             scores[berth_code] = combined
 
-        # Sort by score descending
-        ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
+        # FIX (Phase 4): Equal suitability scores inherited dict order -> use berth_code as the tie-breaker.
+        ranked = sorted(scores.items(), key=lambda x: (-x[1], x[0]))[:top_k]
 
         options = []
         for rank_idx, (bc, score) in enumerate(ranked, 1):
@@ -524,9 +562,11 @@ class DecisionRanker:
     def save(self, path: Path):
         with open(path, "wb") as f:
             pickle.dump({"w_s": self.w_s, "w_w": self.w_w, "w_v": self.w_v}, f)
+        write_feature_hash(path)
 
     @classmethod
     def load(cls, path: Path) -> "DecisionRanker":
+        verify_feature_hash(path)
         with open(path, "rb") as f:
             data = pickle.load(f)
         return cls(data["w_s"], data["w_w"], data["w_v"])

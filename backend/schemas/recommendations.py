@@ -5,7 +5,11 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from backend.schemas.common import PaginatedResponse
+
+# FIX (Phase 4): Recommendation history and updates needed typed response models.
 
 
 # ── Request ──────────────────────────────────────────────────────────────────
@@ -22,9 +26,13 @@ class RecommendationRequest(BaseModel):
     eta: Optional[str] = None  # ISO datetime string
     port_code: str = "INMAA"
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class UpdateRecommendationRequest(BaseModel):
     status: str = Field(..., pattern="^(accepted|rejected)$")
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ── Response ─────────────────────────────────────────────────────────────────
@@ -35,8 +43,10 @@ class BerthRecommendation(BaseModel):
     confidence: float
     technical_score: float = 0.0
     commercial_score: float = 0.0
-    reasoning: Dict[str, Any] = {}
+    reasoning: Dict[str, Any] = Field(default_factory=dict)
     expected_turnaround_hours: Optional[float] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RecommendationResponse(BaseModel):
@@ -44,6 +54,8 @@ class RecommendationResponse(BaseModel):
     recommendations: List[BerthRecommendation]
     vessel_name: str
     port_code: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RecommendationItem(BaseModel):
@@ -56,9 +68,16 @@ class RecommendationItem(BaseModel):
     status: str
     created_at: str
 
+    model_config = ConfigDict(from_attributes=True)
 
-class RecommendationListResponse(BaseModel):
-    recommendations: List[RecommendationItem]
-    total: int
-    page: int = 1
-    per_page: int = 20
+
+class RecommendationListResponse(PaginatedResponse[RecommendationItem]):
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UpdateRecommendationResponse(BaseModel):
+    id: str
+    status: str
+    message: str
+
+    model_config = ConfigDict(from_attributes=True)

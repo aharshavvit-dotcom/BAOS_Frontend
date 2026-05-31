@@ -18,6 +18,7 @@ import { extractApiError } from '@/services/client';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PortSelector } from '@/components/features/PortSelector';
 import SourceBadge from '@/components/ui/SourceBadge';
+import { VESSEL_TYPES } from '@/lib/constants';
 
 /* Types */
 interface VesselForm {
@@ -33,7 +34,6 @@ interface VesselForm {
   dwt: number;
 }
 
-const VESSEL_TYPES = ['Bulk Dry', 'Chemical', 'Container', 'General Cargo', 'Oil', 'Other Dry Cargo', 'Ro-Ro Cargo', 'Bulk Carrier', 'Crude Oil Tanker', 'Chemical Tanker', 'RoRo', 'LPG Tanker', 'LNG Tanker', 'Multipurpose', 'Passenger'];
 const CARGO_TYPES = ['COAL', 'IRON ORE', 'CONTAINER', 'CRUDE OIL', 'CHEMICALS', 'GENERAL', 'VEHICLES', 'PETROLEUM', 'DIESEL', 'FUEL OIL', 'CEMENT', 'FERTILIZER', 'GRAIN', 'BAUXITE', 'SUGAR', 'LIMESTONE', 'STEEL', 'TIMBER', 'LPG', 'LNG', 'BREAK BULK', 'PROJECT CARGO'];
 const RANK_COLORS = ['#10b981', '#0ea5e9', '#8b5cf6'];
 

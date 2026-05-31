@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -17,19 +17,41 @@ async def list_berths(
     db: AsyncSession,
     port_code: str,
     active_only: bool = True,
+    page: int | None = None,
+    page_size: int | None = None,
 ) -> List[BaosBerth]:
     """Return all berths for a port, with capabilities eager-loaded."""
     q = (
         select(BaosBerth)
         .join(BaosPort, BaosBerth.port_id == BaosPort.port_id)
-        .options(selectinload(BaosBerth.capabilities))
+        .options(selectinload(BaosBerth.capabilities), selectinload(BaosBerth.port))
         .where(BaosPort.port_code == port_code)
     )
     if active_only:
         q = q.where(BaosBerth.is_active == True)  # noqa: E712
     q = q.order_by(BaosBerth.berth_code)
+    if page is not None and page_size is not None:
+        # FIX (Phase 4): List endpoints loaded every berth -> apply offset/limit in the repository.
+        q = q.offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(q)
     return list(result.scalars().unique().all())
+
+
+async def count_berths(
+    db: AsyncSession,
+    port_code: str,
+    active_only: bool = True,
+) -> int:
+    """Return the berth count for a port."""
+    q = (
+        select(func.count(BaosBerth.berth_id))
+        .join(BaosPort, BaosBerth.port_id == BaosPort.port_id)
+        .where(BaosPort.port_code == port_code)
+    )
+    if active_only:
+        q = q.where(BaosBerth.is_active == True)  # noqa: E712
+    result = await db.execute(q)
+    return int(result.scalar() or 0)
 
 
 async def get_berth_by_code(

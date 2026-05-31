@@ -1,75 +1,25 @@
-"""
-BAOS AI — FastAPI Main Application.
-
-Entry point for the Maritime Decision Intelligence backend.
-Mounts all routes, middleware, CORS, WebSocket, and startup/shutdown events.
-
-Run:
-    uvicorn main:app --reload --port 8000
-"""
+"""BAOS AI FastAPI application entry point."""
 from __future__ import annotations
 
 import logging
 import sys
-import asyncio
-from contextlib import asynccontextmanager
-from pathlib import Path
-
-# psycopg3 requires SelectorEventLoop on Windows
-if sys.platform == 'win32':
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.DefaultEventLoopPolicy = asyncio.WindowsSelectorEventLoopPolicy
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
+from backend.app_lifecycle import lifespan
 from backend.config import settings
-from backend.db.session import close_db, init_db
+from backend.middleware import register_middleware
 from backend.middleware.error_handler import register_error_handlers
-from backend.routes import all_routers, socket_app
-from backend.services.model_training_service import auto_train_required_models
-
-# ── Logging ──────────────────────────────────────────────────────────────────
+from backend.middleware.request_logger import RequestLoggingMiddleware
+from backend.routes import register_routes
 
 logging.basicConfig(
     level=logging.DEBUG if settings.DEBUG else logging.INFO,
     format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
+    # FIX (Phase 4): Checkpoint needs request logs visible in stdout -> send standard logging there.
+    stream=sys.stdout,
 )
 logger = logging.getLogger("baos_ai")
-
-
-# ── Add parent project to path for engine imports ────────────────────────────
-
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
-if str(_PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PROJECT_ROOT))
-
-
-# ── Lifespan events ─────────────────────────────────────────────────────────
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Startup / shutdown lifecycle."""
-    logger.info("🚀 BAOS AI backend starting up...")
-    try:
-        await init_db()
-        app.state.startup_training_task = asyncio.create_task(auto_train_required_models())
-        logger.info("ML model readiness check scheduled")
-        logger.info("✅ Database tables ready")
-    except Exception as e:
-        logger.error(f"❌ Database initialization failed (optimization endpoints will still function): {e}")
-    yield
-    training_task = getattr(app.state, "startup_training_task", None)
-    if training_task and not training_task.done():
-        training_task.cancel()
-    logger.info("🛑 Shutting down...")
-    try:
-        await close_db()
-    except Exception as e:
-        logger.error(f"Error closing DB connection: {e}")
-
-
-# ── FastAPI App ──────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -80,62 +30,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ── CORS ─────────────────────────────────────────────────────────────────────
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# ── Error handlers ───────────────────────────────────────────────────────────
-
+register_middleware(app)
 register_error_handlers(app)
+# FIX (Phase 4): API had no request/response logging middleware -> register it after error handlers.
+app.add_middleware(RequestLoggingMiddleware)
+register_routes(app)
 
-# ── Routes ───────────────────────────────────────────────────────────────────
-
-for router in all_routers:
-    app.include_router(router)
-
-# ── Mount existing API endpoints (from parent project) ───────────────────────
-
-try:
-    from api.endpoints import app as legacy_app
-
-    # Re-export legacy endpoints under /api/v1 (the original paths)
-    # We mount the legacy routes directly so they remain accessible
-    for route in legacy_app.routes:
-        if hasattr(route, "path") and route.path not in ("/docs", "/redoc", "/openapi.json"):
-            app.routes.append(route)
-    logger.info("✅ Legacy API v1 endpoints mounted")
-except ImportError as e:
-    logger.warning(f"⚠️ Legacy API endpoints not available: {e}")
-
-# ── Mount WebSocket (Socket.IO) ──────────────────────────────────────────────
-
-app.mount("/ws", socket_app)
-
-# ── Health check ─────────────────────────────────────────────────────────────
-
-@app.get("/", tags=["System"])
-async def root():
-    """API welcome page."""
-    return {
-        "name": settings.APP_NAME,
-        "version": settings.APP_VERSION,
-        "docs": "/docs",
-        "health": "/health",
-    }
-
-
-# ── Entrypoint ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
-        "main:app",
+        "backend.main:app",
         host="0.0.0.0",
         port=8000,
         reload=settings.DEBUG,

@@ -97,7 +97,11 @@ async def create_tokens(
     user: User,
 ) -> Tuple[str, str]:
     """Create access + refresh tokens and persist the session."""
-    access_token = create_access_token({"sub": str(user.id), "email": user.email})
+    access_token = create_access_token({
+        "sub": str(user.id),
+        "email": user.email,
+        "role": user.role,
+    })
     refresh_token = create_refresh_token({"sub": str(user.id)})
 
     session = Session(
@@ -145,7 +149,11 @@ async def refresh_access_token(
     if user is None:
         return None
 
-    return create_access_token({"sub": str(user.id), "email": user.email})
+    return create_access_token({
+        "sub": str(user.id),
+        "email": user.email,
+        "role": user.role,
+    })
 
 
 async def revoke_session(

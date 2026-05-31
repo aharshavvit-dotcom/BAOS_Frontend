@@ -4,10 +4,11 @@ BAOS is a FastAPI + Next.js monorepo for berth allocation, berth suitability rec
 
 The runtime flow is database-first:
 
-1. `make seed` creates or updates schema, users, and bundled sample data.
-2. `make dev-backend` starts FastAPI and checks model readiness.
-3. If valid data exists and active ML models are missing or stale, the backend trains and registers them automatically.
-4. `make dev-frontend` starts the Next.js app.
+1. `make migrate` applies versioned schema migrations.
+2. `make seed` creates or updates users and bundled sample data.
+3. `make dev-backend` starts FastAPI and checks model readiness.
+4. If valid data exists and active ML models are missing or stale, the backend trains and registers them automatically.
+5. `make dev-frontend` starts the Next.js app.
 
 No separate manual training command is required.
 
@@ -38,6 +39,7 @@ cd ..
 ## Development Commands
 
 ```powershell
+make migrate
 make seed
 make dev-backend
 make dev-frontend
@@ -49,6 +51,7 @@ make check
 Equivalent commands without `make`:
 
 ```powershell
+alembic upgrade head
 python -m database.seed
 python run.py
 cd frontend
@@ -72,10 +75,11 @@ Seeded login accounts:
 |-- run.py                         # Root backend launcher
 |-- database/                      # Root wrapper for python -m database.seed
 |-- backend/                       # FastAPI backend
-|   |-- main.py                    # App setup, middleware, router registry
+|   |-- main.py                    # Thin app setup
 |   |-- run.py                     # Uvicorn runner
 |   |-- config/                    # Settings and port configuration
-|   |-- auth/                      # Auth routes, dependencies, JWT helpers
+|   |-- auth/                      # Auth dependencies, JWT helpers, service logic
+|   |-- handlers/                  # Request handling and response shaping
 |   |-- routes/                    # API route modules and registry
 |   |-- services/                  # Domain services
 |   |-- db/
@@ -84,7 +88,7 @@ Seeded login accounts:
 |   |   `-- session.py             # Engine/session factories
 |   |-- middleware/                # Error handlers and middleware
 |   |-- schemas/                   # Pydantic API schemas
-|   |-- migrations/                # Alembic-ready migration package
+|   |-- migrations/                # Alembic migration package and SQL assets
 |   `-- utils/                     # Shared backend utilities
 |-- engines/                       # ML, optimization, ingestion, and analytics engines
 |   |-- core/                      # Inference and decision engines
@@ -103,7 +107,7 @@ Seeded login accounts:
 |-- docs/                          # Architecture docs, specs, reports, import map
 |-- archive/                       # Archived legacy code
 |-- sample_data/                   # Excel source files
-|-- sql/                           # Existing SQL setup files
+|-- alembic.ini                    # Alembic configuration
 |-- tests/                         # Python tests
 |-- Makefile                       # Development shortcuts
 `-- requirements.txt               # Shared Python dependencies
@@ -120,6 +124,7 @@ Use the port code `INMAA` for Chennai in API calls and frontend state.
 
 ## Verification Checklist
 
+- `make migrate` completes successfully.
 - `make seed` completes successfully.
 - `make dev-backend` starts the backend.
 - `make check` returns valid JSON for `INMAA`.

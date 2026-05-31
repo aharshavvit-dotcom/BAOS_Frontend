@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.models.baos_models import BaosAssumptionConfig, BaosPort
@@ -16,6 +16,8 @@ async def get_assumptions(
     db: AsyncSession,
     port_code: str,
     active_only: bool = True,
+    page: int | None = None,
+    page_size: int | None = None,
 ) -> List[BaosAssumptionConfig]:
     """Return all assumptions for a port."""
     q = (
@@ -26,8 +28,28 @@ async def get_assumptions(
     if active_only:
         q = q.where(BaosAssumptionConfig.is_active == True)  # noqa: E712
     q = q.order_by(BaosAssumptionConfig.assumption_key)
+    if page is not None and page_size is not None:
+        # FIX (Phase 4): Assumption lists were unbounded -> apply pagination in the repository.
+        q = q.offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(q)
     return list(result.scalars().all())
+
+
+async def count_assumptions(
+    db: AsyncSession,
+    port_code: str,
+    active_only: bool = True,
+) -> int:
+    """Return the assumption count for a port."""
+    q = (
+        select(func.count(BaosAssumptionConfig.assumption_id))
+        .join(BaosPort, BaosAssumptionConfig.port_id == BaosPort.port_id)
+        .where(BaosPort.port_code == port_code)
+    )
+    if active_only:
+        q = q.where(BaosAssumptionConfig.is_active == True)  # noqa: E712
+    result = await db.execute(q)
+    return int(result.scalar() or 0)
 
 
 async def get_assumption_value(

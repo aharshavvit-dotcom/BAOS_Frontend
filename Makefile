@@ -1,9 +1,12 @@
 # Makefile - BAOS development commands
 
-.PHONY: seed dev test build lint check dev-backend dev-frontend
+.PHONY: seed migrate dev test build lint check dev-backend dev-frontend
 
 seed:
 	python -m database.seed
+
+migrate:
+	alembic upgrade head
 
 dev-backend:
 	python run.py

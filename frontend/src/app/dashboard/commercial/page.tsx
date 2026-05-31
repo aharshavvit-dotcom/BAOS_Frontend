@@ -9,6 +9,7 @@
 'use client';
 
 import { useState } from 'react';
+import { API_BASE_URL } from '@/lib/constants';
 
 /* --- Types --- */
 interface ScoringForm {
@@ -136,9 +137,8 @@ function ScoringTab() {
     e.preventDefault();
     setLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
       const token = localStorage.getItem('baos_access_token');
-      const res = await fetch(`${apiUrl}/api/commercial/score`, {
+      const res = await fetch(`${API_BASE_URL}/api/v1/commercial/score`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify(form),
