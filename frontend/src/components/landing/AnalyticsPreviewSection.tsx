@@ -12,11 +12,12 @@ import VesselMixChart from '@/components/charts/VesselMixChart';
 
 export default function AnalyticsPreviewSection() {
   return (
-    <section id="analytics" className="baos-section bg-white border-b border-slate-100">
+    <section id="analytics" className="relative py-20 lg:py-24 bg-slate-50 border-b border-slate-100">
       <div className="baos-container-wide">
         <div className="flex flex-col items-center mb-6">
           <SourceBadge source="HISTORICAL" className="mb-4" />
           <SectionHeader
+            eyebrow="Insights & Analytics"
             title="Operational Insights & Analytics"
             subtitle="Explore simulated performance distributions, turnaround rates, and commercial trends"
             className="!mb-8"

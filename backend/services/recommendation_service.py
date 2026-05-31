@@ -76,6 +76,8 @@ def _run_decision_engine_recommendation(
                 "cons": option.cons,
             },
             "expected_turnaround_hours": option.expected_service_hours,
+            "expected_wait_hours": option.expected_wait_hours,
+            "expected_service_hours": option.expected_service_hours,
         }
         for option in options
     ]
@@ -135,6 +137,8 @@ async def generate_recommendation(
                 commercial_score=r.get("commercial_score", 0.0),
                 reasoning=r.get("reasoning", {}),
                 expected_turnaround_hours=r.get("expected_turnaround_hours"),
+                expected_wait_hours=r.get("expected_wait_hours", 0.0),
+                expected_service_hours=r.get("expected_service_hours", 0.0),
             ))
     else:
         recommendations = _sample_recommendations(vessel_type)
@@ -204,6 +208,8 @@ def _sample_recommendations(vessel_type: str = "") -> List[BerthRecommendation]:
                 ],
             },
             expected_turnaround_hours=24.5,
+            expected_wait_hours=2.5,
+            expected_service_hours=24.0,
         ),
         BerthRecommendation(
             berth_code="INMAA-B03",
@@ -220,6 +226,8 @@ def _sample_recommendations(vessel_type: str = "") -> List[BerthRecommendation]:
                 ],
             },
             expected_turnaround_hours=28.0,
+            expected_wait_hours=4.2,
+            expected_service_hours=28.0,
         ),
         BerthRecommendation(
             berth_code="INMAA-B05",
@@ -235,5 +243,7 @@ def _sample_recommendations(vessel_type: str = "") -> List[BerthRecommendation]:
                 ],
             },
             expected_turnaround_hours=32.0,
+            expected_wait_hours=1.0,
+            expected_service_hours=32.0,
         ),
     ]

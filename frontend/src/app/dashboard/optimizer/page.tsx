@@ -10,6 +10,14 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import {
+  TrendingUp, Ship, Wrench, CheckCircle2, BarChart3, Anchor,
+  Building, Clock, Package, AlertTriangle, Play, Server,
+  DollarSign, Check, X, Undo, Settings, HelpCircle, ArrowRight,
+  ShieldCheck, Target, Brain, ChevronUp, ChevronDown, XCircle, Grid, Cpu,
+  ListTodo, BookOpen, Info
+} from 'lucide-react';
+import type { BerthConfig } from '@/services/ports';
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 import {
@@ -20,6 +28,7 @@ import {
 import { usePortStore } from '@/store/portStore';
 import { runOptimize } from '@/services/optimizer';
 import { applyOverride } from '@/services/scenarios';
+import { getFeasibilityMatrix, type FeasibilityCell } from '@/services/feasibility';
 import { extractApiError } from '@/services/client';
 import { SolverStatusBanner } from '@/components/features/SolverStatusBanner';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -28,14 +37,14 @@ import type { SolverStatus } from '@/services/optimizer';
 
 /* --- Lever Slider Config --- */
 const LEVER_DEFS: [keyof LeversConfig, string, number, number, number][] = [
-  ['w_waiting', '? Waiting Cost', 0, 3, 0.1],
-  ['w_sla_penalty', '?? SLA Penalty', 0, 5, 0.1],
-  ['w_contract_bonus', '?? Contract Bonus', 0, 2, 0.1],
-  ['w_deviation', '?? Deviation', 0, 5, 0.1],
-  ['w_demurrage', '?? Demurrage', 0, 2, 0.1],
-  ['w_throughput', '?? Throughput', 0, 2, 0.1],
-  ['ukc_margin_m', '? UKC Margin (m)', 0, 2, 0.1],
-  ['max_solve_seconds', '? Max Solve (s)', 5, 120, 5],
+  ['w_waiting', 'Waiting Cost WT', 0, 3, 0.1],
+  ['w_sla_penalty', 'SLA Penalty WT', 0, 5, 0.1],
+  ['w_contract_bonus', 'Contract Bonus WT', 0, 2, 0.1],
+  ['w_deviation', 'Deviation Penalty WT', 0, 5, 0.1],
+  ['w_demurrage', 'Demurrage Cost WT', 0, 2, 0.1],
+  ['w_throughput', 'Throughput Reward WT', 0, 2, 0.1],
+  ['ukc_margin_m', 'Safety UKC Margin (m)', 0, 2, 0.1],
+  ['max_solve_seconds', 'Max Solve Limit (s)', 5, 120, 5],
 ];
 
 export default function OptimizerPage() {
@@ -64,6 +73,7 @@ export default function OptimizerPage() {
   // Feasibility matrix
   const [showFeasibility, setShowFeasibility] = useState(false);
   const [hoveredCell, setHoveredCell] = useState<{ vessel_id: string; berth_code: string; x: number; y: number } | null>(null);
+  const [feasibilityCells, setFeasibilityCells] = useState<FeasibilityCell[]>([]);
 
   // Timeline hover
   const [hoveredBar, setHoveredBar] = useState<ScheduleAssignment | null>(null);
@@ -159,6 +169,26 @@ export default function OptimizerPage() {
         warnings: displayResult.warnings,
         source: 'BACKEND',
       };
+      // Get feasibility matrix from backend
+      const feasibilityVessels = vessels.map(v => ({
+        vessel_id: v.vessel_id,
+        name: v.name,
+        vessel_type: v.vessel_type,
+        loa_m: v.loa_m,
+        beam_m: v.beam_m,
+        draft_m: v.draft_m,
+        cargo_type: v.cargo_type,
+        cargo_tons: v.cargo_tons,
+        eta_minutes: Math.round(v.eta_hours * 60),
+        service_time_minutes: Math.round(v.service_hours * 60),
+      }));
+
+      const matrixCells = await getFeasibilityMatrix({
+        port_code: selectedPortCode,
+        vessels: feasibilityVessels,
+      });
+      setFeasibilityCells(matrixCells);
+
       setResult(localResult);
       setOriginalResult(localResult);
     } catch (err) {
@@ -288,7 +318,7 @@ export default function OptimizerPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <span className="text-2xl">??</span>
+            <Cpu className="text-blue-500 animate-pulse" size={24} />
             <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, color: 'var(--color-text-primary)' }}>
               Multi-Vessel Optimizer
             </h2>
@@ -301,12 +331,12 @@ export default function OptimizerPage() {
         </div>
         <div className="flex gap-2">
           {overrides.size > 0 && (
-            <button className="btn btn-secondary" onClick={undoAllChanges} style={{ fontSize: 13 }}>
-              ? Undo All Changes
+            <button className="btn btn-secondary flex items-center gap-1.5 border-amber-500 text-amber-500 hover:bg-amber-50" onClick={undoAllChanges} style={{ fontSize: 13, fontWeight: 700 }}>
+              <Undo size={14} /> Reset to Optimal Decision
             </button>
           )}
-          <button className="btn btn-secondary" onClick={() => setShowLevers(!showLevers)}>
-            ?? {showLevers ? 'Hide' : 'Show'} Levers
+          <button className="btn btn-secondary flex items-center gap-1.5" onClick={() => setShowLevers(!showLevers)}>
+            <Settings size={14} /> {showLevers ? 'Hide' : 'Configure'} Levers
           </button>
         </div>
       </div>
@@ -318,8 +348,8 @@ export default function OptimizerPage() {
           borderRadius: 10, padding: '12px 16px', marginBottom: 16,
           fontSize: 13, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 8,
         }}>
-          <span>??</span> {error}
-          <button onClick={() => setError(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}>?</button>
+          <AlertTriangle size={16} /> {error}
+          <button onClick={() => setError(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}>✕</button>
         </div>
       )}
 
@@ -332,19 +362,19 @@ export default function OptimizerPage() {
                 background: leverTab === 'global' ? 'var(--color-primary)' : 'transparent',
                 color: leverTab === 'global' ? 'white' : 'var(--color-text-secondary)',
                 border: `1px solid ${leverTab === 'global' ? 'var(--color-primary)' : 'var(--color-border)'}`,
-              }}>?? Global Levers</button>
+              }}>🌐 Global Levers</button>
             <button onClick={() => setLeverTab('ship_type')}
               style={{ padding: '6px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer',
                 background: leverTab === 'ship_type' ? 'var(--color-primary)' : 'transparent',
                 color: leverTab === 'ship_type' ? 'white' : 'var(--color-text-secondary)',
                 border: `1px solid ${leverTab === 'ship_type' ? 'var(--color-primary)' : 'var(--color-border)'}`,
-              }}>?? Per Ship Type</button>
+              }}>🚢 Per Ship Type</button>
           </div>
 
           {leverTab === 'global' && (
             <>
               <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 16, color: 'var(--color-text-primary)' }}>
-                ?? Global Optimizer Levers
+                🌐 Global Optimizer Levers
               </h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {LEVER_DEFS.map(([key, label, min, max, step]) => (
@@ -359,11 +389,11 @@ export default function OptimizerPage() {
               <div className="flex gap-4 mt-4">
                 <label className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                   <input type="checkbox" checked={levers.fcfs_enabled} onChange={e => setLevers(prev => ({ ...prev, fcfs_enabled: e.target.checked }))} />
-                  ?? FCFS Ordering
+                  ⏳ FCFS Ordering
                 </label>
                 <label className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                   <input type="checkbox" checked={levers.goi_override_enabled} onChange={e => setLevers(prev => ({ ...prev, goi_override_enabled: e.target.checked }))} />
-                  ?? GoI Override
+                  🏛️ GoI Override
                 </label>
               </div>
             </>
@@ -372,7 +402,7 @@ export default function OptimizerPage() {
           {leverTab === 'ship_type' && (
             <>
               <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 16, color: 'var(--color-text-primary)' }}>
-                ?? Per Ship Type Levers
+                🚢 Per Ship Type Levers
               </h4>
               <div className="mb-4">
                 <label className="block text-xs mb-1 font-semibold" style={{ color: 'var(--color-text-muted)' }}>Step 1: Select Vessel Type</label>
@@ -411,7 +441,7 @@ export default function OptimizerPage() {
                         ))}
                       </div>
                       <button className="btn btn-primary" onClick={addShipTypeLever} style={{ fontSize: 13 }}>
-                        ? Apply {activeShipType} Lever Config to {activeShipBerths.length} berth(s)
+                        ✔ Apply {activeShipType} Lever Config to {activeShipBerths.length} berth(s)
                       </button>
                     </>
                   )}
@@ -423,10 +453,10 @@ export default function OptimizerPage() {
                   {shipTypeLevers.map(stl => (
                     <div key={stl.ship_type} className="card-flat flex items-center justify-between" style={{ padding: '8px 14px' }}>
                       <div style={{ fontSize: 13 }}>
-                        <strong>{stl.ship_type}</strong> ? {stl.selected_berths.map(b => <span key={b} style={{ color: getBerthColor(b), fontWeight: 600, marginLeft: 4 }}>{getBerthDisplayName(b)}</span>)}
+                        <strong>{stl.ship_type}</strong> → {stl.selected_berths.map(b => <span key={b} style={{ color: getBerthColor(b), fontWeight: 600, marginLeft: 4 }}>{getBerthDisplayName(b)}</span>)}
                         <span style={{ color: 'var(--color-text-muted)', marginLeft: 8 }}>W={stl.config.w_waiting} SLA={stl.config.w_sla_penalty}</span>
                       </div>
-                      <button onClick={() => removeShipTypeLever(stl.ship_type)} style={{ color: 'var(--color-danger)', cursor: 'pointer', border: 'none', background: 'none', fontWeight: 700 }}>?</button>
+                      <button onClick={() => removeShipTypeLever(stl.ship_type)} style={{ color: 'var(--color-danger)', cursor: 'pointer', border: 'none', background: 'none', fontWeight: 700 }}>✕</button>
                     </div>
                   ))}
                 </div>
@@ -438,7 +468,7 @@ export default function OptimizerPage() {
 
       {/* --- Vessel Queue --- */}
       <div className="flex items-center gap-3 mb-4">
-        <span className="text-xl">??</span>
+        <ListTodo size={20} className="text-sky-400" />
         <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>Vessel Queue</h3>
       </div>
       <div className="flex items-center gap-3 mb-4">
@@ -484,8 +514,16 @@ export default function OptimizerPage() {
 
       {/* --- Run Button --- */}
       <div className="flex gap-4 items-center mb-8">
-        <button className="btn btn-primary btn-lg flex-1" onClick={runOptimizer} disabled={loading} style={{ fontWeight: 700 }}>
-          {loading ? '?? Running CP-SAT Solver...' : '?? Run CP-SAT Optimizer'}
+        <button className="btn btn-primary btn-lg flex-1 flex items-center justify-center gap-2" onClick={runOptimizer} disabled={loading} style={{ fontWeight: 700 }}>
+          {loading ? (
+            <>
+              <Cpu className="animate-spin" size={20} /> Running CP-SAT Solver...
+            </>
+          ) : (
+            <>
+              <Play size={20} /> Run CP-SAT Optimizer
+            </>
+          )}
         </button>
         <div style={{ minWidth: 120 }}>
           <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Pilots</label>
@@ -503,6 +541,176 @@ export default function OptimizerPage() {
             {portConfig && ` · ${portConfig.num_berths} berths available`}
           </p>
         </div>
+      )}
+
+      {/* --- Vessel-Berth Feasibility Matrix --- */}
+      <div className="flex items-center justify-between mb-4 mt-6">
+        <div className="flex items-center gap-3">
+          <Grid size={20} className="text-blue-500" />
+          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>
+            Vessel-Berth Feasibility Matrix
+          </h3>
+          <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Physical compatibility profile across all berths</span>
+        </div>
+        <button className="btn btn-secondary btn-sm flex items-center gap-1.5" onClick={() => setShowFeasibility(!showFeasibility)} style={{ fontSize: 12 }}>
+          {showFeasibility ? 'Hide Matrix' : 'Show Matrix'}
+        </button>
+      </div>
+
+      {showFeasibility && (
+        <>
+          {feasibilityCells.length === 0 ? (
+            <div className="card text-center mb-6" style={{ padding: 40, border: '1px dashed var(--color-border)' }}>
+              <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>
+                Run the optimizer to see the feasibility matrix.
+              </p>
+            </div>
+          ) : (
+            <div className="card mb-6" style={{ padding: 20, overflowX: 'auto', position: 'relative' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <th style={{ textAlign: 'left', padding: '12px 16px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Vessel Spec</th>
+                    {(() => {
+                      const uniqueBerthCodes = [...new Set(feasibilityCells.map(c => c.berth_code))];
+                      return uniqueBerthCodes.map(bc => {
+                        const berth = getBerths().find(b => b.berth_code === bc);
+                        return (
+                          <th key={bc} style={{ textAlign: 'center', padding: '12px 16px', color: 'var(--color-text-muted)', fontWeight: 600, minWidth: 140 }}>
+                            <div style={{ color: getBerthColor(bc), fontWeight: 700 }}>
+                              {getBerthDisplayName(bc)}
+                            </div>
+                            {berth && (
+                              <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                                L: {berth.max_loa_m}m | D: {berth.max_draft_m}m | B: {berth.max_beam_m}m
+                              </div>
+                            )}
+                          </th>
+                        );
+                      });
+                    })()}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const uniqueVesselIds = [...new Set(feasibilityCells.map(c => c.vessel_id))];
+                    const uniqueBerthCodes = [...new Set(feasibilityCells.map(c => c.berth_code))];
+                    return uniqueVesselIds.map(vId => {
+                      const vessel = vessels.find(v => v.vessel_id === vId);
+                      return (
+                        <tr key={vId} style={{ borderBottom: '1px solid var(--color-border)', transition: 'background-color 0.15s' }}>
+                          <td style={{ padding: '16px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <Ship size={16} className="text-slate-400" />
+                              <div>
+                                <div style={{ fontWeight: 700 }}>{vessel ? vessel.name : vId}</div>
+                                {vessel && (
+                                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400, marginTop: 2 }}>
+                                    {vessel.vessel_type} · {vessel.loa_m}m x {vessel.beam_m}m · {vessel.draft_m}m
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          {uniqueBerthCodes.map(bc => {
+                            const cell = feasibilityCells.find(c => c.vessel_id === vId && c.berth_code === bc);
+                            if (!cell) return <td key={bc} style={{ padding: '16px', textAlign: 'center' }}>-</td>;
+                            
+                            // Check if this berth is currently assigned to this vessel
+                            const isAssigned = result?.assignments.some(a => a.vessel_id === vId && a.berth_code === bc) ?? false;
+                            
+                            let bg = 'rgba(239, 68, 68, 0.08)'; // RED
+                            let text = '#ef4444';
+                            let borderStyle = '1px solid rgba(239, 68, 68, 0.2)';
+                            
+                            if (cell.feasible) {
+                              if (cell.score >= 1.0) {
+                                bg = 'rgba(16, 185, 129, 0.08)'; // GREEN
+                                text = '#10b981';
+                                borderStyle = '1px solid rgba(16, 185, 129, 0.2)';
+                              } else {
+                                bg = 'rgba(245, 158, 11, 0.08)'; // AMBER
+                                text = '#f59e0b';
+                                borderStyle = '1px solid rgba(245, 158, 11, 0.2)';
+                              }
+                            }
+
+                            const cellStyle: React.CSSProperties = {
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: bg,
+                              color: text,
+                              border: borderStyle,
+                              padding: '6px 12px',
+                              borderRadius: 20,
+                              fontSize: 11,
+                              fontWeight: 700,
+                              cursor: 'help',
+                              ...(isAssigned ? {
+                                outline: '3px solid #6366f1',
+                                outlineOffset: '-3px',
+                                boxShadow: '0 0 10px rgba(99,102,241,0.2)'
+                              } : {})
+                            };
+
+                            return (
+                              <td key={bc} style={{ padding: '16px', textAlign: 'center' }}>
+                                <div
+                                  onMouseEnter={(e) => {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setHoveredCell({
+                                      vessel_id: vId,
+                                      berth_code: bc,
+                                      x: rect.left + rect.width / 2,
+                                      y: rect.top - 10
+                                    });
+                                  }}
+                                  onMouseLeave={() => setHoveredCell(null)}
+                                  style={cellStyle}
+                                >
+                                  {Math.round(cell.score * 100)}%
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+
+              {hoveredCell && (() => {
+                const cell = feasibilityCells.find(c => c.vessel_id === hoveredCell.vessel_id && c.berth_code === hoveredCell.berth_code);
+                if (!cell) return null;
+                return (
+                  <div style={{
+                    position: 'fixed', left: hoveredCell.x, top: hoveredCell.y, transform: 'translate(-50%, -100%)',
+                    zIndex: 1000, background: 'white', border: '1px solid #e2e8f0', borderRadius: 10,
+                    padding: '12px 16px', minWidth: 260, boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                    fontSize: 12, lineHeight: 1.6, color: 'var(--color-text-secondary)',
+                  }}>
+                    <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--color-text-primary)', marginBottom: 4 }}>
+                      Feasibility Profile: {getBerthDisplayName(cell.berth_code)}
+                    </div>
+                    <div style={{ fontSize: 11, color: cell.feasible ? '#10b981' : '#ef4444', fontWeight: 700, marginBottom: 6 }}>
+                      {cell.feasible ? `Feasible (${Math.round(cell.score * 100)}%)` : 'Not Feasible (0%)'}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>
+                      <strong>Constraint:</strong> {cell.summary || (cell.feasible ? 'Perfect fit, no constraints violated.' : 'Hard dimensions constraint violation.')}
+                    </div>
+                    {cell.hard_fails.length > 0 && (
+                      <div style={{ fontSize: 10, color: '#ef4444', marginTop: 6 }}>
+                        <strong>Violations:</strong> {cell.hard_fails.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </>
       )}
 
       {/* --- RESULTS --- */}
@@ -540,6 +748,18 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
   berthCodes: string[];
 }) {
   const timelineRef = useRef<HTMLDivElement>(null);
+  const { getBerths } = usePortStore();
+
+  const [hoveredCompat, setHoveredCompat] = useState<{ vesselId: string; berthCode: string; x: number; y: number } | null>(null);
+
+  function checkCompatibility(vessel: VesselInput, berth: BerthConfig) {
+    const loaOk = vessel.loa_m <= berth.max_loa_m;
+    const beamOk = vessel.beam_m <= berth.max_beam_m;
+    const draftOk = vessel.draft_m <= berth.max_draft_m;
+    const typeOk = berth.allowed_vessel_types.length === 0 || berth.allowed_vessel_types.includes(vessel.vessel_type);
+    const allOk = loaOk && beamOk && draftOk && typeOk;
+    return { loaOk, beamOk, draftOk, typeOk, allOk };
+  }
 
   // Collect unique berths from assignments for the timeline
   const assignedBerthCodes = [...new Set(result.assignments.map(a => a.berth_code))];
@@ -572,26 +792,28 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
       {/* KPI Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         {[
-          { icon: '?', value: `${result.kpis.avg_wait.toFixed(1)}h`, label: 'Avg Wait' },
-          { icon: '??', value: `${result.kpis.utilization.toFixed(0)}%`, label: 'Berth Util.' },
-          { icon: '?', value: `${result.kpis.sla_compliance.toFixed(0)}%`, label: 'SLA Compliance' },
-          { icon: '??', value: `$${result.kpis.total_revenue.toLocaleString()}`, label: 'Estimated Revenue' },
-          { icon: '??', value: `$${result.kpis.total_cost.toLocaleString()}`, label: 'Estimated Cost' },
-          { icon: '??', value: `${result.kpis.cargo_tons.toLocaleString()}t`, label: 'Cargo' },
-          { icon: '??', value: `${result.assignments.length}`, label: 'Assigned' },
-          { icon: '?', value: `${result.solve_time_sec.toFixed(2)}s`, label: 'Solve Time' },
+          { icon: <Clock className="text-sky-500" size={20} />, value: `${result.kpis.avg_wait.toFixed(1)}h`, label: 'Avg Wait' },
+          { icon: <TrendingUp className="text-emerald-500" size={20} />, value: `${result.kpis.utilization.toFixed(0)}%`, label: 'Berth Util.' },
+          { icon: <CheckCircle2 className="text-teal-500" size={20} />, value: `${result.kpis.sla_compliance.toFixed(0)}%`, label: 'SLA Compliance' },
+          { icon: <DollarSign className="text-indigo-500" size={20} />, value: `$${result.kpis.total_revenue.toLocaleString()}`, label: 'Est. Revenue' },
+          { icon: <Wrench className="text-amber-500" size={20} />, value: `$${result.kpis.total_cost.toLocaleString()}`, label: 'Est. Cost' },
+          { icon: <Package className="text-violet-500" size={20} />, value: `${result.kpis.cargo_tons.toLocaleString()}t`, label: 'Cargo' },
+          { icon: <Ship className="text-blue-500" size={20} />, value: `${result.assignments.length}`, label: 'Assigned' },
+          { icon: <Cpu className="text-purple-500" size={20} />, value: `${result.solve_time_sec.toFixed(2)}s`, label: 'Solve Time' },
         ].map((kpi, i) => (
           <div key={i} className="card-flat text-center" style={{ padding: 14 }}>
-            <div style={{ fontSize: 18 }}>{kpi.icon}</div>
+            <div className="flex justify-center mb-2">{kpi.icon}</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)' }}>{kpi.value}</div>
             <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>{kpi.label}</div>
           </div>
         ))}
       </div>
 
+
+
       {/* --- Schedule Assignments --- */}
       <div className="flex items-center gap-3 mb-4">
-        <span className="text-xl">??</span>
+        <Anchor size={20} className="text-sky-500" />
         <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>Schedule Assignments</h3>
       </div>
       <div className="space-y-2 mb-8">
@@ -661,7 +883,7 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
 
       {/* --- Interactive Berth Timeline --- */}
       <div className="flex items-center gap-3 mb-4">
-        <span className="text-xl">??</span>
+        <Clock size={20} className="text-emerald-500" />
         <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>Interactive Berth Timeline</h3>
         <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Drag vessels between berth lanes to swap assignments</span>
       </div>
@@ -759,7 +981,7 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
       {result.costs.length > 0 && (
         <>
           <div className="flex items-center gap-3 mb-4">
-            <span className="text-xl">??</span>
+            <DollarSign size={20} className="text-indigo-500" />
             <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>Estimated Cost Breakdown</h3>
             <StatusBadge source="ASSUMPTION" size="sm" />
           </div>
@@ -824,6 +1046,69 @@ function ResultsSection({ result, vessels, overrides, expandedVessel, setExpande
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      </div>
+
+      {/* --- Mathematical Explanation Panel --- */}
+      <div className="card mb-8" style={{
+        padding: 20,
+        background: 'linear-gradient(135deg, rgba(99,102,241,0.02), rgba(168,85,247,0.02))',
+        border: '1px solid var(--color-border)',
+        borderRadius: 12
+      }}>
+        <details>
+          <summary style={{
+            fontFamily: 'var(--font-display)',
+            fontWeight: 700,
+            fontSize: 16,
+            cursor: 'pointer',
+            color: 'var(--color-text-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            listStyle: 'none'
+          }} className="flex items-center gap-2">
+            <Brain className="text-indigo-500 animate-pulse" size={20} />
+            <span>How the CP-SAT Optimizer Works</span>
+            <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>(Constraint Programming Deep Dive)</span>
+          </summary>
+          <div style={{ marginTop: 16, borderTop: '1px solid var(--color-border)', paddingTop: 16, fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.7 }}>
+            <p style={{ marginBottom: 12 }}>
+              The Berth Allocation problem is solved using <strong>Google OR-Tools CP-SAT</strong> (Constraint Programming - Satisfiability) engine. This state-of-the-art solver formulation uses advanced boolean satisfiability and integer programming models to construct highly optimized, conflict-free vessel schedules.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+              <div>
+                <h5 style={{ fontWeight: 700, color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <ShieldCheck size={16} className="text-emerald-500" /> Hard Decision Constraints
+                </h5>
+                <ul style={{ paddingLeft: 18, listStyleType: 'disc' }} className="space-y-1.5">
+                  <li><strong>Physical Dimensions:</strong> Vessels are strictly prohibited from berthing where LOA, Draft, or Beam limits are exceeded.</li>
+                  <li><strong>Resource Limits:</strong> Non-overlapping intervals for concurrent vessel berths ensure no two vessels occupy the same berth at the same time.</li>
+                  <li><strong>Tug & Pilot Limits:</strong> Ensures concurrent pilotage or tug shifts do not exceed instantaneous port pilot capacity.</li>
+                  <li><strong>Safety UKC Margins:</strong> Enforces minimum safety Under Keel Clearance under low tide levels.</li>
+                </ul>
+              </div>
+              <div>
+                <h5 style={{ fontWeight: 700, color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <Target size={16} className="text-blue-500" /> Objective Weighting Levers
+                </h5>
+                <p style={{ marginBottom: 8 }}>
+                  The solver minimizes a multi-objective cost function weighted by your active configuration levers:
+                </p>
+                <div style={{ background: 'rgba(0,0,0,0.02)', borderRadius: 8, padding: '10px 12px', fontSize: 11, border: '1px solid var(--color-border)' }}>
+                  <code style={{ fontSize: 10, display: 'block', whiteSpace: 'pre-wrap', color: 'var(--color-text-muted)' }}>
+                    Minimize: (w_waiting * waiting_hours) + (w_sla_penalty * sla_breaches) + (w_deviation * berth_deviation) + (w_demurrage * demurrage_costs) - (w_throughput * cargo_throughput)
+                  </code>
+                </div>
+              </div>
+            </div>
+            <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(99,102,241,0.06)', borderRadius: 8, padding: '10px 14px', borderLeft: '3px solid var(--color-primary)' }}>
+              <Info size={16} className="text-indigo-500" />
+              <span>
+                <strong>Dynamic Confidence Scores:</strong> Each assignment includes a safety confidence index representing slot stability against historical weather and tidal fluctuations.
+              </span>
+            </div>
+          </div>
+        </details>
       </div>
     </>
   );

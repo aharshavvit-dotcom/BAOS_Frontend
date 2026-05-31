@@ -48,13 +48,13 @@ export default function KpiCard({
   const selectedTone = toneClasses[tone] || toneClasses.blue;
 
   return (
-    <div className={`baos-card flex flex-col justify-between p-6 transition-all duration-300 ${selectedTone.border}`}>
+    <div className={`bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col justify-between p-6 transition-all duration-300 ${selectedTone.border}`}>
       <div>
         <div className="flex items-center justify-between mb-4">
-          <span className="text-sm font-semibold tracking-wide uppercase text-slate-500">
+          <span className="text-xs font-bold tracking-wider uppercase text-slate-400">
             {label}
           </span>
-          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${selectedTone.bg}`}>
+          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${selectedTone.bg} ${selectedTone.text}`}>
             <span className="text-xl">{icon}</span>
           </div>
         </div>
@@ -73,7 +73,7 @@ export default function KpiCard({
 
       {sublabel && (
         <div className="mt-4 border-t border-slate-100 pt-3">
-          <p className="text-xs font-medium text-slate-500">{sublabel}</p>
+          <p className="text-xs text-slate-400 font-normal">{sublabel}</p>
         </div>
       )}
     </div>

@@ -2,6 +2,7 @@
 Database seed script.
 
 Run from the repository root:
+    python -m database.setup   # creates 'baos' database if needed
     python -m database.seed
 
 The seed is intentionally idempotent. It creates the legacy auth/dashboard

@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     DB_PASS: str = "postgres@123"
     DB_HOST: str = "127.0.0.1"
     DB_PORT: int = 5433
-    DB_NAME: str = "ML_APP"
+    DB_NAME: str = "baos"  # FIX: Renamed from 'ML_APP' → 'baos' to match the schema namespace
 
     def get_database_url(self, driver: str = "postgresql+asyncpg") -> URL:
         """Build a SQLAlchemy URL object that properly escapes special chars."""
@@ -76,6 +76,14 @@ class Settings(BaseSettings):
     RL_DELAY_WEIGHT: float = 1.0
     RL_IDLE_WEIGHT: float = 0.3
     RL_MISMATCH_WEIGHT: float = 0.5
+    # FIX (Phase 7): Centralize currency for cost engine — was hardcoded as USD.
+    CURRENCY_CODE: str = "INR"
+    CURRENCY_SYMBOL: str = "₹"
+    PORT_CHARGES_PER_HOUR: float = 100.0
+    # FIX (Phase 5): Tide data configuration — synthetic by default.
+    USE_REAL_TIDE_DATA: bool = False
+    TIDE_DATA_PATH: str = ""
+    BERTH_DEPTH_BUFFER: float = 1.5  # Metres of under-keel clearance required
 
     @field_validator("JWT_SECRET_KEY")
     @classmethod

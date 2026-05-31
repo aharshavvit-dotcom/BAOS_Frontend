@@ -1,5 +1,5 @@
 /**
- * useSocket â€” React hook for Socket.IO real-time updates.
+ * useSocket — React hook for Socket.IO real-time updates.
  * Connects on mount, disconnects on unmount.
  * Listens for KPI updates, assignment updates, and notifications.
  */
@@ -24,11 +24,13 @@ export function useSocket() {
     const socket = getSocket();
 
     socket.on('connect', () => {
-      console.log('[WS] Connected to BAOS AI server');
+      // FIX (Phase 7.9): console.log → dev-only debug
+      if (process.env.NODE_ENV === 'development') console.debug('[WS] Connected to BAOS AI server');
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('[WS] Disconnected:', reason);
+      // FIX (Phase 7.9): console.log → dev-only debug
+      if (process.env.NODE_ENV === 'development') console.debug('[WS] Disconnected:', reason);
     });
 
     // Real-time KPI updates
@@ -39,7 +41,7 @@ export function useSocket() {
     // New assignment/recommendation
     socket.on('new_assignment', (data: DashboardRecommendation) => {
       addRecommendation(data);
-      showToast(`New assignment: ${data.vessel_name} â†’ ${data.berth_name}`, 'info');
+      showToast(`New assignment: ${data.vessel_name} → ${data.berth_name}`, 'info');
     });
 
     // Generic notification

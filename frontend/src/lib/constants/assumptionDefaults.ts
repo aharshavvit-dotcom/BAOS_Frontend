@@ -35,7 +35,7 @@ export const ASSUMPTION_DEFAULTS: AssumptionDefault[] = [
     source: 'ASSUMPTION',
     confidenceMultiplier: 0.8,
     description:
-      'Default demurrage estimate used when vessel-specific rate is unavailable. Typical range: $200â€“$2,000/hr depending on vessel size.',
+      'Default demurrage estimate used when vessel-specific rate is unavailable. Typical range: $200-$2,000/hr depending on vessel size.',
     usedInDecision: true,
     category: 'cost',
   },
@@ -119,7 +119,7 @@ export const ASSUMPTION_DEFAULTS: AssumptionDefault[] = [
   {
     key: 'THROUGHPUT_VALUE_USD_PER_TON_HOUR',
     value: 0.5,
-    unit: 'USD/tonÂ·hour',
+    unit: 'USD/ton·hour',
     source: 'ASSUMPTION',
     confidenceMultiplier: 0.4,
     description:

@@ -748,13 +748,19 @@ class StructuredExplanationEngine:
         if cost_breakdown:
             total = cost_breakdown.get("total_cost", 0)
             if total > 0:
+                # FIX (Phase 7.1): Use configurable currency symbol instead of hardcoded $.
+                try:
+                    from backend.config.settings import settings
+                    sym = settings.CURRENCY_SYMBOL
+                except Exception:
+                    sym = "₹"
                 cat.assessments.append(ParameterAssessment(
                     category=ExplanationCategory.COMMERCIAL,
                     parameter_name="Estimated Cost",
                     vessel_value=total,
                     status=AssessmentStatus.INFO,
-                    detail_text=f"Estimated total cost: ${total:,.0f}",
-                    compact_text=f"Cost: ${total:,.0f}",
+                    detail_text=f"Estimated total cost: {sym}{total:,.0f}",
+                    compact_text=f"Cost: {sym}{total:,.0f}",
                     is_hard_constraint=False,
                 ))
 

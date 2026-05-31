@@ -10,6 +10,14 @@ import apiClient from './client';
 
 // Types---
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
 export interface PortInfo {
   port_name: string;
   port_code: string;
@@ -113,8 +121,8 @@ export interface ServiceTimeStat {
 
 /** List all available ports with training status */
 export async function getPorts(): Promise<PortInfo[]> {
-  const res = await apiClient.get<PortInfo[]>('/api/v1/ports');
-  return res.data;
+  const res = await apiClient.get<PaginatedResponse<PortInfo>>('/api/v1/ports');
+  return res.data?.items ?? [];
 }
 
 /** Get detailed status for a specific port */

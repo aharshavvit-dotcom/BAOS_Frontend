@@ -3,6 +3,8 @@
  */
 'use client';
 
+import { ArrowUp, ArrowDown, Minus, BarChart3, AlertTriangle, X } from 'lucide-react';
+
 interface ScenarioImpactBannerProps {
   waitingHoursDelta: number;
   costDelta: number;
@@ -19,12 +21,12 @@ function DeltaChip({ label, value, unit, inverted = false }: {
   const isPositive = inverted ? value < 0 : value > 0;
   const isNegative = inverted ? value > 0 : value < 0;
   const color = isPositive ? '#10b981' : isNegative ? '#ef4444' : '#94a3b8';
-  const arrow = value > 0 ? 'â†‘' : value < 0 ? 'â†“' : 'â€“';
+  const icon = value > 0 ? <ArrowUp size={14} className="inline mr-0.5" /> : value < 0 ? <ArrowDown size={14} className="inline mr-0.5" /> : <Minus size={14} className="inline mr-0.5" />;
 
   return (
     <div style={{ textAlign: 'center', padding: '8px 12px' }}>
-      <div style={{ fontSize: 18, fontWeight: 800, color, fontFamily: 'var(--font-display)' }}>
-        {arrow} {Math.abs(value).toFixed(1)}{unit}
+      <div style={{ fontSize: 18, fontWeight: 800, color, fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {icon} {Math.abs(value).toFixed(1)}{unit}
       </div>
       <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
         {label}
@@ -55,7 +57,7 @@ export function ScenarioImpactBanner({
     }}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: 18 }}>{netPositive ? 'ðŸ“Š' : 'âš ï¸'}</span>
+          {netPositive ? <BarChart3 size={18} className="text-emerald-500" /> : <AlertTriangle size={18} className="text-amber-500" />}
           <span style={{
             fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15,
             color: 'var(--color-text-primary)',
@@ -73,9 +75,9 @@ export function ScenarioImpactBanner({
         {onDismiss && (
           <button onClick={onDismiss} style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--color-text-muted)', fontSize: 16,
+            color: 'var(--color-text-muted)', display: 'inline-flex', alignItems: 'center'
           }}>
-            âœ•
+            <X size={16} />
           </button>
         )}
       </div>
@@ -93,8 +95,9 @@ export function ScenarioImpactBanner({
           marginTop: 10, padding: '8px 12px',
           background: 'rgba(239,68,68,0.06)', borderRadius: 6,
           fontSize: 12, color: '#ef4444',
+          display: 'flex', alignItems: 'center', gap: 6
         }}>
-          âš ï¸ Conflicts: {conflicts.join('; ')}
+          <AlertTriangle size={14} /> Conflicts: {conflicts.join('; ')}
         </div>
       )}
     </div>

@@ -3,9 +3,13 @@ WebSocket route for real-time updates via Socket.IO.
 """
 from __future__ import annotations
 
+import logging
+
 import socketio
 
 from backend.config import settings
+
+logger = logging.getLogger("baos_ai.ws")
 
 # Create Socket.IO server (async mode for FastAPI)
 sio = socketio.AsyncServer(
@@ -21,7 +25,7 @@ socket_app = socketio.ASGIApp(sio, socketio_path="/api/realtime")
 @sio.event
 async def connect(sid, environ, auth=None):
     """Client connected."""
-    print(f"[WS] Client connected: {sid}")
+    logger.debug("Client connected: %s", sid)  # FIX (Phase 7.8): print → logger
     await sio.emit("notification", {
         "message": "Connected to BAOS AI real-time updates",
         "type": "info",
@@ -31,7 +35,7 @@ async def connect(sid, environ, auth=None):
 @sio.event
 async def disconnect(sid):
     """Client disconnected."""
-    print(f"[WS] Client disconnected: {sid}")
+    logger.debug("Client disconnected: %s", sid)  # FIX (Phase 7.8): print → logger
 
 
 @sio.event
@@ -39,7 +43,7 @@ async def subscribe_kpi(sid, data):
     """Subscribe to KPI updates for a specific port."""
     port_id = data.get("port_id", "default")
     await sio.enter_room(sid, f"kpi:{port_id}")
-    print(f"[WS] {sid} subscribed to kpi:{port_id}")
+    logger.debug("%s subscribed to kpi:%s", sid, port_id)  # FIX (Phase 7.8): print → logger
 
 
 @sio.event
@@ -53,7 +57,7 @@ async def unsubscribe_kpi(sid, data):
 async def subscribe_recommendations(sid, data=None):
     """Subscribe to recommendation updates."""
     await sio.enter_room(sid, "recommendations")
-    print(f"[WS] {sid} subscribed to recommendations")
+    logger.debug("%s subscribed to recommendations", sid)  # FIX (Phase 7.8): print → logger
 
 
 @sio.event

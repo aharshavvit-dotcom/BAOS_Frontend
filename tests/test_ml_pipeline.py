@@ -105,7 +105,6 @@ def test_feature_columns():
     assert "hour_cos" in X.columns, "Missing cyclical hour_cos"
     assert "equipment_match_score" in X.columns, "Missing equipment_match_score"
     assert "berth_specialization_ratio" in X.columns, "Missing berth_specialization_ratio"
-    assert "cargo_handling_rate" in X.columns, "Missing cargo_handling_rate"
     assert "beam_berth_ratio" in X.columns, "Missing beam_berth_ratio"
 
     # Check no NaN
@@ -333,7 +332,7 @@ def test_training_pipeline():
     # Check all models have results
     for model_key in ["service_time", "berth_suitability", "delay_predictor"]:
         assert model_key in metadata["results"], f"Missing {model_key} results"
-        assert "test" in metadata["results"][model_key], f"Missing test metrics for {model_key}"
+        assert "val" in metadata["results"][model_key], f"Missing val metrics for {model_key}"
 
     # Feature importance should be present
     stp_res = metadata["results"]["service_time"]

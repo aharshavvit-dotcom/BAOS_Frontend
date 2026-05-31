@@ -282,7 +282,9 @@ def build_port_config_from_history(
         )
 
     berths = build_berths_from_history(df, port_master=port_master)
-    tides = generate_sample_tides(planning_start, days=7)
+    # FIX (Phase 5.2): Use tide_loader which warns when synthetic data is used.
+    from engines.ingestion.tide_loader import load_tides
+    tides = load_tides(planning_start, days=7)
     resources = generate_sample_resources(planning_start, days=7)
 
     return PortConfig(

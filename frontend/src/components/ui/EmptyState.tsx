@@ -3,17 +3,20 @@
  */
 'use client';
 
+import { ClipboardList } from 'lucide-react';
+
 interface EmptyStateProps {
-  icon?: string;
+  icon?: React.ReactNode;
   title: string;
   message?: string;
   action?: React.ReactNode;
 }
 
-export function EmptyState({ icon = 'ðŸ“‹', title, message, action }: EmptyStateProps) {
+export function EmptyState({ icon, title, message, action }: EmptyStateProps) {
+  const defaultIcon = icon || <ClipboardList size={40} className="mx-auto text-slate-400 opacity-50" />;
   return (
     <div className="text-center py-12" style={{ color: 'var(--color-text-muted)' }}>
-      <span style={{ fontSize: 40, display: 'block', marginBottom: 12 }}>{icon}</span>
+      <div style={{ display: 'block', marginBottom: 12 }}>{defaultIcon}</div>
       <h3 style={{
         fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16,
         color: 'var(--color-text-primary)', marginBottom: 4,

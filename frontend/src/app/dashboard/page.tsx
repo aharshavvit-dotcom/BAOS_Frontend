@@ -23,6 +23,11 @@ import {
   DEMO_COST_DATA,
   DEMO_COST_COLORS,
 } from '@/lib/demo/dashboardDemoData';
+import {
+  Ship, DollarSign, TrendingUp, ShieldCheck, Download, Plus,
+  Target, ClipboardList, BarChart3, Bell as BellIcon, Check, X,
+  FileText, ArrowRight,
+} from 'lucide-react';
 
 export default function DashboardPage() {
   const user = useAuthStore(s => s.user);
@@ -80,29 +85,29 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-            {greeting}, {user?.full_name?.split(' ')[0] || 'Captain'} ðŸ‘‹
+            {greeting}, {user?.full_name?.split(' ')[0] || 'Captain'}
           </h1>
           <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
             Here&apos;s your port overview for today
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="btn btn-secondary btn-sm">ðŸ“¥ Export</button>
-          <button className="btn btn-primary btn-sm">+ New Assignment</button>
+          <button className="btn btn-secondary btn-sm flex items-center gap-1.5"><Download size={14} /> Export</button>
+          <button className="btn btn-primary btn-sm flex items-center gap-1.5"><Plus size={14} /> New Assignment</button>
         </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: 'ðŸš¢', label: 'Active Vessels',     value: kpis?.vessels_count ?? 142,  suffix: '', change: '+8.4%' },
-          { icon: 'ðŸ’°', label: 'Revenue',             value: kpis?.revenue ? Math.round(kpis.revenue / 1000) : 480,  prefix: '$', suffix: 'K', change: '+14.3%' },
-          { icon: 'ðŸ“ˆ', label: 'Berth Utilization',   value: kpis?.utilization_pct ?? 78,   suffix: '%', change: '+4%' },
-          { icon: 'âœ…', label: 'SLA Compliance',      value: kpis?.sla_compliance_pct ?? 94,   suffix: '%', change: '+5.6%' },
+          { icon: <Ship size={22} className="text-sky-400" />, label: 'Active Vessels',     value: kpis?.vessels_count ?? 142,  suffix: '', change: '+8.4%' },
+          { icon: <DollarSign size={22} className="text-emerald-400" />, label: 'Revenue',             value: kpis?.revenue ? Math.round(kpis.revenue / 1000) : 480,  prefix: '$', suffix: 'K', change: '+14.3%' },
+          { icon: <TrendingUp size={22} className="text-blue-400" />, label: 'Berth Utilization',   value: kpis?.utilization_pct ?? 78,   suffix: '%', change: '+4%' },
+          { icon: <ShieldCheck size={22} className="text-green-400" />, label: 'SLA Compliance',      value: kpis?.sla_compliance_pct ?? 94,   suffix: '%', change: '+5.6%' },
         ].map((kpi, i) => (
           <div key={i} className="card" style={{ background: 'var(--color-dark-card)' }}>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-2xl">{kpi.icon}</span>
+              {kpi.icon}
               <span className="badge badge-success text-xs">{kpi.change}</span>
             </div>
             <div className="text-2xl font-extrabold mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-primary)' }}>
@@ -216,7 +221,7 @@ export default function DashboardPage() {
         <div className="space-y-3">
           {filtered.length === 0 ? (
             <div className="text-center py-8" style={{ color: 'var(--color-text-muted)' }}>
-              <span className="text-3xl block mb-2">ðŸ“‹</span>
+              <FileText size={32} className="mx-auto mb-2 opacity-50" />
               No recommendations found
             </div>
           ) : filtered.map(rec => (
@@ -227,7 +232,7 @@ export default function DashboardPage() {
             >
               <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg"
                    style={{ background: 'rgba(0,102,204,0.15)' }}>
-                ðŸš¢
+                <Ship size={20} className="text-[var(--color-primary)]" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -238,8 +243,8 @@ export default function DashboardPage() {
                     {rec.vessel_type}
                   </span>
                 </div>
-                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  â†’ {rec.berth_name}
+                <p className="text-xs flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
+                  <ArrowRight size={12} /> {rec.berth_name}
                 </p>
               </div>
               <div className="text-right flex-shrink-0">
@@ -257,11 +262,11 @@ export default function DashboardPage() {
               </div>
               {rec.status === 'pending' && (
                 <div className="flex gap-2 flex-shrink-0">
-                  <button onClick={() => acceptRec(rec.id)} className="btn btn-sm" style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--color-success)', border: '1px solid var(--color-success)' }}>
-                    âœ“
+                  <button onClick={() => acceptRec(rec.id)} className="btn btn-sm flex items-center gap-1" style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--color-success)', border: '1px solid var(--color-success)' }}>
+                    <Check size={14} />
                   </button>
-                  <button onClick={() => rejectRec(rec.id)} className="btn btn-sm" style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)' }}>
-                    âœ—
+                  <button onClick={() => rejectRec(rec.id)} className="btn btn-sm flex items-center gap-1" style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)' }}>
+                    <X size={14} />
                   </button>
                 </div>
               )}
@@ -273,13 +278,13 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { icon: 'ðŸŽ¯', label: 'Run Optimizer', desc: 'Multi-vessel scheduling' },
-          { icon: 'ðŸ“Š', label: 'Generate Report', desc: 'Export analytics' },
-          { icon: 'ðŸ””', label: 'Set Alert', desc: 'Configure notifications' },
-          { icon: 'ðŸ“‹', label: 'View Schedule', desc: 'Berth assignments' },
+          { icon: <Target size={24} className="text-emerald-400" />, label: 'Run Optimizer', desc: 'Multi-vessel scheduling' },
+          { icon: <BarChart3 size={24} className="text-sky-400" />, label: 'Generate Report', desc: 'Export analytics' },
+          { icon: <BellIcon size={24} className="text-amber-400" />, label: 'Set Alert', desc: 'Configure notifications' },
+          { icon: <ClipboardList size={24} className="text-purple-400" />, label: 'View Schedule', desc: 'Berth assignments' },
         ].map((action, i) => (
           <button key={i} className="card text-left group">
-            <div className="text-2xl mb-2">{action.icon}</div>
+            <div className="mb-2">{action.icon}</div>
             <p className="text-sm font-semibold mb-1" style={{ fontFamily: 'var(--font-display)' }}>{action.label}</p>
             <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{action.desc}</p>
           </button>

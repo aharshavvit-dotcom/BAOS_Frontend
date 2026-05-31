@@ -138,7 +138,7 @@ class Settings(BaseSettings):
     DB_PASS: str = "****"
     DB_HOST: str = "127.0.0.1"
     DB_PORT: int = 5433
-    DB_NAME: str = "ML_APP"
+    DB_NAME: str = "baos"
 
     # JWT
     JWT_SECRET_KEY: str = "baos-ai-super-secret-key-..."

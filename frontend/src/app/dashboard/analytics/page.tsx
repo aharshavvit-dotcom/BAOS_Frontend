@@ -18,6 +18,10 @@ import {
   MONTHLY_UTILIZATION,
   ANALYTICS_COLORS as COLORS,
 } from '@/lib/demo/analyticsDemoData';
+import {
+  TrendingUp, Ship, Wrench, CheckCircle2, BarChart3,
+  Anchor, Building, Clock, Package
+} from 'lucide-react';
 
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('today');
@@ -69,14 +73,14 @@ export default function AnalyticsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <span className="text-2xl">ðŸ“ˆ</span>
+            <BarChart3 className="text-emerald-500 animate-pulse" size={24} />
             <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, color: 'var(--color-text-primary)' }}>
               Port Analytics
             </h2>
             <span className="badge badge-success">Live</span>
           </div>
           <p style={{ color: 'var(--color-text-muted)', fontSize: 13, marginTop: 4 }}>
-            Real-time operational intelligence for Chennai Port â€” 23 berths across 5 terminals
+            Real-time operational intelligence for Chennai Port — 23 berths across 5 terminals
           </p>
         </div>
         <div className="flex gap-2">
@@ -96,14 +100,14 @@ export default function AnalyticsPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         {[
-          { icon: 'ðŸŸ¢', value: stats.free.toString(), label: 'Berths Free', color: '#10b981' },
-          { icon: 'ðŸ”µ', value: stats.occupied.toString(), label: 'Berths Occupied', color: '#0ea5e9' },
-          { icon: 'ðŸŸ¡', value: stats.maintenance.toString(), label: 'Maintenance', color: '#f59e0b' },
-          { icon: 'ðŸ“Š', value: `${stats.utilizationPct}%`, label: 'Utilization Rate', color: stats.utilizationPct > 75 ? '#ef4444' : '#10b981' },
-          { icon: 'ðŸš¢', value: stats.occupied.toString(), label: 'Vessels in Port', color: '#8b5cf6' },
+          { icon: <CheckCircle2 size={22} className="text-emerald-500" />, value: stats.free.toString(), label: 'Berths Free', color: '#10b981' },
+          { icon: <Ship size={22} className="text-sky-500" />, value: stats.occupied.toString(), label: 'Berths Occupied', color: '#0ea5e9' },
+          { icon: <Wrench size={22} className="text-amber-500" />, value: stats.maintenance.toString(), label: 'Maintenance', color: '#f59e0b' },
+          { icon: <TrendingUp size={22} className="text-purple-500" />, value: `${stats.utilizationPct}%`, label: 'Utilization Rate', color: stats.utilizationPct > 75 ? '#ef4444' : '#10b981' },
+          { icon: <Anchor size={22} className="text-blue-500" />, value: stats.occupied.toString(), label: 'Vessels in Port', color: '#8b5cf6' },
         ].map((kpi, i) => (
           <div key={i} className="card-flat text-center" style={{ padding: 16 }}>
-            <div style={{ fontSize: 20 }}>{kpi.icon}</div>
+            <div className="flex justify-center mb-2">{kpi.icon}</div>
             <div style={{ fontSize: 28, fontWeight: 800, color: kpi.color, fontFamily: 'var(--font-display)' }}>{kpi.value}</div>
             <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>{kpi.label}</div>
           </div>
@@ -112,14 +116,14 @@ export default function AnalyticsPage() {
 
       {/* Berth Status Grid */}
       <div className="flex items-center gap-3 mb-4">
-        <span className="text-xl">ðŸ—ï¸</span>
+        <Building size={20} className="text-blue-500" />
         <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>
           Live Berth Status
         </h3>
         <div className="flex gap-3 ml-auto text-xs" style={{ color: 'var(--color-text-muted)' }}>
-          <span>ðŸŸ¢ Free ({stats.free})</span>
-          <span>ðŸ”µ Occupied ({stats.occupied})</span>
-          <span>ðŸŸ¡ Maintenance ({stats.maintenance})</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Free ({stats.free})</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-500" /> Occupied ({stats.occupied})</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500" /> Maintenance ({stats.maintenance})</span>
         </div>
       </div>
 
@@ -142,8 +146,8 @@ export default function AnalyticsPage() {
               </div>
               {b.status === 'occupied' && (
                 <>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', marginTop: 6 }}>
-                    ðŸš¢ {b.vessel} <span style={{ fontWeight: 400, fontSize: 11 }}>({b.vesselType})</span>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Ship size={14} className="text-sky-400" /> {b.vessel} <span style={{ fontWeight: 400, fontSize: 11 }}>({b.vesselType})</span>
                   </div>
                   <div style={{ marginTop: 6 }}>
                     <div className="flex items-center justify-between" style={{ fontSize: 10, color: 'var(--color-text-muted)', marginBottom: 3 }}>
@@ -162,13 +166,13 @@ export default function AnalyticsPage() {
                 </>
               )}
               {b.status === 'free' && (
-                <div style={{ fontSize: 11, color: '#10b981', marginTop: 6, fontWeight: 600 }}>
-                  âœ… Available â€” free since {b.since}
+                <div style={{ fontSize: 11, color: '#10b981', marginTop: 6, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <CheckCircle2 size={12} /> Available — free since {b.since}
                 </div>
               )}
               {b.status === 'maintenance' && (
-                <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 6, fontWeight: 600 }}>
-                  ðŸ”§ Scheduled maintenance â€” since {b.since}
+                <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 6, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Wrench size={12} /> Scheduled maintenance — since {b.since}
                 </div>
               )}
             </div>
@@ -181,8 +185,8 @@ export default function AnalyticsPage() {
         {/* Terminal Utilization */}
         <div className="card flex flex-col justify-between" style={{ padding: 20 }}>
           <div className="flex items-center justify-between mb-4">
-            <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>
-              ðŸ¢ Terminal Utilization
+            <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Building size={16} className="text-blue-500" /> Terminal Utilization
             </h4>
             <SourceBadge source="DEMO" />
           </div>
@@ -207,8 +211,8 @@ export default function AnalyticsPage() {
         {/* Vessel Type Distribution */}
         <div className="card flex flex-col justify-between" style={{ padding: 20 }}>
           <div className="flex items-center justify-between mb-4">
-            <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>
-              ðŸš¢ Current Vessel Mix
+            <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Ship size={16} className="text-sky-500" /> Current Vessel Mix
             </h4>
             <SourceBadge source="HISTORICAL" />
           </div>
@@ -232,8 +236,8 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="card flex flex-col justify-between" style={{ padding: 20 }}>
           <div className="flex items-center justify-between mb-4">
-            <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>
-              ðŸ“¦ Weekly Vessel Throughput
+            <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Package size={16} className="text-emerald-500" /> Weekly Vessel Throughput
             </h4>
             <SourceBadge source="HISTORICAL" />
           </div>
@@ -252,8 +256,8 @@ export default function AnalyticsPage() {
 
         <div className="card flex flex-col justify-between" style={{ padding: 20 }}>
           <div className="flex items-center justify-between mb-4">
-            <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>
-              â±ï¸ Average Wait Time Trend
+            <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Clock size={16} className="text-amber-500" /> Average Wait Time Trend
             </h4>
             <SourceBadge source="DEMO" />
           </div>
@@ -280,8 +284,8 @@ export default function AnalyticsPage() {
       {/* Monthly Utilization Trend */}
       <div className="card mb-8" style={{ padding: 20 }}>
         <div className="flex items-center justify-between mb-4">
-          <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>
-            ðŸ“ˆ Monthly Berth Utilization Trend
+          <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <TrendingUp size={16} className="text-purple-500" /> Monthly Berth Utilization Trend
           </h4>
           <SourceBadge source="DEMO" />
         </div>
@@ -305,7 +309,7 @@ export default function AnalyticsPage() {
 
       {/* Departing Soon Table */}
       <div className="flex items-center gap-3 mb-4">
-        <span className="text-xl">ðŸ•</span>
+        <Clock size={20} className="text-amber-500 animate-pulse" />
         <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text-primary)' }}>
           Vessels Departing Soon
         </h3>
@@ -351,8 +355,8 @@ export default function AnalyticsPage() {
                 </td>
                 <td style={{ padding: '10px 14px' }}>
                   {parseInt(b.eta_depart) <= 6
-                    ? <span style={{ color: '#10b981', fontWeight: 700, fontSize: 12 }}>ðŸŸ¢ Departing Soon</span>
-                    : <span style={{ color: '#0ea5e9', fontWeight: 600, fontSize: 12 }}>ðŸ”µ In Service</span>
+                    ? <span style={{ color: '#10b981', fontWeight: 700, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>🟢 Departing Soon</span>
+                    : <span style={{ color: '#0ea5e9', fontWeight: 600, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>🔵 In Service</span>
                   }
                 </td>
               </tr>

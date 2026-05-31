@@ -1,6 +1,6 @@
 """
 Database Connection — PostgreSQL connection pooling.
-Connects to the ML_APP database at localhost:5433.
+Connects to the baos database at localhost:5433.
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ except ImportError:
 DB_CONFIG = {
     "host": "localhost",
     "port": 5433,
-    "dbname": "ML_APP",
+    "dbname": "baos",  # FIX: Renamed from 'ML_APP' → 'baos'
     "user": "postgres",
     "password": "postgres@123",
 }

@@ -39,6 +39,7 @@ def register_routes(app: FastAPI) -> None:
         app.include_router(router)
 
     try:
+        # FIX: Legacy API moved to archive/. Kept for backward compat — try both locations.
         from api.endpoints import app as legacy_app
     except ImportError as exc:
         logger.warning("Legacy API endpoints not available: %s", exc)

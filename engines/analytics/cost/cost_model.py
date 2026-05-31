@@ -27,20 +27,35 @@ if str(_ROOT) not in sys.path:
 
 logger = logging.getLogger(__name__)
 
+# FIX (Phase 7.1): Import settings lazily to avoid circular import at module load.
+def _get_currency() -> tuple:
+    try:
+        from backend.config.settings import settings
+        return settings.CURRENCY_CODE, settings.CURRENCY_SYMBOL
+    except Exception:
+        return "INR", "₹"
+
 # ── Cost Parameters ────────────────────────────────────────────────────────
 
 @dataclass
 class CostConfig:
-    """Port-level cost parameters — loaded from config file or defaults."""
-    default_demurrage_per_hr: float = 500.0      # USD/hr
-    default_fuel_burn_per_hr: float = 150.0       # USD/hr at anchorage
-    default_crane_rate_per_hr: float = 200.0      # USD/hr
-    sla_penalty_per_hr: float = 1000.0            # USD/hr over SLA
-    government_compliance_penalty: float = 5000.0  # flat USD
-    revenue_per_ton: float = 2.5                   # USD/ton cargo
-    idle_berth_cost_per_hr: float = 100.0          # USD/hr berth sitting idle
-    equipment_switch_cost: float = 500.0           # USD per switch
+    # FIX (Phase 7.1): Currency is configurable via settings, not hardcoded USD.
+    default_demurrage_per_hr: float = 500.0      # per hour
+    default_fuel_burn_per_hr: float = 150.0       # per hour at anchorage
+    default_crane_rate_per_hr: float = 200.0      # per hour
+    sla_penalty_per_hr: float = 1000.0            # per hour over SLA
+    government_compliance_penalty: float = 5000.0  # flat penalty
+    revenue_per_ton: float = 2.5                   # per ton cargo
+    idle_berth_cost_per_hr: float = 100.0          # per hour berth sitting idle
+    equipment_switch_cost: float = 500.0           # per switch
     source: str = "hardcoded_default"              # Where rates came from
+    currency_code: str = ""                        # Set from settings at init
+    currency_symbol: str = ""                      # Set from settings at init
+
+    def __post_init__(self):
+        # FIX (Phase 7.1): Auto-fill currency from settings if not set.
+        if not self.currency_code:
+            self.currency_code, self.currency_symbol = _get_currency()
 
     @classmethod
     def from_json(cls, path: str | Path) -> "CostConfig":

@@ -115,7 +115,7 @@ export function PortSelector() {
           }}
         >
           {portStatus.data_quality?.source || 'Unknown'} data
-          {' Â· '}
+          {' · '}
           {portStatus.berth_count} berths
         </span>
       )}

@@ -1,5 +1,5 @@
 """
-Seed Data — Populates the ML_APP database with default commercial intelligence data.
+Seed Data — Populates the baos database with default commercial intelligence data.
 Run once after schema creation or to refresh with default data.
 
 Usage:
@@ -264,7 +264,7 @@ def main():
         print("❌ DB module unavailable (psycopg2 not installed?)")
         return
 
-    print(f"  Connecting to localhost:5433/ML_APP ...")
+    print(f"  Connecting to localhost:5433/baos ...")  # FIX: Renamed from ML_APP → baos
     if not test_connection():
         print("❌ Cannot connect to database. Check credentials and that PostgreSQL is running.")
         return

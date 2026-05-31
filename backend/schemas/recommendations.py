@@ -45,6 +45,8 @@ class BerthRecommendation(BaseModel):
     commercial_score: float = 0.0
     reasoning: Dict[str, Any] = Field(default_factory=dict)
     expected_turnaround_hours: Optional[float] = None
+    expected_wait_hours: Optional[float] = 0.0
+    expected_service_hours: Optional[float] = 0.0
 
     model_config = ConfigDict(from_attributes=True)
 

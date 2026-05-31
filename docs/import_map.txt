@@ -1,813 +1,892 @@
-.\api\endpoints.py:13:from __future__ import annotations
-.\api\endpoints.py:15:import sys
-.\api\endpoints.py:16:import time
-.\api\endpoints.py:17:from datetime import datetime
-.\api\endpoints.py:18:from pathlib import Path
-.\api\endpoints.py:19:from typing import Any, Dict, List, Optional
-.\api\endpoints.py:21:from fastapi import FastAPI, HTTPException
-.\api\endpoints.py:22:from fastapi.middleware.cors import CORSMiddleware
-.\api\endpoints.py:23:from pydantic import BaseModel, Field
-.\api\endpoints.py:29:from backend.db.repositories.port_store import list_ports, port_exists, load_port_config, is_trained, get_model_info
-.\api\endpoints.py:30:from engines.simulation.optimization.constraint_model import (
-.\api\endpoints.py:34:from engines.simulation.optimization.feasibility_checker import FeasibilityChecker
-.\api\endpoints.py:35:from engines.simulation.optimization.scheduler import RollingHorizonScheduler
-.\api\endpoints.py:36:from engines.analytics.cost.cost_model import CostEngine, CostConfig
-.\api\endpoints.py:37:from engines.core.decision.confidence import ConfidenceCalculator
-.\api\endpoints.py:38:from engines.analytics.kpi.kpi_calculator import KPICalculator
-.\api\endpoints.py:39:from engines.analytics.explanation.explainer import AgenticExplainer
-.\archive\legacy_20260530\__init__.py:4:from __future__ import annotations
-.\backend\app_lifecycle.py:11:from backend.db.session import close_db, init_db
-.\backend\app_lifecycle.py:12:from backend.services.model_training_service import auto_train_required_models
-.\backend\app_lifecycle.py:2:from __future__ import annotations
-.\backend\app_lifecycle.py:4:import asyncio
-.\backend\app_lifecycle.py:5:import logging
-.\backend\app_lifecycle.py:6:import sys
-.\backend\app_lifecycle.py:7:from contextlib import asynccontextmanager
-.\backend\app_lifecycle.py:9:from fastapi import FastAPI
-.\backend\auth\dependencies.py:10:from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-.\backend\auth\dependencies.py:11:from sqlalchemy import select
-.\backend\auth\dependencies.py:12:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\auth\dependencies.py:13:from sqlalchemy.orm import selectinload
-.\backend\auth\dependencies.py:15:from backend.auth.jwt import decode_token
-.\backend\auth\dependencies.py:16:from backend.db.models.app_models import User
-.\backend\auth\dependencies.py:17:from backend.db.session import get_db
-.\backend\auth\dependencies.py:4:from __future__ import annotations
-.\backend\auth\dependencies.py:6:from typing import Optional
-.\backend\auth\dependencies.py:7:from uuid import UUID
-.\backend\auth\dependencies.py:9:from fastapi import Depends, HTTPException, status
-.\backend\auth\jwt.py:11:from backend.config import settings
-.\backend\auth\jwt.py:4:from __future__ import annotations
-.\backend\auth\jwt.py:6:from datetime import datetime, timedelta, timezone
-.\backend\auth\jwt.py:7:from typing import Any, Dict, Optional
-.\backend\auth\jwt.py:9:from jose import JWTError, jwt
-.\backend\auth\password.py:5:import bcrypt
-.\backend\auth\schemas.py:4:from __future__ import annotations
-.\backend\auth\schemas.py:6:from typing import Optional
-.\backend\auth\schemas.py:7:from uuid import UUID
-.\backend\auth\schemas.py:9:from pydantic import BaseModel, EmailStr, Field, model_validator
-.\backend\auth\service.py:10:from sqlalchemy import select, delete, func
-.\backend\auth\service.py:11:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\auth\service.py:12:from sqlalchemy.orm import selectinload
-.\backend\auth\service.py:14:from backend.auth.jwt import (
-.\backend\auth\service.py:20:from backend.auth.password import hash_password, verify_password
-.\backend\auth\service.py:21:from backend.config import settings
-.\backend\auth\service.py:22:from backend.db.models.app_models import Port, Session, User
-.\backend\auth\service.py:4:from __future__ import annotations
-.\backend\auth\service.py:6:from datetime import datetime
-.\backend\auth\service.py:7:from typing import Optional, Tuple
-.\backend\auth\service.py:8:from uuid import UUID
-.\backend\config\__init__.py:2:from backend.config.settings import Settings, settings
-.\backend\config\port_config.py:10:import logging
-.\backend\config\port_config.py:11:import os
-.\backend\config\port_config.py:12:from datetime import datetime, time, timedelta
-.\backend\config\port_config.py:13:from pathlib import Path
-.\backend\config\port_config.py:14:from typing import Dict, List, Optional
-.\backend\config\port_config.py:16:import numpy as np
-.\backend\config\port_config.py:17:import pandas as pd
-.\backend\config\port_config.py:19:from backend.db.models.domain import (
-.\backend\config\port_config.py:7:from __future__ import annotations
-.\backend\config\port_config.py:9:import json
-.\backend\config\settings.py:10:from pydantic import ConfigDict, field_validator
-.\backend\config\settings.py:11:from pydantic_settings import BaseSettings
-.\backend\config\settings.py:12:from sqlalchemy.engine import URL
-.\backend\config\settings.py:4:from __future__ import annotations
-.\backend\config\settings.py:6:import json
-.\backend\config\settings.py:7:from pathlib import Path
-.\backend\config\settings.py:8:from typing import List
-.\backend\database\connection.py:10:from sqlalchemy import create_engine
-.\backend\database\connection.py:11:from sqlalchemy.orm import declarative_base, sessionmaker
-.\backend\database\connection.py:6:from __future__ import annotations
-.\backend\database\connection.py:8:import os
-.\backend\database\seed.py:12:from __future__ import annotations
-.\backend\database\seed.py:14:import sys
-.\backend\database\seed.py:15:import uuid
-.\backend\database\seed.py:16:from datetime import datetime, timezone
-.\backend\database\seed.py:17:from pathlib import Path
-.\backend\database\seed.py:19:from sqlalchemy import func, select, text
-.\backend\database\seed.py:27:from backend.auth.password import hash_password, verify_password
-.\backend\database\seed.py:28:from backend.db.session import Base, SyncSessionFactory, sync_engine
-.\backend\database\seed.py:29:from backend.db.models.app_models import Berth, KPI, Port, User
-.\backend\db\models\app_models.py:13:from sqlalchemy.dialects.postgresql import UUID
-.\backend\db\models\app_models.py:14:from sqlalchemy.orm import relationship
-.\backend\db\models\app_models.py:16:from backend.db.session import Base
-.\backend\db\models\app_models.py:4:from __future__ import annotations
-.\backend\db\models\app_models.py:6:import uuid
-.\backend\db\models\app_models.py:7:from datetime import datetime
-.\backend\db\models\app_models.py:9:from sqlalchemy import (
-.\backend\db\models\baos_models.py:10:from datetime import datetime
-.\backend\db\models\baos_models.py:12:from sqlalchemy import (
-.\backend\db\models\baos_models.py:16:from sqlalchemy.dialects.postgresql import UUID
-.\backend\db\models\baos_models.py:17:from sqlalchemy.orm import relationship
-.\backend\db\models\baos_models.py:19:from backend.db.session import Base
-.\backend\db\models\baos_models.py:7:from __future__ import annotations
-.\backend\db\models\baos_models.py:9:import uuid
-.\backend\db\models\data_models.py:14:from __future__ import annotations
-.\backend\db\models\data_models.py:16:from dataclasses import dataclass, field
-.\backend\db\models\data_models.py:17:from enum import Enum
-.\backend\db\models\data_models.py:18:from typing import Any, Dict, List, Optional, Set, Tuple
-.\backend\db\models\domain.py:10:from enum import Enum
-.\backend\db\models\domain.py:11:from typing import Any, Dict, List, Optional, Tuple
-.\backend\db\models\domain.py:12:import uuid
-.\backend\db\models\domain.py:6:from __future__ import annotations
-.\backend\db\models\domain.py:8:from dataclasses import dataclass, field
-.\backend\db\models\domain.py:9:from datetime import datetime, time, timedelta
-.\backend\db\repositories\assumption_repository.py:10:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\db\repositories\assumption_repository.py:12:from backend.db.models.baos_models import BaosAssumptionConfig, BaosPort
-.\backend\db\repositories\assumption_repository.py:4:from __future__ import annotations
-.\backend\db\repositories\assumption_repository.py:6:from typing import Dict, List, Optional
-.\backend\db\repositories\assumption_repository.py:7:from uuid import UUID
-.\backend\db\repositories\assumption_repository.py:9:from sqlalchemy import select, update
-.\backend\db\repositories\berth_repository.py:10:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\db\repositories\berth_repository.py:11:from sqlalchemy.orm import selectinload
-.\backend\db\repositories\berth_repository.py:13:from backend.db.models.baos_models import BaosBerth, BaosBerthCapability, BaosPort
-.\backend\db\repositories\berth_repository.py:4:from __future__ import annotations
-.\backend\db\repositories\berth_repository.py:6:from typing import Dict, List, Optional
-.\backend\db\repositories\berth_repository.py:7:from uuid import UUID
-.\backend\db\repositories\berth_repository.py:9:from sqlalchemy import select
-.\backend\db\repositories\model_registry_repository.py:10:from sqlalchemy import select
-.\backend\db\repositories\model_registry_repository.py:11:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\db\repositories\model_registry_repository.py:13:from backend.db.models.baos_models import BaosMLModelRegistry, BaosPort
-.\backend\db\repositories\model_registry_repository.py:4:from __future__ import annotations
-.\backend\db\repositories\model_registry_repository.py:6:from datetime import datetime
-.\backend\db\repositories\model_registry_repository.py:7:from typing import List, Optional
-.\backend\db\repositories\model_registry_repository.py:8:from uuid import UUID
-.\backend\db\repositories\optimization_repository.py:10:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\db\repositories\optimization_repository.py:11:from sqlalchemy.orm import selectinload
-.\backend\db\repositories\optimization_repository.py:13:from backend.db.models.baos_models import BaosOptimizationRun, BaosOptimizationAssignment
-.\backend\db\repositories\optimization_repository.py:4:from __future__ import annotations
-.\backend\db\repositories\optimization_repository.py:6:from typing import List, Optional
-.\backend\db\repositories\optimization_repository.py:7:from uuid import UUID
-.\backend\db\repositories\optimization_repository.py:9:from sqlalchemy import select
-.\backend\db\repositories\port_call_repository.py:10:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\db\repositories\port_call_repository.py:12:from backend.db.models.baos_models import BaosPortCall, BaosPort
-.\backend\db\repositories\port_call_repository.py:4:from __future__ import annotations
-.\backend\db\repositories\port_call_repository.py:6:from datetime import datetime
-.\backend\db\repositories\port_call_repository.py:7:from typing import Any, Dict, List, Optional
-.\backend\db\repositories\port_call_repository.py:9:from sqlalchemy import select, func, and_
-.\backend\db\repositories\port_repository.py:10:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\db\repositories\port_repository.py:12:from backend.db.models.baos_models import BaosPort
-.\backend\db\repositories\port_repository.py:4:from __future__ import annotations
-.\backend\db\repositories\port_repository.py:6:from typing import List, Optional
-.\backend\db\repositories\port_repository.py:7:from uuid import UUID
-.\backend\db\repositories\port_repository.py:9:from sqlalchemy import select
-.\backend\db\repositories\port_store.py:11:import pandas as pd
-.\backend\db\repositories\port_store.py:6:from __future__ import annotations
-.\backend\db\repositories\port_store.py:7:import json, os, sys, logging
-.\backend\db\repositories\port_store.py:8:from pathlib import Path
-.\backend\db\repositories\port_store.py:9:from typing import List, Optional
-.\backend\db\repositories\quality.py:10:import sys
-.\backend\db\repositories\quality.py:11:from dataclasses import dataclass, field
-.\backend\db\repositories\quality.py:12:from pathlib import Path
-.\backend\db\repositories\quality.py:13:from typing import Any, Dict, List, Optional, Tuple
-.\backend\db\repositories\quality.py:15:import numpy as np
-.\backend\db\repositories\quality.py:16:import pandas as pd
-.\backend\db\repositories\quality.py:22:from backend.db.models.data_models import (
-.\backend\db\repositories\quality.py:8:from __future__ import annotations
-.\backend\db\repositories\recommendation_repository.py:10:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\db\repositories\recommendation_repository.py:12:from backend.db.models.app_models import Recommendation
-.\backend\db\repositories\recommendation_repository.py:13:from backend.db.models.baos_models import BaosPort, BaosRecommendationLog
-.\backend\db\repositories\recommendation_repository.py:4:from __future__ import annotations
-.\backend\db\repositories\recommendation_repository.py:6:from typing import List, Tuple
-.\backend\db\repositories\recommendation_repository.py:7:from uuid import UUID
-.\backend\db\repositories\recommendation_repository.py:9:from sqlalchemy import func, select
-.\backend\db\session.py:11:from backend.config import settings
-.\backend\db\session.py:5:from __future__ import annotations
-.\backend\db\session.py:7:from sqlalchemy import create_engine
-.\backend\db\session.py:8:from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-.\backend\db\session.py:9:from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
-.\backend\handlers\assumptions_handler.py:10:from backend.schemas.assumptions import PatchAssumptionRequest
-.\backend\handlers\assumptions_handler.py:2:from __future__ import annotations
-.\backend\handlers\assumptions_handler.py:4:from uuid import UUID
-.\backend\handlers\assumptions_handler.py:6:from fastapi import HTTPException, status
-.\backend\handlers\assumptions_handler.py:7:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\handlers\assumptions_handler.py:9:from backend.db.repositories.assumption_repository import get_assumptions, update_assumption
-.\backend\handlers\auth_handler.py:16:from backend.auth.jwt import create_access_token
-.\backend\handlers\auth_handler.py:17:from backend.auth.service import (
-.\backend\handlers\auth_handler.py:2:from __future__ import annotations
-.\backend\handlers\auth_handler.py:25:from backend.db.models.app_models import User
-.\backend\handlers\auth_handler.py:4:from fastapi import HTTPException, status
-.\backend\handlers\auth_handler.py:5:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\handlers\auth_handler.py:7:from backend.auth.schemas import (
-.\backend\handlers\dashboard_handler.py:11:from backend.services.analytics_service import get_chart_analytics, get_kpi_analytics
-.\backend\handlers\dashboard_handler.py:12:from backend.services.dashboard_service import get_dashboard_recommendations
-.\backend\handlers\dashboard_handler.py:2:from __future__ import annotations
-.\backend\handlers\dashboard_handler.py:4:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\handlers\dashboard_handler.py:6:from backend.schemas.dashboard import (
-.\backend\handlers\ports_handler.py:10:from backend.services.model_training_service import evaluate_port_training_status
-.\backend\handlers\ports_handler.py:11:from backend.services.port_config_service import load_port_config_from_db
-.\backend\handlers\ports_handler.py:2:from __future__ import annotations
-.\backend\handlers\ports_handler.py:4:from fastapi import HTTPException, status
-.\backend\handlers\ports_handler.py:5:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\handlers\ports_handler.py:7:from backend.db.repositories.model_registry_repository import get_active_model
-.\backend\handlers\ports_handler.py:8:from backend.db.repositories.port_call_repository import get_port_call_stats
-.\backend\handlers\ports_handler.py:9:from backend.db.repositories.port_repository import get_port_by_code, list_ports
-.\backend\handlers\recommendations_handler.py:13:from backend.schemas.recommendations import (
-.\backend\handlers\recommendations_handler.py:2:from __future__ import annotations
-.\backend\handlers\recommendations_handler.py:20:from backend.services.recommendation_service import generate_recommendation
-.\backend\handlers\recommendations_handler.py:4:from uuid import UUID
-.\backend\handlers\recommendations_handler.py:6:from fastapi import HTTPException
-.\backend\handlers\recommendations_handler.py:7:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\handlers\recommendations_handler.py:9:from backend.db.repositories.recommendation_repository import (
-.\backend\handlers\system_handler.py:2:from __future__ import annotations
-.\backend\handlers\system_handler.py:4:from datetime import datetime, timezone
-.\backend\handlers\system_handler.py:6:from backend.config import settings
-.\backend\main.py:10:from backend.middleware import register_middleware
-.\backend\main.py:11:from backend.middleware.error_handler import register_error_handlers
-.\backend\main.py:12:from backend.routes import register_routes
-.\backend\main.py:2:from __future__ import annotations
-.\backend\main.py:4:import logging
-.\backend\main.py:6:from fastapi import FastAPI
-.\backend\main.py:8:from backend.app_lifecycle import lifespan
-.\backend\main.py:9:from backend.config import settings
-.\backend\middleware\__init__.py:2:from __future__ import annotations
-.\backend\middleware\__init__.py:4:from fastapi import FastAPI, Request, status
-.\backend\middleware\__init__.py:5:from fastapi.middleware.cors import CORSMiddleware
-.\backend\middleware\__init__.py:6:from fastapi.responses import JSONResponse
-.\backend\middleware\__init__.py:8:from backend.auth.jwt import decode_token
-.\backend\middleware\__init__.py:9:from backend.config import settings
-.\backend\middleware\error_handler.py:10:from fastapi.exceptions import RequestValidationError
-.\backend\middleware\error_handler.py:11:from fastapi.responses import JSONResponse
-.\backend\middleware\error_handler.py:4:from __future__ import annotations
-.\backend\middleware\error_handler.py:6:import logging
-.\backend\middleware\error_handler.py:7:import traceback
-.\backend\middleware\error_handler.py:9:from fastapi import FastAPI, Request
-.\backend\migrations\env.py:10:from backend.db.session import Base
-.\backend\migrations\env.py:12:import backend.db.models.app_models  # noqa: F401
-.\backend\migrations\env.py:13:import backend.db.models.baos_models  # noqa: F401
-.\backend\migrations\env.py:2:from __future__ import annotations
-.\backend\migrations\env.py:4:from logging.config import fileConfig
-.\backend\migrations\env.py:6:from alembic import context
-.\backend\migrations\env.py:7:from sqlalchemy import engine_from_config, pool
-.\backend\migrations\env.py:9:from backend.config import settings
-.\backend\migrations\versions\20260530_0001_initial_schema.py:11:from alembic import op
-.\backend\migrations\versions\20260530_0001_initial_schema.py:12:from sqlalchemy import text
-.\backend\migrations\versions\20260530_0001_initial_schema.py:14:from backend.db.session import Base
-.\backend\migrations\versions\20260530_0001_initial_schema.py:16:import backend.db.models.app_models  # noqa: F401
-.\backend\migrations\versions\20260530_0001_initial_schema.py:17:import backend.db.models.baos_models  # noqa: F401
-.\backend\migrations\versions\20260530_0001_initial_schema.py:7:from __future__ import annotations
-.\backend\migrations\versions\20260530_0001_initial_schema.py:9:from pathlib import Path
-.\backend\routes\__init__.py:10:from backend.routes.auth import router as auth_v1_router
-.\backend\routes\__init__.py:11:from backend.routes.berths import router as berths_router
-.\backend\routes\__init__.py:12:from backend.routes.dashboard import router as dashboard_router
-.\backend\routes\__init__.py:13:from backend.routes.health import router as health_router
-.\backend\routes\__init__.py:14:from backend.routes.ports import router as ports_router
-.\backend\routes\__init__.py:15:from backend.routes.recommendations import router as recommendations_router
-.\backend\routes\__init__.py:16:from backend.routes.training import router as training_router
-.\backend\routes\__init__.py:17:from backend.routes.websocket import socket_app
-.\backend\routes\__init__.py:2:from __future__ import annotations
-.\backend\routes\__init__.py:4:import logging
-.\backend\routes\__init__.py:6:from fastapi import FastAPI
-.\backend\routes\__init__.py:8:from backend.routes.assumptions import router as assumptions_router
-.\backend\routes\__init__.py:9:from backend.routes.auth import legacy_router as auth_legacy_router
-.\backend\routes\assumptions.py:10:from backend.auth.dependencies import get_current_user
-.\backend\routes\assumptions.py:11:from backend.db.session import get_db
-.\backend\routes\assumptions.py:12:from backend.handlers.assumptions_handler import (
-.\backend\routes\assumptions.py:16:from backend.schemas.assumptions import PatchAssumptionRequest
-.\backend\routes\assumptions.py:2:from __future__ import annotations
-.\backend\routes\assumptions.py:4:from typing import List
-.\backend\routes\assumptions.py:5:from uuid import UUID
-.\backend\routes\assumptions.py:7:from fastapi import APIRouter, Depends, Query
-.\backend\routes\assumptions.py:8:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\routes\auth.py:17:from backend.db.models.app_models import User
-.\backend\routes\auth.py:18:from backend.db.session import get_db
-.\backend\routes\auth.py:19:from backend.handlers.auth_handler import (
-.\backend\routes\auth.py:2:from __future__ import annotations
-.\backend\routes\auth.py:4:from fastapi import APIRouter, Depends, status
-.\backend\routes\auth.py:5:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\routes\auth.py:7:from backend.auth.dependencies import get_current_user, get_optional_user
-.\backend\routes\auth.py:8:from backend.auth.schemas import (
-.\backend\routes\berths.py:2:from __future__ import annotations
-.\backend\routes\berths.py:4:from fastapi import APIRouter, Depends, Query
-.\backend\routes\berths.py:5:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\routes\berths.py:7:from backend.auth.dependencies import get_current_user
-.\backend\routes\berths.py:8:from backend.db.repositories.berth_repository import berths_to_legacy_config
-.\backend\routes\berths.py:9:from backend.db.session import get_db
-.\backend\routes\dashboard.py:14:from backend.schemas.dashboard import (
-.\backend\routes\dashboard.py:2:from __future__ import annotations
-.\backend\routes\dashboard.py:4:from fastapi import APIRouter, Depends, Query
-.\backend\routes\dashboard.py:5:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\routes\dashboard.py:7:from backend.auth.dependencies import get_current_user
-.\backend\routes\dashboard.py:8:from backend.db.session import get_db
-.\backend\routes\dashboard.py:9:from backend.handlers.dashboard_handler import (
-.\backend\routes\health.py:2:from __future__ import annotations
-.\backend\routes\health.py:4:from fastapi import APIRouter
-.\backend\routes\health.py:6:from backend.handlers.system_handler import health_response, root_response
-.\backend\routes\ports.py:10:from backend.db.session import get_db
-.\backend\routes\ports.py:11:from backend.handlers.ports_handler import (
-.\backend\routes\ports.py:2:from __future__ import annotations
-.\backend\routes\ports.py:4:from typing import List
-.\backend\routes\ports.py:6:from fastapi import APIRouter, Depends
-.\backend\routes\ports.py:7:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\routes\ports.py:9:from backend.auth.dependencies import get_current_user
-.\backend\routes\recommendations.py:14:from backend.schemas.recommendations import (
-.\backend\routes\recommendations.py:2:from __future__ import annotations
-.\backend\routes\recommendations.py:4:from fastapi import APIRouter, Depends, Query
-.\backend\routes\recommendations.py:5:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\routes\recommendations.py:7:from backend.auth.dependencies import get_current_user
-.\backend\routes\recommendations.py:8:from backend.db.session import get_db
-.\backend\routes\recommendations.py:9:from backend.handlers.recommendations_handler import (
-.\backend\routes\training.py:2:from __future__ import annotations
-.\backend\routes\training.py:4:from fastapi import APIRouter, Depends, HTTPException
-.\backend\routes\training.py:6:from backend.auth.dependencies import get_current_user, require_admin
-.\backend\routes\training.py:7:from backend.services.model_training_service import (
-.\backend\routes\websocket.py:4:from __future__ import annotations
-.\backend\routes\websocket.py:6:import socketio
-.\backend\routes\websocket.py:8:from backend.config import settings
-.\backend\run.py:1:import sys
-.\backend\run.py:2:import asyncio
-.\backend\run.py:3:import os
-.\backend\run.py:4:import uvicorn
-.\backend\schemas\assumptions.py:2:from __future__ import annotations
-.\backend\schemas\assumptions.py:4:from typing import Optional
-.\backend\schemas\assumptions.py:6:from pydantic import BaseModel
-.\backend\schemas\dashboard.py:4:from __future__ import annotations
-.\backend\schemas\dashboard.py:6:from typing import Any, Dict, List, Optional
-.\backend\schemas\dashboard.py:8:from pydantic import BaseModel
-.\backend\schemas\recommendations.py:4:from __future__ import annotations
-.\backend\schemas\recommendations.py:6:from typing import Any, Dict, List, Optional
-.\backend\schemas\recommendations.py:8:from pydantic import BaseModel, Field
-.\backend\scripts\reset_user_password.py:17:from sqlalchemy import func, select
-.\backend\scripts\reset_user_password.py:18:from backend.auth.password import hash_password
-.\backend\scripts\reset_user_password.py:19:from backend.db.models.app_models import User
-.\backend\scripts\reset_user_password.py:20:from backend.db.session import SyncSessionFactory
-.\backend\scripts\reset_user_password.py:5:import sys
-.\backend\scripts\reset_user_password.py:6:from pathlib import Path
-.\backend\scripts\seed_admin.py:17:from sqlalchemy import func, select
-.\backend\scripts\seed_admin.py:18:from backend.auth.password import hash_password
-.\backend\scripts\seed_admin.py:19:from backend.db.models.app_models import Port, User
-.\backend\scripts\seed_admin.py:20:from backend.db.session import SyncSessionFactory
-.\backend\scripts\seed_admin.py:5:import sys
-.\backend\scripts\seed_admin.py:6:from pathlib import Path
-.\backend\services\allocation_service.py:2:from __future__ import annotations
-.\backend\services\allocation_service.py:4:from typing import Any, Dict
-.\backend\services\allocation_service.py:6:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\services\allocation_service.py:8:from backend.services.optimization_data_service import get_optimizer_inputs
-.\backend\services\analytics_service.py:2:from __future__ import annotations
-.\backend\services\analytics_service.py:4:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\services\analytics_service.py:6:from backend.schemas.dashboard import ChartsResponse, KPIResponse
-.\backend\services\analytics_service.py:7:from backend.services.dashboard_service import get_charts, get_kpis
-.\backend\services\dashboard_service.py:11:from backend.schemas.dashboard import (
-.\backend\services\dashboard_service.py:5:from __future__ import annotations
-.\backend\services\dashboard_service.py:7:from typing import Any, Dict, List
-.\backend\services\dashboard_service.py:9:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\services\model_training_service.py:10:import asyncio
-.\backend\services\model_training_service.py:11:import logging
-.\backend\services\model_training_service.py:12:from dataclasses import dataclass
-.\backend\services\model_training_service.py:13:from datetime import datetime
-.\backend\services\model_training_service.py:14:from pathlib import Path
-.\backend\services\model_training_service.py:15:from typing import Any
-.\backend\services\model_training_service.py:17:from sqlalchemy import func, select
-.\backend\services\model_training_service.py:18:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\services\model_training_service.py:20:from backend.db.models.baos_models import (
-.\backend\services\model_training_service.py:27:from backend.db.repositories.model_registry_repository import get_active_model, register_model
-.\backend\services\model_training_service.py:28:from backend.db.repositories.port_repository import get_port_by_code, list_ports
-.\backend\services\model_training_service.py:29:from backend.db.session import async_session_factory
-.\backend\services\model_training_service.py:30:from backend.services.port_config_service import load_port_config_from_db
-.\backend\services\model_training_service.py:31:from backend.services.training_data_service import load_history_from_db
-.\backend\services\model_training_service.py:8:from __future__ import annotations
-.\backend\services\optimization_data_service.py:10:from backend.db.repositories.assumption_repository import get_assumptions_as_dict
-.\backend\services\optimization_data_service.py:11:from backend.db.repositories.berth_repository import list_berths
-.\backend\services\optimization_data_service.py:12:from backend.db.repositories.port_repository import get_port_by_code
-.\backend\services\optimization_data_service.py:13:from engines.simulation.optimization.constraint_model import BerthInput, ResourceInput, SchedulerConfig
-.\backend\services\optimization_data_service.py:4:from __future__ import annotations
-.\backend\services\optimization_data_service.py:6:import logging
-.\backend\services\optimization_data_service.py:7:from typing import Any, Dict, List
-.\backend\services\optimization_data_service.py:8:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\services\port_config_service.py:10:from backend.db.repositories.assumption_repository import get_assumptions_as_dict
-.\backend\services\port_config_service.py:11:from backend.db.repositories.berth_repository import berths_to_legacy_config
-.\backend\services\port_config_service.py:12:from backend.db.repositories.port_call_repository import get_historical_service_medians
-.\backend\services\port_config_service.py:13:from backend.db.repositories.port_repository import get_port_by_code
-.\backend\services\port_config_service.py:4:from __future__ import annotations
-.\backend\services\port_config_service.py:6:import logging
-.\backend\services\port_config_service.py:7:from typing import Any, Dict
-.\backend\services\port_config_service.py:8:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\services\recommendation_service.py:11:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\services\recommendation_service.py:13:from backend.db.models.app_models import Recommendation, Vessel
-.\backend\services\recommendation_service.py:14:from backend.schemas.recommendations import BerthRecommendation, RecommendationResponse
-.\backend\services\recommendation_service.py:4:from __future__ import annotations
-.\backend\services\recommendation_service.py:6:import sys
-.\backend\services\recommendation_service.py:7:import uuid
-.\backend\services\recommendation_service.py:8:from pathlib import Path
-.\backend\services\recommendation_service.py:9:from typing import Any, Dict, List, Optional
-.\backend\services\training_data_service.py:10:from backend.db.repositories.port_call_repository import get_training_rows
-.\backend\services\training_data_service.py:4:from __future__ import annotations
-.\backend\services\training_data_service.py:6:import logging
-.\backend\services\training_data_service.py:7:import pandas as pd
-.\backend\services\training_data_service.py:8:from sqlalchemy.ext.asyncio import AsyncSession
-.\backend\tasks\celery_app.py:4:from celery import Celery
-.\backend\tasks\celery_app.py:5:from celery.schedules import crontab
-.\backend\tasks\celery_app.py:7:from backend.config import settings
-.\backend\tasks\kpi_tasks.py:4:from __future__ import annotations
-.\backend\tasks\kpi_tasks.py:6:import logging
-.\backend\tasks\kpi_tasks.py:7:from datetime import datetime, timezone
-.\backend\tasks\kpi_tasks.py:9:from tasks.celery_app import celery_app
-.\backend\tasks\optimizer_tasks.py:10:from typing import Any, Dict
-.\backend\tasks\optimizer_tasks.py:12:from tasks.celery_app import celery_app
-.\backend\tasks\optimizer_tasks.py:4:from __future__ import annotations
-.\backend\tasks\optimizer_tasks.py:6:import logging
-.\backend\tasks\optimizer_tasks.py:7:import sys
-.\backend\tasks\optimizer_tasks.py:8:import time
-.\backend\tasks\optimizer_tasks.py:9:from pathlib import Path
-.\database\__init__.py:2:from __future__ import annotations
-.\database\__init__.py:4:import sys
-.\database\__init__.py:5:from pathlib import Path
-.\database\run_migrations.py:10:from pathlib import Path
-.\database\run_migrations.py:12:from sqlalchemy import create_engine, text
-.\database\run_migrations.py:14:from backend.config import settings
-.\database\run_migrations.py:6:from __future__ import annotations
-.\database\run_migrations.py:8:import hashlib
-.\database\run_migrations.py:9:import sys
-.\database\seed.py:2:from __future__ import annotations
-.\database\seed.py:4:from backend.database.seed import seed
-.\db\commercial_repository.py:10:from pathlib import Path
-.\db\commercial_repository.py:11:from typing import Dict, List, Optional
-.\db\commercial_repository.py:23:from engines.analytics.commercial.berth_economics import BerthEconomics, DEFAULT_BERTH_ECONOMICS
-.\db\commercial_repository.py:24:from engines.analytics.commercial.partnership_manager import (
-.\db\commercial_repository.py:5:from __future__ import annotations
-.\db\commercial_repository.py:7:import sys
-.\db\commercial_repository.py:8:from dataclasses import dataclass, field
-.\db\commercial_repository.py:9:from datetime import datetime
-.\db\connection.py:5:from __future__ import annotations
-.\db\connection.py:7:import sys
-.\db\connection.py:8:from contextlib import contextmanager
-.\db\connection.py:9:from typing import Generator, Optional
-.\db\seed_data.py:10:from __future__ import annotations
-.\db\seed_data.py:12:import sys
-.\db\seed_data.py:13:from pathlib import Path
-.\engines\analytics\commercial\__init__.py:2:from engines.analytics.commercial.berth_economics import BerthEconomicsCalculator
-.\engines\analytics\commercial\__init__.py:3:from engines.analytics.commercial.commercial_scorer import (
-.\engines\analytics\commercial\__init__.py:7:from engines.analytics.commercial.dynamic_pricing import DynamicPricingEngine
-.\engines\analytics\commercial\__init__.py:8:from engines.analytics.commercial.partnership_manager import PartnershipManager
-.\engines\analytics\commercial\berth_economics.py:5:from __future__ import annotations
-.\engines\analytics\commercial\berth_economics.py:7:from dataclasses import dataclass, field
-.\engines\analytics\commercial\berth_economics.py:8:from typing import Dict, Optional
-.\engines\analytics\commercial\commercial_scorer.py:12:from __future__ import annotations
-.\engines\analytics\commercial\commercial_scorer.py:14:from dataclasses import dataclass, field
-.\engines\analytics\commercial\commercial_scorer.py:15:from datetime import datetime
-.\engines\analytics\commercial\commercial_scorer.py:16:from typing import Dict, List, Optional
-.\engines\analytics\commercial\commercial_scorer.py:18:from engines.analytics.commercial.berth_economics import BerthEconomicsCalculator, RevenueEstimate
-.\engines\analytics\commercial\commercial_scorer.py:19:from engines.analytics.commercial.partnership_manager import (
-.\engines\analytics\commercial\commercial_scorer.py:22:from engines.analytics.commercial.dynamic_pricing import DynamicPricingEngine, PricingAdjustment
-.\engines\analytics\commercial\dynamic_pricing.py:10:from __future__ import annotations
-.\engines\analytics\commercial\dynamic_pricing.py:12:from dataclasses import dataclass
-.\engines\analytics\commercial\dynamic_pricing.py:13:from datetime import datetime
-.\engines\analytics\commercial\dynamic_pricing.py:14:from typing import Optional
-.\engines\analytics\commercial\learning_engine.py:10:from typing import Dict, List, Optional
-.\engines\analytics\commercial\learning_engine.py:6:from __future__ import annotations
-.\engines\analytics\commercial\learning_engine.py:8:from dataclasses import dataclass, field
-.\engines\analytics\commercial\learning_engine.py:9:from datetime import datetime
-.\engines\analytics\commercial\partnership_manager.py:10:from enum import Enum
-.\engines\analytics\commercial\partnership_manager.py:11:from typing import Dict, List, Optional
-.\engines\analytics\commercial\partnership_manager.py:6:from __future__ import annotations
-.\engines\analytics\commercial\partnership_manager.py:8:from dataclasses import dataclass, field
-.\engines\analytics\commercial\partnership_manager.py:9:from datetime import date
-.\engines\analytics\cost\cost_model.py:15:from __future__ import annotations
-.\engines\analytics\cost\cost_model.py:17:import json
-.\engines\analytics\cost\cost_model.py:18:import logging
-.\engines\analytics\cost\cost_model.py:19:import sys
-.\engines\analytics\cost\cost_model.py:20:from dataclasses import dataclass, field
-.\engines\analytics\cost\cost_model.py:21:from pathlib import Path
-.\engines\analytics\cost\cost_model.py:22:from typing import Dict, List, Optional
-.\engines\analytics\explanation\explainer.py:11:from __future__ import annotations
-.\engines\analytics\explanation\explainer.py:13:import sys
-.\engines\analytics\explanation\explainer.py:14:from dataclasses import dataclass, field
-.\engines\analytics\explanation\explainer.py:15:from pathlib import Path
-.\engines\analytics\explanation\explainer.py:16:from typing import Any, Dict, List, Optional, Tuple
-.\engines\analytics\explanation\explainer.py:22:from engines.simulation.optimization.constraint_model import (
-.\engines\analytics\explanation\explainer.py:26:from engines.simulation.optimization.scheduler import RollingHorizonScheduler
-.\engines\analytics\explanation\explainer.py:27:from engines.analytics.cost.cost_model import CostEngine, CostConfig
-.\engines\analytics\explanation\structured_explanation.py:16:from __future__ import annotations
-.\engines\analytics\explanation\structured_explanation.py:18:from dataclasses import dataclass, field
-.\engines\analytics\explanation\structured_explanation.py:19:from enum import Enum
-.\engines\analytics\explanation\structured_explanation.py:20:from typing import Any, Dict, List, Optional, Tuple
-.\engines\analytics\kpi\kpi_calculator.py:14:from __future__ import annotations
-.\engines\analytics\kpi\kpi_calculator.py:16:import sys
-.\engines\analytics\kpi\kpi_calculator.py:17:from dataclasses import dataclass, field
-.\engines\analytics\kpi\kpi_calculator.py:18:from pathlib import Path
-.\engines\analytics\kpi\kpi_calculator.py:19:from typing import Dict, List, Optional
-.\engines\analytics\kpi\kpi_calculator.py:25:from engines.simulation.optimization.constraint_model import SolverResult, AssignmentResult
-.\engines\analytics\kpi\kpi_calculator.py:26:from engines.analytics.cost.cost_model import CostEngine, CostConfig, ScheduleCostSummary
-.\engines\base_engine.py:2:from abc import ABC, abstractmethod
-.\engines\base_engine.py:3:from typing import Any, Dict
-.\engines\core\decision\confidence.py:22:from __future__ import annotations
-.\engines\core\decision\confidence.py:24:import sys
-.\engines\core\decision\confidence.py:25:from dataclasses import dataclass, field
-.\engines\core\decision\confidence.py:26:from pathlib import Path
-.\engines\core\decision\confidence.py:27:from typing import Dict, List, Optional
-.\engines\core\decision\confidence.py:29:import numpy as np
-.\engines\core\decision\ml_enrichment.py:10:from typing import Dict, List, Optional
-.\engines\core\decision\ml_enrichment.py:12:import pandas as pd
-.\engines\core\decision\ml_enrichment.py:18:from engines.simulation.optimization.constraint_model import VesselInput, BerthInput
-.\engines\core\decision\ml_enrichment.py:19:from backend.db.repositories.port_store import get_models_dir, is_trained, load_port_config
-.\engines\core\decision\ml_enrichment.py:20:from engines.learning.training.feature_builder import build_inference_features
-.\engines\core\decision\ml_enrichment.py:21:from engines.learning.training.ml_models import ServiceTimePredictor
-.\engines\core\decision\ml_enrichment.py:7:from __future__ import annotations
-.\engines\core\decision\ml_enrichment.py:8:import json, logging, sys
-.\engines\core\decision\ml_enrichment.py:9:from pathlib import Path
-.\engines\core\decision\recommender.py:10:from __future__ import annotations
-.\engines\core\decision\recommender.py:11:import json, sys
-.\engines\core\decision\recommender.py:12:from pathlib import Path
-.\engines\core\decision\recommender.py:13:from typing import Dict, List, Optional
-.\engines\core\decision\recommender.py:15:import numpy as np
-.\engines\core\decision\recommender.py:16:import pandas as pd
-.\engines\core\decision\recommender.py:22:from backend.db.repositories.port_store import (
-.\engines\core\decision\recommender.py:25:from engines.learning.training.feature_builder import build_inference_features
-.\engines\core\decision\recommender.py:26:from engines.learning.training.ml_models import (
-.\engines\engine_registry.py:2:from typing import Dict
-.\engines\engine_registry.py:4:from engines.base_engine import BaseEngine
-.\engines\ingestion\excel_loader.py:10:from datetime import datetime
-.\engines\ingestion\excel_loader.py:11:from pathlib import Path
-.\engines\ingestion\excel_loader.py:12:from typing import Optional, Tuple
-.\engines\ingestion\excel_loader.py:14:import pandas as pd
-.\engines\ingestion\excel_loader.py:4:from __future__ import annotations
-.\engines\ingestion\excel_loader.py:6:import hashlib
-.\engines\ingestion\excel_loader.py:7:import json
-.\engines\ingestion\excel_loader.py:8:import logging
-.\engines\ingestion\excel_loader.py:9:import uuid
-.\engines\ingestion\ingest.py:11:from __future__ import annotations
-.\engines\ingestion\ingest.py:12:import json
-.\engines\ingestion\ingest.py:13:import logging
-.\engines\ingestion\ingest.py:14:import sys
-.\engines\ingestion\ingest.py:15:from pathlib import Path
-.\engines\ingestion\ingest.py:16:from datetime import datetime, time
-.\engines\ingestion\ingest.py:18:import pandas as pd
-.\engines\ingestion\ingest.py:24:from backend.db.repositories.port_store import save_port_config, save_history, get_port_dir
-.\engines\ingestion\ingest.py:25:from engines.ingestion.spec_ingest import build_port_master, save_port_master_config
-.\engines\ingestion\ingest.py:26:from engines.learning.data_prep import prepare_portcall_log, default_service_time_model
-.\engines\ingestion\load_berths.py:10:import uuid
-.\engines\ingestion\load_berths.py:11:from pathlib import Path
-.\engines\ingestion\load_berths.py:12:from typing import Dict
-.\engines\ingestion\load_berths.py:14:import pandas as pd
-.\engines\ingestion\load_berths.py:15:from sqlalchemy.orm import Session
-.\engines\ingestion\load_berths.py:17:from engines.ingestion.excel_loader import compute_row_hash
-.\engines\ingestion\load_berths.py:18:from engines.ingestion.transformers import safe_float
-.\engines\ingestion\load_berths.py:6:from __future__ import annotations
-.\engines\ingestion\load_berths.py:8:import json
-.\engines\ingestion\load_berths.py:9:import logging
-.\engines\ingestion\load_capabilities.py:10:import uuid
-.\engines\ingestion\load_capabilities.py:11:from pathlib import Path
-.\engines\ingestion\load_capabilities.py:12:from typing import Dict
-.\engines\ingestion\load_capabilities.py:14:import pandas as pd
-.\engines\ingestion\load_capabilities.py:15:from sqlalchemy.orm import Session
-.\engines\ingestion\load_capabilities.py:17:from engines.ingestion.excel_loader import compute_row_hash
-.\engines\ingestion\load_capabilities.py:6:from __future__ import annotations
-.\engines\ingestion\load_capabilities.py:8:import json
-.\engines\ingestion\load_capabilities.py:9:import logging
-.\engines\ingestion\load_port_calls.py:10:import uuid
-.\engines\ingestion\load_port_calls.py:11:from pathlib import Path
-.\engines\ingestion\load_port_calls.py:12:from typing import Dict, Optional
-.\engines\ingestion\load_port_calls.py:14:import pandas as pd
-.\engines\ingestion\load_port_calls.py:15:from sqlalchemy.orm import Session
-.\engines\ingestion\load_port_calls.py:17:from engines.ingestion.excel_loader import compute_row_hash
-.\engines\ingestion\load_port_calls.py:18:from engines.ingestion.schema_mapping import normalize_columns
-.\engines\ingestion\load_port_calls.py:19:from engines.ingestion.transformers import safe_float, safe_datetime, compute_derived_durations
-.\engines\ingestion\load_port_calls.py:20:from engines.ingestion.validators import validate_port_call_row
-.\engines\ingestion\load_port_calls.py:6:from __future__ import annotations
-.\engines\ingestion\load_port_calls.py:8:import json
-.\engines\ingestion\load_port_calls.py:9:import logging
-.\engines\ingestion\schema_mapping.py:4:from __future__ import annotations
-.\engines\ingestion\schema_mapping.py:6:from typing import Dict, List, Optional
-.\engines\ingestion\spec_ingest.py:11:from __future__ import annotations
-.\engines\ingestion\spec_ingest.py:13:import json
-.\engines\ingestion\spec_ingest.py:14:import logging
-.\engines\ingestion\spec_ingest.py:15:import sys
-.\engines\ingestion\spec_ingest.py:16:from pathlib import Path
-.\engines\ingestion\spec_ingest.py:17:from typing import Dict, List, Optional, Set, Tuple
-.\engines\ingestion\spec_ingest.py:19:import numpy as np
-.\engines\ingestion\spec_ingest.py:20:import pandas as pd
-.\engines\ingestion\spec_ingest.py:26:from backend.db.models.data_models import (
-.\engines\ingestion\spec_ingest.py:29:from backend.db.repositories.quality import score_berth_quality, QualityReport, score_history_quality
-.\engines\ingestion\transformers.py:10:import pandas as pd
-.\engines\ingestion\transformers.py:4:from __future__ import annotations
-.\engines\ingestion\transformers.py:6:import logging
-.\engines\ingestion\transformers.py:7:from datetime import datetime
-.\engines\ingestion\transformers.py:8:from typing import Optional
-.\engines\ingestion\validators.py:4:from __future__ import annotations
-.\engines\ingestion\validators.py:6:import logging
-.\engines\ingestion\validators.py:7:from dataclasses import dataclass, field
-.\engines\ingestion\validators.py:8:from datetime import datetime
-.\engines\ingestion\validators.py:9:from typing import List, Optional
-.\engines\learning\assignment_tracker.py:11:import json
-.\engines\learning\assignment_tracker.py:12:import os
-.\engines\learning\assignment_tracker.py:13:from datetime import datetime
-.\engines\learning\assignment_tracker.py:14:from pathlib import Path
-.\engines\learning\assignment_tracker.py:15:from typing import Dict, List, Optional
-.\engines\learning\assignment_tracker.py:9:from __future__ import annotations
-.\engines\learning\data_prep.py:10:from typing import Dict, List, Tuple
-.\engines\learning\data_prep.py:11:import pandas as pd
-.\engines\learning\data_prep.py:12:import numpy as np
-.\engines\learning\data_prep.py:8:from __future__ import annotations
-.\engines\learning\data_prep.py:9:import hashlib
-.\engines\learning\rl\weight_agent.py:12:from __future__ import annotations
-.\engines\learning\rl\weight_agent.py:14:from dataclasses import dataclass, field
-.\engines\learning\rl\weight_agent.py:15:from typing import Dict, List, Optional, Tuple
-.\engines\learning\rl\weight_agent.py:17:import numpy as np
-.\engines\learning\training\feature_builder.py:14:from __future__ import annotations
-.\engines\learning\training\feature_builder.py:15:import sys
-.\engines\learning\training\feature_builder.py:16:from pathlib import Path
-.\engines\learning\training\feature_builder.py:17:from typing import Dict, List, Optional, Tuple
-.\engines\learning\training\feature_builder.py:19:import numpy as np
-.\engines\learning\training\feature_builder.py:20:import pandas as pd
-.\engines\learning\training\ml_models.py:12:from __future__ import annotations
-.\engines\learning\training\ml_models.py:13:import pickle
-.\engines\learning\training\ml_models.py:14:from dataclasses import dataclass, field
-.\engines\learning\training\ml_models.py:15:from pathlib import Path
-.\engines\learning\training\ml_models.py:16:from typing import Any, Dict, List, Optional
-.\engines\learning\training\ml_models.py:18:import numpy as np
-.\engines\learning\training\ml_models.py:19:import pandas as pd
-.\engines\learning\training\ml_models.py:20:from sklearn.ensemble import GradientBoostingRegressor, RandomForestClassifier
-.\engines\learning\training\ml_models.py:21:from sklearn.preprocessing import LabelEncoder
-.\engines\learning\training\ml_models.py:22:from sklearn.model_selection import cross_val_score
-.\engines\learning\training\pattern_discovery.py:12:from __future__ import annotations
-.\engines\learning\training\pattern_discovery.py:14:import json
-.\engines\learning\training\pattern_discovery.py:15:import logging
-.\engines\learning\training\pattern_discovery.py:16:import sys
-.\engines\learning\training\pattern_discovery.py:17:from collections import defaultdict
-.\engines\learning\training\pattern_discovery.py:18:from datetime import datetime
-.\engines\learning\training\pattern_discovery.py:19:from pathlib import Path
-.\engines\learning\training\pattern_discovery.py:20:from typing import Any, Dict, List, Optional, Tuple
-.\engines\learning\training\pattern_discovery.py:22:import numpy as np
-.\engines\learning\training\pattern_discovery.py:23:import pandas as pd
-.\engines\learning\training\pattern_discovery.py:29:from backend.db.repositories.port_store import load_history, load_port_config, get_models_dir
-.\engines\learning\training\trainer.py:11:from __future__ import annotations
-.\engines\learning\training\trainer.py:12:import json, sys, time, shutil
-.\engines\learning\training\trainer.py:13:from datetime import datetime
-.\engines\learning\training\trainer.py:14:from pathlib import Path
-.\engines\learning\training\trainer.py:16:import numpy as np
-.\engines\learning\training\trainer.py:17:import pandas as pd
-.\engines\learning\training\trainer.py:18:from sklearn.model_selection import train_test_split
-.\engines\learning\training\trainer.py:24:from backend.db.repositories.port_store import load_history, load_port_config, get_models_dir, is_trained
-.\engines\learning\training\trainer.py:25:from engines.learning.training.feature_builder import build_training_features
-.\engines\learning\training\trainer.py:26:from engines.learning.training.ml_models import (
-.\engines\learning\training\xgboost_ranker.py:11:from __future__ import annotations
-.\engines\learning\training\xgboost_ranker.py:13:import json
-.\engines\learning\training\xgboost_ranker.py:14:import logging
-.\engines\learning\training\xgboost_ranker.py:15:import pickle
-.\engines\learning\training\xgboost_ranker.py:16:import sys
-.\engines\learning\training\xgboost_ranker.py:17:from pathlib import Path
-.\engines\learning\training\xgboost_ranker.py:18:from typing import Dict, List, Optional, Tuple
-.\engines\learning\training\xgboost_ranker.py:20:import numpy as np
-.\engines\learning\training\xgboost_ranker.py:21:import pandas as pd
-.\engines\learning\training\xgboost_ranker.py:22:from sklearn.ensemble import RandomForestClassifier
-.\engines\learning\training\xgboost_ranker.py:23:from sklearn.preprocessing import LabelEncoder
-.\engines\learning\training\xgboost_ranker.py:24:from sklearn.model_selection import cross_val_score
-.\engines\learning\weekly_refresh.py:12:from __future__ import annotations
-.\engines\learning\weekly_refresh.py:14:import json
-.\engines\learning\weekly_refresh.py:15:import logging
-.\engines\learning\weekly_refresh.py:16:import shutil
-.\engines\learning\weekly_refresh.py:17:import sys
-.\engines\learning\weekly_refresh.py:18:import time
-.\engines\learning\weekly_refresh.py:19:from datetime import datetime
-.\engines\learning\weekly_refresh.py:20:from pathlib import Path
-.\engines\learning\weekly_refresh.py:21:from typing import Any, Dict, Optional
-.\engines\simulation\digital_twin.py:18:from __future__ import annotations
-.\engines\simulation\digital_twin.py:20:import heapq
-.\engines\simulation\digital_twin.py:21:import sys
-.\engines\simulation\digital_twin.py:22:from dataclasses import dataclass, field
-.\engines\simulation\digital_twin.py:23:from pathlib import Path
-.\engines\simulation\digital_twin.py:24:from typing import Any, Callable, Dict, List, Optional, Tuple
-.\engines\simulation\digital_twin.py:30:from engines.simulation.optimization.constraint_model import (
-.\engines\simulation\digital_twin.py:33:from engines.simulation.optimization.scheduler import RollingHorizonScheduler
-.\engines\simulation\optimization\constraint_library.py:17:from __future__ import annotations
-.\engines\simulation\optimization\constraint_library.py:19:import sys
-.\engines\simulation\optimization\constraint_library.py:20:from pathlib import Path
-.\engines\simulation\optimization\constraint_library.py:21:from typing import Dict, List, Optional, Set, Tuple
-.\engines\simulation\optimization\constraint_library.py:23:import numpy as np
-.\engines\simulation\optimization\constraint_library.py:24:import pandas as pd
-.\engines\simulation\optimization\constraint_library.py:30:from backend.db.models.data_models import (
-.\engines\simulation\optimization\constraint_model.py:27:from __future__ import annotations
-.\engines\simulation\optimization\constraint_model.py:29:import sys
-.\engines\simulation\optimization\constraint_model.py:30:from dataclasses import dataclass, field
-.\engines\simulation\optimization\constraint_model.py:31:from datetime import datetime, timedelta
-.\engines\simulation\optimization\constraint_model.py:32:from pathlib import Path
-.\engines\simulation\optimization\constraint_model.py:33:from typing import Any, Dict, List, Optional, Tuple
-.\engines\simulation\optimization\constraint_model.py:35:from ortools.sat.python import cp_model
-.\engines\simulation\optimization\constraint_model.py:41:from engines.simulation.optimization.vessel_type_knowledge import compute_compatibility_score
-.\engines\simulation\optimization\feasibility_checker.py:11:from __future__ import annotations
-.\engines\simulation\optimization\feasibility_checker.py:13:import sys
-.\engines\simulation\optimization\feasibility_checker.py:14:from dataclasses import dataclass, field
-.\engines\simulation\optimization\feasibility_checker.py:15:from pathlib import Path
-.\engines\simulation\optimization\feasibility_checker.py:16:from typing import Dict, List, Optional, Tuple
-.\engines\simulation\optimization\feasibility_checker.py:22:from engines.simulation.optimization.constraint_model import (
-.\engines\simulation\optimization\feasibility_checker.py:26:from engines.simulation.optimization.vessel_type_knowledge import compute_compatibility_score
-.\engines\simulation\optimization\scheduler.py:17:from __future__ import annotations
-.\engines\simulation\optimization\scheduler.py:19:import sys
-.\engines\simulation\optimization\scheduler.py:20:import time
-.\engines\simulation\optimization\scheduler.py:21:from dataclasses import dataclass, field
-.\engines\simulation\optimization\scheduler.py:22:from datetime import datetime, timedelta
-.\engines\simulation\optimization\scheduler.py:23:from enum import Enum
-.\engines\simulation\optimization\scheduler.py:24:from pathlib import Path
-.\engines\simulation\optimization\scheduler.py:25:from typing import Any, Dict, List, Optional, Tuple
-.\engines\simulation\optimization\scheduler.py:31:from engines.simulation.optimization.constraint_model import (
-.\engines\simulation\optimization\scheduler.py:37:from engines.simulation.optimization.feasibility_checker import (
-.\engines\simulation\optimization\vessel_type_knowledge.py:10:from __future__ import annotations
-.\engines\simulation\optimization\vessel_type_knowledge.py:12:from typing import Dict, List, Optional, Tuple
-.\engines\simulation\scenario\conflict_detector.py:11:from __future__ import annotations
-.\engines\simulation\scenario\conflict_detector.py:13:import sys
-.\engines\simulation\scenario\conflict_detector.py:14:from pathlib import Path
-.\engines\simulation\scenario\conflict_detector.py:15:from typing import Dict, List, Optional, Tuple
-.\engines\simulation\scenario\conflict_detector.py:21:from engines.simulation.optimization.constraint_model import (
-.\engines\simulation\scenario\conflict_detector.py:25:from engines.simulation.optimization.vessel_type_knowledge import compute_compatibility_score
-.\engines\simulation\scenario\conflict_resolver.py:13:from __future__ import annotations
-.\engines\simulation\scenario\conflict_resolver.py:15:import sys
-.\engines\simulation\scenario\conflict_resolver.py:16:from dataclasses import dataclass, field
-.\engines\simulation\scenario\conflict_resolver.py:17:from pathlib import Path
-.\engines\simulation\scenario\conflict_resolver.py:18:from typing import Dict, List, Optional, Tuple
-.\engines\simulation\scenario\conflict_resolver.py:24:from engines.simulation.optimization.constraint_model import (
-.\engines\simulation\scenario\conflict_resolver.py:27:from engines.simulation.optimization.vessel_type_knowledge import compute_compatibility_score
-.\engines\simulation\scenario\conflict_resolver.py:28:from engines.analytics.cost.cost_model import CostEngine, CostBreakdown
-.\engines\simulation\scenario\scenario_manager.py:16:from __future__ import annotations
-.\engines\simulation\scenario\scenario_manager.py:18:import sys
-.\engines\simulation\scenario\scenario_manager.py:19:from dataclasses import dataclass, field, fields as dc_fields
-.\engines\simulation\scenario\scenario_manager.py:20:from pathlib import Path
-.\engines\simulation\scenario\scenario_manager.py:21:from typing import Dict, List, Optional, Tuple
-.\engines\simulation\scenario\scenario_manager.py:27:from engines.simulation.optimization.constraint_model import (
-.\engines\simulation\scenario\scenario_manager.py:33:from engines.simulation.optimization.feasibility_checker import (
-.\engines\simulation\scenario\scenario_manager.py:36:from engines.analytics.cost.cost_model import CostEngine, CostConfig
-.\engines\simulation\scenario\scenario_manager.py:37:from engines.core.decision.confidence import ConfidenceCalculator
-.\engines\simulation\scenario\scenario_manager.py:38:from engines.simulation.scenario.conflict_detector import detect_conflicts
-.\engines\simulation\uncertainty\monte_carlo.py:18:from __future__ import annotations
-.\engines\simulation\uncertainty\monte_carlo.py:20:import sys
-.\engines\simulation\uncertainty\monte_carlo.py:21:import random
-.\engines\simulation\uncertainty\monte_carlo.py:22:from dataclasses import dataclass, field
-.\engines\simulation\uncertainty\monte_carlo.py:23:from pathlib import Path
-.\engines\simulation\uncertainty\monte_carlo.py:24:from typing import Dict, List, Optional, Tuple
-.\engines\simulation\uncertainty\monte_carlo.py:26:import numpy as np
-.\engines\simulation\uncertainty\monte_carlo.py:32:from engines.simulation.optimization.constraint_model import (
-.\engines\simulation\uncertainty\monte_carlo.py:36:from engines.simulation.optimization.scheduler import RollingHorizonScheduler
-.\run.py:10:from pathlib import Path
-.\run.py:18:from backend.run import main
-.\run.py:6:from __future__ import annotations
-.\run.py:8:import asyncio
-.\run.py:9:import sys
-.\scripts\ingest_excel_to_db.py:18:from __future__ import annotations
-.\scripts\ingest_excel_to_db.py:20:import argparse
-.\scripts\ingest_excel_to_db.py:21:import json
-.\scripts\ingest_excel_to_db.py:22:import logging
-.\scripts\ingest_excel_to_db.py:23:import sys
-.\scripts\ingest_excel_to_db.py:24:import uuid
-.\scripts\ingest_excel_to_db.py:25:from datetime import datetime
-.\scripts\ingest_excel_to_db.py:26:from pathlib import Path
-.\tests\run_tests.py:2:import sys, traceback
-.\tests\run_tests.py:3:from pathlib import Path
-.\tests\run_tests.py:6:from tests.test_optimizer import (
-.\tests\test_commercial_engine.py:13:from engines.analytics.commercial.berth_economics import BerthEconomicsCalculator, BERTH_CLASS_PREMIUM
-.\tests\test_commercial_engine.py:14:from engines.analytics.commercial.dynamic_pricing import DynamicPricingEngine
-.\tests\test_commercial_engine.py:15:from engines.analytics.commercial.partnership_manager import PartnershipManager, PartnershipTier
-.\tests\test_commercial_engine.py:16:from engines.analytics.commercial.commercial_scorer import CommercialScorer, CommercialDecisionConfig
-.\tests\test_commercial_engine.py:6:import sys
-.\tests\test_commercial_engine.py:7:from pathlib import Path
-.\tests\test_commercial_engine.py:8:from datetime import datetime
-.\tests\test_fast.py:1:import sys
-.\tests\test_fast.py:4:from engines.core.decision.recommender import recommend_berth
-.\tests\test_historical_cases.py:1:import sys
-.\tests\test_historical_cases.py:4:from engines.core.decision.recommender import recommend_berth
-.\tests\test_ingestion.py:12:from engines.ingestion.transformers import safe_float, safe_datetime, compute_derived_durations
-.\tests\test_ingestion.py:13:from engines.ingestion.schema_mapping import normalize_columns, resolve_column
-.\tests\test_ingestion.py:14:from engines.ingestion.validators import validate_port_call_row
-.\tests\test_ingestion.py:4:import sys
-.\tests\test_ingestion.py:5:from pathlib import Path
-.\tests\test_ingestion.py:6:from datetime import datetime, timedelta
-.\tests\test_integration.py:10:import sys, json, shutil
-.\tests\test_integration.py:11:from pathlib import Path
-.\tests\test_integration.py:12:from datetime import datetime
-.\tests\test_intelligent_backend.py:11:from __future__ import annotations
-.\tests\test_intelligent_backend.py:12:import json, os, sys
-.\tests\test_intelligent_backend.py:13:from pathlib import Path
-.\tests\test_intelligent_backend.py:14:from unittest.mock import patch, MagicMock
-.\tests\test_intelligent_backend.py:16:import pytest
-.\tests\test_intelligent_backend.py:17:import numpy as np
-.\tests\test_intelligent_backend.py:18:import pandas as pd
-.\tests\test_ml_pipeline.py:14:import sys
-.\tests\test_ml_pipeline.py:15:from pathlib import Path
-.\tests\test_ml_pipeline.py:17:import numpy as np
-.\tests\test_ml_pipeline.py:18:import pandas as pd
-.\tests\test_ml_pipeline.py:22:from engines.learning.training.feature_builder import (
-.\tests\test_ml_pipeline.py:27:from engines.learning.training.ml_models import (
-.\tests\test_optimizer.py:12:from engines.simulation.optimization.constraint_model import (
-.\tests\test_optimizer.py:20:from engines.simulation.optimization.feasibility_checker import FeasibilityChecker
-.\tests\test_optimizer.py:21:from engines.simulation.optimization.scheduler import RollingHorizonScheduler
-.\tests\test_optimizer.py:22:from engines.analytics.cost.cost_model import CostEngine, CostConfig
-.\tests\test_optimizer.py:23:from engines.core.decision.confidence import ConfidenceCalculator
-.\tests\test_optimizer.py:24:from engines.analytics.kpi.kpi_calculator import KPICalculator
-.\tests\test_optimizer.py:25:from engines.analytics.explanation.explainer import AgenticExplainer
-.\tests\test_optimizer.py:26:from engines.simulation.digital_twin import PortDigitalTwin
-.\tests\test_optimizer.py:6:import sys
-.\tests\test_optimizer.py:7:from pathlib import Path
-.\tests\test_repositories.py:13:from backend.db.repositories.assumption_repository import get_assumptions, get_assumption_value, get_assumptions_as_dict, update_assumption
-.\tests\test_repositories.py:14:from backend.db.repositories.berth_repository import list_berths
-.\tests\test_repositories.py:15:from backend.db.repositories.port_repository import list_ports, get_port_by_code, upsert_port, port_exists
-.\tests\test_repositories.py:16:from backend.db.session import async_session_factory
-.\tests\test_repositories.py:4:import sys
-.\tests\test_repositories.py:5:import asyncio
-.\tests\test_repositories.py:6:from pathlib import Path
-.\tests\test_repositories.py:7:import uuid
-.\tests\test_spec_pipeline.py:12:import sys
-.\tests\test_spec_pipeline.py:13:from pathlib import Path
-.\tests\test_spec_pipeline.py:19:from backend.db.models.data_models import (
-.\tests\test_spec_pipeline.py:24:from engines.simulation.optimization.constraint_model import VesselInput, BerthInput, SchedulerConfig
-.\tests\test_spec_pipeline.py:25:from engines.simulation.optimization.feasibility_checker import FeasibilityChecker
-.\tests\test_structured_explanation.py:13:import sys
-.\tests\test_structured_explanation.py:14:from pathlib import Path
-.\tests\test_structured_explanation.py:20:import pytest
-.\tests\test_structured_explanation.py:21:from engines.analytics.explanation.structured_explanation import (
+﻿api\endpoints.py:13:from __future__ import annotations
+api\endpoints.py:15:import sys
+api\endpoints.py:16:import time
+api\endpoints.py:17:from datetime import datetime
+api\endpoints.py:18:from pathlib import Path
+api\endpoints.py:19:from typing import Any, Dict, List, Optional
+api\endpoints.py:21:from fastapi import FastAPI, HTTPException
+api\endpoints.py:22:from fastapi.middleware.cors import CORSMiddleware
+api\endpoints.py:23:from pydantic import BaseModel, Field
+api\endpoints.py:29:from backend.db.repositories.port_store import list_ports, port_exists, load_port_config, is_trained, get_model_info
+api\endpoints.py:30:from engines.simulation.optimization.constraint_model import (
+api\endpoints.py:34:from engines.simulation.optimization.feasibility_checker import FeasibilityChecker
+api\endpoints.py:35:from engines.simulation.optimization.scheduler import RollingHorizonScheduler
+api\endpoints.py:36:from engines.analytics.cost.cost_model import CostEngine, CostConfig
+api\endpoints.py:37:from engines.core.decision.confidence import ConfidenceCalculator
+api\endpoints.py:38:from engines.analytics.kpi.kpi_calculator import KPICalculator
+api\endpoints.py:39:from engines.analytics.explanation.explainer import AgenticExplainer
+archive\legacy_20260530\__init__.py:4:from __future__ import annotations
+backend\app_lifecycle.py:11:from backend.db.session import close_db, init_db
+backend\app_lifecycle.py:12:from backend.services.model_training_service import auto_train_required_models
+backend\app_lifecycle.py:2:from __future__ import annotations
+backend\app_lifecycle.py:4:import asyncio
+backend\app_lifecycle.py:5:import logging
+backend\app_lifecycle.py:6:import sys
+backend\app_lifecycle.py:7:from contextlib import asynccontextmanager
+backend\app_lifecycle.py:9:from fastapi import FastAPI
+backend\auth\dependencies.py:10:from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+backend\auth\dependencies.py:11:from sqlalchemy import select
+backend\auth\dependencies.py:12:from sqlalchemy.ext.asyncio import AsyncSession
+backend\auth\dependencies.py:13:from sqlalchemy.orm import selectinload
+backend\auth\dependencies.py:15:from backend.auth.jwt import decode_token
+backend\auth\dependencies.py:16:from backend.db.models.app_models import User
+backend\auth\dependencies.py:17:from backend.db.session import get_db
+backend\auth\dependencies.py:4:from __future__ import annotations
+backend\auth\dependencies.py:6:from typing import Optional
+backend\auth\dependencies.py:7:from uuid import UUID
+backend\auth\dependencies.py:9:from fastapi import Depends, HTTPException, status
+backend\auth\jwt.py:11:from backend.config import settings
+backend\auth\jwt.py:4:from __future__ import annotations
+backend\auth\jwt.py:6:from datetime import datetime, timedelta, timezone
+backend\auth\jwt.py:7:from typing import Any, Dict, Optional
+backend\auth\jwt.py:9:from jose import JWTError, jwt
+backend\auth\password.py:5:import bcrypt
+backend\auth\schemas.py:4:from __future__ import annotations
+backend\auth\schemas.py:6:from typing import Optional
+backend\auth\schemas.py:7:from uuid import UUID
+backend\auth\schemas.py:9:from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+backend\auth\service.py:10:from sqlalchemy import select, delete, func
+backend\auth\service.py:11:from sqlalchemy.ext.asyncio import AsyncSession
+backend\auth\service.py:12:from sqlalchemy.orm import selectinload
+backend\auth\service.py:14:from backend.auth.jwt import (
+backend\auth\service.py:20:from backend.auth.password import hash_password, verify_password
+backend\auth\service.py:21:from backend.config import settings
+backend\auth\service.py:22:from backend.db.models.app_models import Port, Session, User
+backend\auth\service.py:4:from __future__ import annotations
+backend\auth\service.py:6:from datetime import datetime
+backend\auth\service.py:7:from typing import Optional, Tuple
+backend\auth\service.py:8:from uuid import UUID
+backend\config\__init__.py:2:from backend.config.settings import Settings, settings
+backend\config\port_config.py:10:import logging
+backend\config\port_config.py:11:import os
+backend\config\port_config.py:12:from datetime import datetime, time, timedelta
+backend\config\port_config.py:13:from pathlib import Path
+backend\config\port_config.py:14:from typing import Dict, List, Optional
+backend\config\port_config.py:16:import numpy as np
+backend\config\port_config.py:17:import pandas as pd
+backend\config\port_config.py:19:from backend.config.settings import settings
+backend\config\port_config.py:20:from backend.db.models.domain import (
+backend\config\port_config.py:7:from __future__ import annotations
+backend\config\port_config.py:9:import json
+backend\config\settings.py:10:from pydantic import ConfigDict, field_validator
+backend\config\settings.py:11:from pydantic_settings import BaseSettings
+backend\config\settings.py:12:from sqlalchemy.engine import URL
+backend\config\settings.py:4:from __future__ import annotations
+backend\config\settings.py:6:import json
+backend\config\settings.py:7:from pathlib import Path
+backend\config\settings.py:8:from typing import List
+backend\database\connection.py:10:from sqlalchemy import create_engine
+backend\database\connection.py:11:from sqlalchemy.orm import declarative_base, sessionmaker
+backend\database\connection.py:6:from __future__ import annotations
+backend\database\connection.py:8:import os
+backend\database\seed.py:12:from __future__ import annotations
+backend\database\seed.py:14:import sys
+backend\database\seed.py:15:import uuid
+backend\database\seed.py:16:from datetime import datetime, timezone
+backend\database\seed.py:17:from pathlib import Path
+backend\database\seed.py:19:from sqlalchemy import func, select, text
+backend\database\seed.py:27:from backend.auth.password import hash_password, verify_password
+backend\database\seed.py:28:from backend.db.session import Base, SyncSessionFactory, sync_engine
+backend\database\seed.py:29:from backend.db.models.app_models import Berth, KPI, Port, User
+backend\db\models\app_models.py:13:from sqlalchemy.dialects.postgresql import UUID
+backend\db\models\app_models.py:14:from sqlalchemy.orm import relationship
+backend\db\models\app_models.py:16:from backend.db.session import Base
+backend\db\models\app_models.py:4:from __future__ import annotations
+backend\db\models\app_models.py:6:import uuid
+backend\db\models\app_models.py:7:from datetime import datetime
+backend\db\models\app_models.py:9:from sqlalchemy import (
+backend\db\models\baos_models.py:10:from datetime import datetime
+backend\db\models\baos_models.py:12:from sqlalchemy import (
+backend\db\models\baos_models.py:16:from sqlalchemy.dialects.postgresql import UUID
+backend\db\models\baos_models.py:17:from sqlalchemy.orm import relationship
+backend\db\models\baos_models.py:19:from backend.db.session import Base
+backend\db\models\baos_models.py:7:from __future__ import annotations
+backend\db\models\baos_models.py:9:import uuid
+backend\db\models\data_models.py:14:from __future__ import annotations
+backend\db\models\data_models.py:16:from dataclasses import dataclass, field
+backend\db\models\data_models.py:17:from enum import Enum
+backend\db\models\data_models.py:18:from typing import Any, Dict, List, Optional, Set, Tuple
+backend\db\models\domain.py:10:from enum import Enum
+backend\db\models\domain.py:11:from typing import Any, Dict, List, Optional, Tuple
+backend\db\models\domain.py:12:import uuid
+backend\db\models\domain.py:6:from __future__ import annotations
+backend\db\models\domain.py:8:from dataclasses import dataclass, field
+backend\db\models\domain.py:9:from datetime import datetime, time, timedelta
+backend\db\repositories\assumption_repository.py:10:from sqlalchemy.ext.asyncio import AsyncSession
+backend\db\repositories\assumption_repository.py:12:from backend.db.models.baos_models import BaosAssumptionConfig, BaosPort
+backend\db\repositories\assumption_repository.py:4:from __future__ import annotations
+backend\db\repositories\assumption_repository.py:6:from typing import Dict, List, Optional
+backend\db\repositories\assumption_repository.py:7:from uuid import UUID
+backend\db\repositories\assumption_repository.py:9:from sqlalchemy import func, select, update
+backend\db\repositories\berth_repository.py:10:from sqlalchemy.ext.asyncio import AsyncSession
+backend\db\repositories\berth_repository.py:11:from sqlalchemy.orm import selectinload
+backend\db\repositories\berth_repository.py:13:from backend.db.models.baos_models import BaosBerth, BaosBerthCapability, BaosPort
+backend\db\repositories\berth_repository.py:4:from __future__ import annotations
+backend\db\repositories\berth_repository.py:6:from typing import Dict, List, Optional
+backend\db\repositories\berth_repository.py:7:from uuid import UUID
+backend\db\repositories\berth_repository.py:9:from sqlalchemy import func, select
+backend\db\repositories\model_registry_repository.py:10:from sqlalchemy import select
+backend\db\repositories\model_registry_repository.py:11:from sqlalchemy.ext.asyncio import AsyncSession
+backend\db\repositories\model_registry_repository.py:13:from backend.db.models.baos_models import BaosMLModelRegistry, BaosPort
+backend\db\repositories\model_registry_repository.py:4:from __future__ import annotations
+backend\db\repositories\model_registry_repository.py:6:from datetime import datetime
+backend\db\repositories\model_registry_repository.py:7:from typing import List, Optional
+backend\db\repositories\model_registry_repository.py:8:from uuid import UUID
+backend\db\repositories\optimization_repository.py:10:from sqlalchemy.ext.asyncio import AsyncSession
+backend\db\repositories\optimization_repository.py:11:from sqlalchemy.orm import selectinload
+backend\db\repositories\optimization_repository.py:13:from backend.db.models.baos_models import BaosOptimizationRun, BaosOptimizationAssignment
+backend\db\repositories\optimization_repository.py:4:from __future__ import annotations
+backend\db\repositories\optimization_repository.py:6:from typing import List, Optional
+backend\db\repositories\optimization_repository.py:7:from uuid import UUID
+backend\db\repositories\optimization_repository.py:9:from sqlalchemy import select
+backend\db\repositories\port_call_repository.py:10:from sqlalchemy.ext.asyncio import AsyncSession
+backend\db\repositories\port_call_repository.py:12:from backend.db.models.baos_models import BaosPortCall, BaosPort
+backend\db\repositories\port_call_repository.py:4:from __future__ import annotations
+backend\db\repositories\port_call_repository.py:6:from datetime import datetime
+backend\db\repositories\port_call_repository.py:7:from typing import Any, Dict, List, Optional
+backend\db\repositories\port_call_repository.py:9:from sqlalchemy import select, func, and_
+backend\db\repositories\port_repository.py:10:from sqlalchemy.ext.asyncio import AsyncSession
+backend\db\repositories\port_repository.py:12:from backend.db.models.baos_models import BaosPort
+backend\db\repositories\port_repository.py:4:from __future__ import annotations
+backend\db\repositories\port_repository.py:6:from typing import List, Optional
+backend\db\repositories\port_repository.py:7:from uuid import UUID
+backend\db\repositories\port_repository.py:9:from sqlalchemy import func, select
+backend\db\repositories\port_store.py:11:import pandas as pd
+backend\db\repositories\port_store.py:6:from __future__ import annotations
+backend\db\repositories\port_store.py:7:import json, os, sys, logging
+backend\db\repositories\port_store.py:8:from pathlib import Path
+backend\db\repositories\port_store.py:9:from typing import List, Optional
+backend\db\repositories\quality.py:10:import sys
+backend\db\repositories\quality.py:11:from dataclasses import dataclass, field
+backend\db\repositories\quality.py:12:from pathlib import Path
+backend\db\repositories\quality.py:13:from typing import Any, Dict, List, Optional, Tuple
+backend\db\repositories\quality.py:15:import numpy as np
+backend\db\repositories\quality.py:16:import pandas as pd
+backend\db\repositories\quality.py:22:from backend.db.models.data_models import (
+backend\db\repositories\quality.py:8:from __future__ import annotations
+backend\db\repositories\recommendation_repository.py:10:from sqlalchemy.ext.asyncio import AsyncSession
+backend\db\repositories\recommendation_repository.py:12:from backend.db.models.app_models import Recommendation
+backend\db\repositories\recommendation_repository.py:13:from backend.db.models.baos_models import BaosPort, BaosRecommendationLog
+backend\db\repositories\recommendation_repository.py:4:from __future__ import annotations
+backend\db\repositories\recommendation_repository.py:6:from typing import List, Tuple
+backend\db\repositories\recommendation_repository.py:7:from uuid import UUID
+backend\db\repositories\recommendation_repository.py:9:from sqlalchemy import func, select
+backend\db\repositories\training_run_repository.py:2:from __future__ import annotations
+backend\db\repositories\training_run_repository.py:4:from sqlalchemy import select
+backend\db\repositories\training_run_repository.py:5:from sqlalchemy.ext.asyncio import AsyncSession
+backend\db\repositories\training_run_repository.py:7:from backend.db.models.baos_models import TrainingRun
+backend\db\session.py:11:from backend.config import settings
+backend\db\session.py:5:from __future__ import annotations
+backend\db\session.py:7:from sqlalchemy import create_engine
+backend\db\session.py:8:from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+backend\db\session.py:9:from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+backend\handlers\assumptions_handler.py:14:from backend.schemas.assumptions import (
+backend\handlers\assumptions_handler.py:2:from __future__ import annotations
+backend\handlers\assumptions_handler.py:4:from uuid import UUID
+backend\handlers\assumptions_handler.py:6:from fastapi import HTTPException, status
+backend\handlers\assumptions_handler.py:7:from sqlalchemy.ext.asyncio import AsyncSession
+backend\handlers\assumptions_handler.py:9:from backend.db.repositories.assumption_repository import (
+backend\handlers\auth_handler.py:16:from backend.auth.jwt import create_access_token
+backend\handlers\auth_handler.py:17:from backend.auth.service import (
+backend\handlers\auth_handler.py:2:from __future__ import annotations
+backend\handlers\auth_handler.py:25:from backend.db.models.app_models import User
+backend\handlers\auth_handler.py:4:from fastapi import HTTPException, status
+backend\handlers\auth_handler.py:5:from sqlalchemy.ext.asyncio import AsyncSession
+backend\handlers\auth_handler.py:7:from backend.auth.schemas import (
+backend\handlers\dashboard_handler.py:11:from backend.services.analytics_service import get_chart_analytics, get_kpi_analytics
+backend\handlers\dashboard_handler.py:12:from backend.services.dashboard_service import get_dashboard_recommendations
+backend\handlers\dashboard_handler.py:2:from __future__ import annotations
+backend\handlers\dashboard_handler.py:4:from sqlalchemy.ext.asyncio import AsyncSession
+backend\handlers\dashboard_handler.py:6:from backend.schemas.dashboard import (
+backend\handlers\ports_handler.py:10:from backend.schemas.common import build_paginated_response
+backend\handlers\ports_handler.py:11:from backend.schemas.ports import PortConfigOut, PortListResponse, PortStatusOut, PortSummaryOut
+backend\handlers\ports_handler.py:12:from backend.services.model_training_service import evaluate_port_training_status
+backend\handlers\ports_handler.py:13:from backend.services.port_config_service import load_port_config_from_db
+backend\handlers\ports_handler.py:2:from __future__ import annotations
+backend\handlers\ports_handler.py:4:from fastapi import HTTPException, status
+backend\handlers\ports_handler.py:5:from sqlalchemy.ext.asyncio import AsyncSession
+backend\handlers\ports_handler.py:7:from backend.db.repositories.model_registry_repository import get_active_model
+backend\handlers\ports_handler.py:8:from backend.db.repositories.port_call_repository import get_port_call_stats
+backend\handlers\ports_handler.py:9:from backend.db.repositories.port_repository import count_ports, get_port_by_code, list_ports
+backend\handlers\recommendations_handler.py:13:from backend.schemas.recommendations import (
+backend\handlers\recommendations_handler.py:2:from __future__ import annotations
+backend\handlers\recommendations_handler.py:21:from backend.services.recommendation_service import generate_recommendation
+backend\handlers\recommendations_handler.py:4:from uuid import UUID
+backend\handlers\recommendations_handler.py:6:from fastapi import HTTPException
+backend\handlers\recommendations_handler.py:7:from sqlalchemy.ext.asyncio import AsyncSession
+backend\handlers\recommendations_handler.py:9:from backend.db.repositories.recommendation_repository import (
+backend\handlers\system_handler.py:2:from __future__ import annotations
+backend\handlers\system_handler.py:4:from datetime import datetime, timezone
+backend\handlers\system_handler.py:6:from backend.config import settings
+backend\handlers\system_handler.py:7:from backend.schemas.system import HealthResponse, RootResponse
+backend\main.py:10:from backend.config import settings
+backend\main.py:11:from backend.middleware import register_middleware
+backend\main.py:12:from backend.middleware.error_handler import register_error_handlers
+backend\main.py:13:from backend.middleware.request_logger import RequestLoggingMiddleware
+backend\main.py:14:from backend.routes import register_routes
+backend\main.py:2:from __future__ import annotations
+backend\main.py:4:import logging
+backend\main.py:5:import sys
+backend\main.py:7:from fastapi import FastAPI
+backend\main.py:9:from backend.app_lifecycle import lifespan
+backend\middleware\__init__.py:2:from __future__ import annotations
+backend\middleware\__init__.py:4:from fastapi import FastAPI, Request, status
+backend\middleware\__init__.py:5:from fastapi.middleware.cors import CORSMiddleware
+backend\middleware\__init__.py:6:from fastapi.responses import JSONResponse
+backend\middleware\__init__.py:8:from backend.auth.jwt import decode_token
+backend\middleware\__init__.py:9:from backend.config import settings
+backend\middleware\error_handler.py:10:from fastapi.exceptions import RequestValidationError
+backend\middleware\error_handler.py:11:from fastapi.responses import JSONResponse
+backend\middleware\error_handler.py:13:from backend.utils.exceptions import TrainingError
+backend\middleware\error_handler.py:4:from __future__ import annotations
+backend\middleware\error_handler.py:6:import logging
+backend\middleware\error_handler.py:7:import traceback
+backend\middleware\error_handler.py:9:from fastapi import FastAPI, Request
+backend\middleware\request_logger.py:10:from backend.auth.jwt import decode_token
+backend\middleware\request_logger.py:2:from __future__ import annotations
+backend\middleware\request_logger.py:4:import logging
+backend\middleware\request_logger.py:5:import time
+backend\middleware\request_logger.py:7:from fastapi import Request
+backend\middleware\request_logger.py:8:from starlette.middleware.base import BaseHTTPMiddleware
+backend\migrations\env.py:10:from backend.db.session import Base
+backend\migrations\env.py:12:import backend.db.models.app_models  # noqa: F401
+backend\migrations\env.py:13:import backend.db.models.baos_models  # noqa: F401
+backend\migrations\env.py:2:from __future__ import annotations
+backend\migrations\env.py:4:from logging.config import fileConfig
+backend\migrations\env.py:6:from alembic import context
+backend\migrations\env.py:7:from sqlalchemy import engine_from_config, pool
+backend\migrations\env.py:9:from backend.config import settings
+backend\migrations\versions\20260530_0001_initial_schema.py:11:from alembic import op
+backend\migrations\versions\20260530_0001_initial_schema.py:12:from sqlalchemy import text
+backend\migrations\versions\20260530_0001_initial_schema.py:14:from backend.db.session import Base
+backend\migrations\versions\20260530_0001_initial_schema.py:16:import backend.db.models.app_models  # noqa: F401
+backend\migrations\versions\20260530_0001_initial_schema.py:17:import backend.db.models.baos_models  # noqa: F401
+backend\migrations\versions\20260530_0001_initial_schema.py:7:from __future__ import annotations
+backend\migrations\versions\20260530_0001_initial_schema.py:9:from pathlib import Path
+backend\routes\__init__.py:10:from backend.routes.auth import router as auth_v1_router
+backend\routes\__init__.py:11:from backend.routes.berths import router as berths_router
+backend\routes\__init__.py:12:from backend.routes.dashboard import router as dashboard_router
+backend\routes\__init__.py:13:from backend.routes.health import router as health_router
+backend\routes\__init__.py:14:from backend.routes.ports import router as ports_router
+backend\routes\__init__.py:15:from backend.routes.recommendations import legacy_router as recommendations_legacy_router
+backend\routes\__init__.py:16:from backend.routes.recommendations import router as recommendations_router
+backend\routes\__init__.py:17:from backend.routes.training import router as training_router
+backend\routes\__init__.py:18:from backend.routes.websocket import socket_app
+backend\routes\__init__.py:2:from __future__ import annotations
+backend\routes\__init__.py:4:import logging
+backend\routes\__init__.py:6:from fastapi import FastAPI
+backend\routes\__init__.py:8:from backend.routes.assumptions import router as assumptions_router
+backend\routes\__init__.py:9:from backend.routes.auth import legacy_router as auth_legacy_router
+backend\routes\assumptions.py:10:from backend.db.session import get_db
+backend\routes\assumptions.py:11:from backend.handlers.assumptions_handler import (
+backend\routes\assumptions.py:15:from backend.schemas.assumptions import (
+backend\routes\assumptions.py:2:from __future__ import annotations
+backend\routes\assumptions.py:4:from uuid import UUID
+backend\routes\assumptions.py:6:from fastapi import APIRouter, Depends, Query
+backend\routes\assumptions.py:7:from sqlalchemy.ext.asyncio import AsyncSession
+backend\routes\assumptions.py:9:from backend.auth.dependencies import get_current_user
+backend\routes\auth.py:17:from backend.db.models.app_models import User
+backend\routes\auth.py:18:from backend.db.session import get_db
+backend\routes\auth.py:19:from backend.handlers.auth_handler import (
+backend\routes\auth.py:2:from __future__ import annotations
+backend\routes\auth.py:4:from fastapi import APIRouter, Depends, status
+backend\routes\auth.py:5:from sqlalchemy.ext.asyncio import AsyncSession
+backend\routes\auth.py:7:from backend.auth.dependencies import get_current_user, get_optional_user
+backend\routes\auth.py:8:from backend.auth.schemas import (
+backend\routes\berths.py:10:from backend.schemas.berths import BerthListResponse, BerthOut
+backend\routes\berths.py:2:from __future__ import annotations
+backend\routes\berths.py:4:from fastapi import APIRouter, Depends, Query
+backend\routes\berths.py:5:from sqlalchemy.ext.asyncio import AsyncSession
+backend\routes\berths.py:7:from backend.auth.dependencies import get_current_user
+backend\routes\berths.py:8:from backend.db.repositories.berth_repository import count_berths, list_berths as list_berths_repo
+backend\routes\berths.py:9:from backend.db.session import get_db
+backend\routes\dashboard.py:14:from backend.schemas.dashboard import (
+backend\routes\dashboard.py:2:from __future__ import annotations
+backend\routes\dashboard.py:4:from fastapi import APIRouter, Depends, Query
+backend\routes\dashboard.py:5:from sqlalchemy.ext.asyncio import AsyncSession
+backend\routes\dashboard.py:7:from backend.auth.dependencies import get_current_user
+backend\routes\dashboard.py:8:from backend.db.session import get_db
+backend\routes\dashboard.py:9:from backend.handlers.dashboard_handler import (
+backend\routes\health.py:2:from __future__ import annotations
+backend\routes\health.py:4:from fastapi import APIRouter
+backend\routes\health.py:6:from backend.handlers.system_handler import health_response, root_response
+backend\routes\health.py:7:from backend.schemas.system import HealthResponse, RootResponse
+backend\routes\ports.py:14:from backend.schemas.ports import PortConfigOut, PortListResponse, PortStatusOut
+backend\routes\ports.py:2:from __future__ import annotations
+backend\routes\ports.py:4:from fastapi import APIRouter, Depends, Query
+backend\routes\ports.py:5:from sqlalchemy.ext.asyncio import AsyncSession
+backend\routes\ports.py:7:from backend.auth.dependencies import get_current_user
+backend\routes\ports.py:8:from backend.db.session import get_db
+backend\routes\ports.py:9:from backend.handlers.ports_handler import (
+backend\routes\recommendations.py:14:from backend.schemas.recommendations import (
+backend\routes\recommendations.py:2:from __future__ import annotations
+backend\routes\recommendations.py:4:from fastapi import APIRouter, Depends, Query
+backend\routes\recommendations.py:5:from sqlalchemy.ext.asyncio import AsyncSession
+backend\routes\recommendations.py:7:from backend.auth.dependencies import get_current_user
+backend\routes\recommendations.py:8:from backend.db.session import get_db
+backend\routes\recommendations.py:9:from backend.handlers.recommendations_handler import (
+backend\routes\training.py:10:from backend.services.model_training_service import (
+backend\routes\training.py:15:from backend.schemas.training import TrainingRunOut, TrainingStartResponse, TrainingStatusResponse
+backend\routes\training.py:2:from __future__ import annotations
+backend\routes\training.py:4:from fastapi import APIRouter, Depends, HTTPException
+backend\routes\training.py:5:from sqlalchemy.ext.asyncio import AsyncSession
+backend\routes\training.py:7:from backend.auth.dependencies import get_current_user, require_admin
+backend\routes\training.py:8:from backend.db.repositories.training_run_repository import list_training_runs
+backend\routes\training.py:9:from backend.db.session import get_db
+backend\routes\websocket.py:4:from __future__ import annotations
+backend\routes\websocket.py:6:import socketio
+backend\routes\websocket.py:8:from backend.config import settings
+backend\run.py:1:import sys
+backend\run.py:2:import asyncio
+backend\run.py:3:import os
+backend\run.py:4:import uvicorn
+backend\run.py:6:from backend.config import settings
+backend\schemas\assumptions.py:2:from __future__ import annotations
+backend\schemas\assumptions.py:4:from typing import Optional
+backend\schemas\assumptions.py:6:from pydantic import BaseModel, ConfigDict
+backend\schemas\assumptions.py:8:from backend.schemas.common import PaginatedResponse
+backend\schemas\berths.py:2:from __future__ import annotations
+backend\schemas\berths.py:4:from pydantic import BaseModel, ConfigDict, Field
+backend\schemas\berths.py:6:from backend.schemas.common import PaginatedResponse
+backend\schemas\common.py:2:from __future__ import annotations
+backend\schemas\common.py:4:from math import ceil
+backend\schemas\common.py:5:from typing import Generic, TypeVar
+backend\schemas\common.py:7:from pydantic import BaseModel, ConfigDict, Field
+backend\schemas\dashboard.py:4:from __future__ import annotations
+backend\schemas\dashboard.py:6:from typing import Any, Dict, List, Optional
+backend\schemas\dashboard.py:8:from pydantic import BaseModel
+backend\schemas\ports.py:2:from __future__ import annotations
+backend\schemas\ports.py:4:from typing import Any
+backend\schemas\ports.py:6:from pydantic import BaseModel, ConfigDict, Field
+backend\schemas\ports.py:8:from backend.schemas.berths import BerthOut
+backend\schemas\ports.py:9:from backend.schemas.common import PaginatedResponse
+backend\schemas\recommendations.py:10:from backend.schemas.common import PaginatedResponse
+backend\schemas\recommendations.py:4:from __future__ import annotations
+backend\schemas\recommendations.py:6:from typing import Any, Dict, List, Optional
+backend\schemas\recommendations.py:8:from pydantic import BaseModel, ConfigDict, Field
+backend\schemas\system.py:2:from __future__ import annotations
+backend\schemas\system.py:4:from pydantic import BaseModel, ConfigDict
+backend\schemas\training.py:2:from __future__ import annotations
+backend\schemas\training.py:4:from datetime import datetime
+backend\schemas\training.py:5:from typing import Any
+backend\schemas\training.py:7:from pydantic import BaseModel, ConfigDict
+backend\scripts\reset_user_password.py:17:from sqlalchemy import func, select
+backend\scripts\reset_user_password.py:18:from backend.auth.password import hash_password
+backend\scripts\reset_user_password.py:19:from backend.db.models.app_models import User
+backend\scripts\reset_user_password.py:20:from backend.db.session import SyncSessionFactory
+backend\scripts\reset_user_password.py:5:import sys
+backend\scripts\reset_user_password.py:6:from pathlib import Path
+backend\scripts\seed_admin.py:17:from sqlalchemy import func, select
+backend\scripts\seed_admin.py:18:from backend.auth.password import hash_password
+backend\scripts\seed_admin.py:19:from backend.db.models.app_models import Port, User
+backend\scripts\seed_admin.py:20:from backend.db.session import SyncSessionFactory
+backend\scripts\seed_admin.py:5:import sys
+backend\scripts\seed_admin.py:6:from pathlib import Path
+backend\services\allocation_service.py:2:from __future__ import annotations
+backend\services\allocation_service.py:4:from typing import Any, Dict
+backend\services\allocation_service.py:6:from sqlalchemy.ext.asyncio import AsyncSession
+backend\services\allocation_service.py:8:from backend.services.optimization_data_service import get_optimizer_inputs
+backend\services\analytics_service.py:2:from __future__ import annotations
+backend\services\analytics_service.py:4:from sqlalchemy.ext.asyncio import AsyncSession
+backend\services\analytics_service.py:6:from backend.schemas.dashboard import ChartsResponse, KPIResponse
+backend\services\analytics_service.py:7:from backend.services.dashboard_service import get_charts, get_kpis
+backend\services\dashboard_service.py:11:from backend.schemas.dashboard import (
+backend\services\dashboard_service.py:5:from __future__ import annotations
+backend\services\dashboard_service.py:7:from typing import Any, Dict, List
+backend\services\dashboard_service.py:9:from sqlalchemy.ext.asyncio import AsyncSession
+backend\services\model_training_service.py:10:import asyncio
+backend\services\model_training_service.py:11:import logging
+backend\services\model_training_service.py:12:from dataclasses import dataclass
+backend\services\model_training_service.py:13:from datetime import datetime
+backend\services\model_training_service.py:14:from pathlib import Path
+backend\services\model_training_service.py:15:from typing import Any
+backend\services\model_training_service.py:17:from sqlalchemy import func, select
+backend\services\model_training_service.py:18:from sqlalchemy.ext.asyncio import AsyncSession
+backend\services\model_training_service.py:20:from backend.config.settings import settings
+backend\services\model_training_service.py:21:from backend.db.models.baos_models import (
+backend\services\model_training_service.py:29:from backend.db.repositories.model_registry_repository import get_active_model, register_model
+backend\services\model_training_service.py:30:from backend.db.repositories.port_repository import get_port_by_code, list_ports
+backend\services\model_training_service.py:31:from backend.db.session import async_session_factory
+backend\services\model_training_service.py:32:from backend.services.port_config_service import load_port_config_from_db
+backend\services\model_training_service.py:33:from backend.services.training_data_service import load_history_from_db
+backend\services\model_training_service.py:34:from backend.utils.exceptions import InsufficientDataError
+backend\services\model_training_service.py:8:from __future__ import annotations
+backend\services\optimization_data_service.py:10:from backend.db.repositories.assumption_repository import get_assumptions_as_dict
+backend\services\optimization_data_service.py:11:from backend.db.repositories.berth_repository import list_berths
+backend\services\optimization_data_service.py:12:from backend.db.repositories.port_repository import get_port_by_code
+backend\services\optimization_data_service.py:13:from engines.simulation.optimization.constraint_model import BerthInput, ResourceInput, SchedulerConfig
+backend\services\optimization_data_service.py:4:from __future__ import annotations
+backend\services\optimization_data_service.py:6:import logging
+backend\services\optimization_data_service.py:7:from typing import Any, Dict, List
+backend\services\optimization_data_service.py:8:from sqlalchemy.ext.asyncio import AsyncSession
+backend\services\port_config_service.py:10:from backend.db.repositories.assumption_repository import get_assumptions_as_dict
+backend\services\port_config_service.py:11:from backend.db.repositories.berth_repository import berths_to_legacy_config
+backend\services\port_config_service.py:12:from backend.db.repositories.port_call_repository import get_historical_service_medians
+backend\services\port_config_service.py:13:from backend.db.repositories.port_repository import get_port_by_code
+backend\services\port_config_service.py:4:from __future__ import annotations
+backend\services\port_config_service.py:6:import logging
+backend\services\port_config_service.py:7:from typing import Any, Dict
+backend\services\port_config_service.py:8:from sqlalchemy.ext.asyncio import AsyncSession
+backend\services\recommendation_service.py:10:from pathlib import Path
+backend\services\recommendation_service.py:11:from typing import Any, Dict, List, Optional
+backend\services\recommendation_service.py:13:from sqlalchemy.ext.asyncio import AsyncSession
+backend\services\recommendation_service.py:15:from backend.db.models.app_models import Recommendation, Vessel
+backend\services\recommendation_service.py:16:from backend.schemas.recommendations import BerthRecommendation, RecommendationResponse
+backend\services\recommendation_service.py:17:from backend.utils.exceptions import TrainingError
+backend\services\recommendation_service.py:4:from __future__ import annotations
+backend\services\recommendation_service.py:6:import asyncio
+backend\services\recommendation_service.py:7:from functools import partial
+backend\services\recommendation_service.py:8:import sys
+backend\services\recommendation_service.py:9:import uuid
+backend\services\training_data_service.py:10:from backend.db.repositories.port_call_repository import get_training_rows
+backend\services\training_data_service.py:4:from __future__ import annotations
+backend\services\training_data_service.py:6:import logging
+backend\services\training_data_service.py:7:import pandas as pd
+backend\services\training_data_service.py:8:from sqlalchemy.ext.asyncio import AsyncSession
+backend\tasks\celery_app.py:4:from celery import Celery
+backend\tasks\celery_app.py:5:from celery.schedules import crontab
+backend\tasks\celery_app.py:7:from backend.config import settings
+backend\tasks\kpi_tasks.py:4:from __future__ import annotations
+backend\tasks\kpi_tasks.py:6:import logging
+backend\tasks\kpi_tasks.py:7:from datetime import datetime, timezone
+backend\tasks\kpi_tasks.py:9:from tasks.celery_app import celery_app
+backend\tasks\optimizer_tasks.py:10:from typing import Any, Dict
+backend\tasks\optimizer_tasks.py:12:from tasks.celery_app import celery_app
+backend\tasks\optimizer_tasks.py:4:from __future__ import annotations
+backend\tasks\optimizer_tasks.py:6:import logging
+backend\tasks\optimizer_tasks.py:7:import sys
+backend\tasks\optimizer_tasks.py:8:import time
+backend\tasks\optimizer_tasks.py:9:from pathlib import Path
+database\__init__.py:2:from __future__ import annotations
+database\__init__.py:4:import sys
+database\__init__.py:5:from pathlib import Path
+database\run_migrations.py:10:from pathlib import Path
+database\run_migrations.py:12:from sqlalchemy import create_engine, text
+database\run_migrations.py:14:from backend.config import settings
+database\run_migrations.py:6:from __future__ import annotations
+database\run_migrations.py:8:import hashlib
+database\run_migrations.py:9:import sys
+database\seed.py:2:from __future__ import annotations
+database\seed.py:4:from backend.database.seed import seed
+db\commercial_repository.py:10:from pathlib import Path
+db\commercial_repository.py:11:from typing import Dict, List, Optional
+db\commercial_repository.py:23:from engines.analytics.commercial.berth_economics import BerthEconomics, DEFAULT_BERTH_ECONOMICS
+db\commercial_repository.py:24:from engines.analytics.commercial.partnership_manager import (
+db\commercial_repository.py:5:from __future__ import annotations
+db\commercial_repository.py:7:import sys
+db\commercial_repository.py:8:from dataclasses import dataclass, field
+db\commercial_repository.py:9:from datetime import datetime
+db\connection.py:5:from __future__ import annotations
+db\connection.py:7:import sys
+db\connection.py:8:from contextlib import contextmanager
+db\connection.py:9:from typing import Generator, Optional
+db\seed_data.py:10:from __future__ import annotations
+db\seed_data.py:12:import sys
+db\seed_data.py:13:from pathlib import Path
+engines\analytics\commercial\__init__.py:2:from engines.analytics.commercial.berth_economics import BerthEconomicsCalculator
+engines\analytics\commercial\__init__.py:3:from engines.analytics.commercial.commercial_scorer import (
+engines\analytics\commercial\__init__.py:7:from engines.analytics.commercial.dynamic_pricing import DynamicPricingEngine
+engines\analytics\commercial\__init__.py:8:from engines.analytics.commercial.partnership_manager import PartnershipManager
+engines\analytics\commercial\berth_economics.py:5:from __future__ import annotations
+engines\analytics\commercial\berth_economics.py:7:from dataclasses import dataclass, field
+engines\analytics\commercial\berth_economics.py:8:from typing import Dict, Optional
+engines\analytics\commercial\commercial_scorer.py:12:from __future__ import annotations
+engines\analytics\commercial\commercial_scorer.py:14:from dataclasses import dataclass, field
+engines\analytics\commercial\commercial_scorer.py:15:from datetime import datetime
+engines\analytics\commercial\commercial_scorer.py:16:from typing import Dict, List, Optional
+engines\analytics\commercial\commercial_scorer.py:18:from engines.analytics.commercial.berth_economics import BerthEconomicsCalculator, RevenueEstimate
+engines\analytics\commercial\commercial_scorer.py:19:from engines.analytics.commercial.partnership_manager import (
+engines\analytics\commercial\commercial_scorer.py:22:from engines.analytics.commercial.dynamic_pricing import DynamicPricingEngine, PricingAdjustment
+engines\analytics\commercial\dynamic_pricing.py:10:from __future__ import annotations
+engines\analytics\commercial\dynamic_pricing.py:12:from dataclasses import dataclass
+engines\analytics\commercial\dynamic_pricing.py:13:from datetime import datetime
+engines\analytics\commercial\dynamic_pricing.py:14:from typing import Optional
+engines\analytics\commercial\learning_engine.py:10:from typing import Dict, List, Optional
+engines\analytics\commercial\learning_engine.py:6:from __future__ import annotations
+engines\analytics\commercial\learning_engine.py:8:from dataclasses import dataclass, field
+engines\analytics\commercial\learning_engine.py:9:from datetime import datetime
+engines\analytics\commercial\partnership_manager.py:10:from enum import Enum
+engines\analytics\commercial\partnership_manager.py:11:from typing import Dict, List, Optional
+engines\analytics\commercial\partnership_manager.py:6:from __future__ import annotations
+engines\analytics\commercial\partnership_manager.py:8:from dataclasses import dataclass, field
+engines\analytics\commercial\partnership_manager.py:9:from datetime import date
+engines\analytics\commercial\processor.py:2:from engines.analytics.commercial.commercial_scorer import CommercialScorer
+engines\analytics\cost\cost_model.py:15:from __future__ import annotations
+engines\analytics\cost\cost_model.py:17:import json
+engines\analytics\cost\cost_model.py:18:import logging
+engines\analytics\cost\cost_model.py:19:import sys
+engines\analytics\cost\cost_model.py:20:from dataclasses import dataclass, field
+engines\analytics\cost\cost_model.py:21:from pathlib import Path
+engines\analytics\cost\cost_model.py:22:from typing import Dict, List, Optional
+engines\analytics\cost\processor.py:2:from engines.analytics.cost.cost_model import CostEngine
+engines\analytics\explanation\explainer.py:11:from __future__ import annotations
+engines\analytics\explanation\explainer.py:13:import sys
+engines\analytics\explanation\explainer.py:14:from dataclasses import dataclass, field
+engines\analytics\explanation\explainer.py:15:from pathlib import Path
+engines\analytics\explanation\explainer.py:16:from typing import Any, Dict, List, Optional, Tuple
+engines\analytics\explanation\explainer.py:22:from engines.simulation.optimization.constraint_model import (
+engines\analytics\explanation\explainer.py:26:from engines.simulation.optimization.scheduler import RollingHorizonScheduler
+engines\analytics\explanation\explainer.py:27:from engines.analytics.cost.cost_model import CostEngine, CostConfig
+engines\analytics\explanation\processor.py:2:from engines.analytics.explanation.explainer import AgenticExplainer
+engines\analytics\explanation\processor.py:3:from engines.analytics.explanation.structured_explanation import StructuredExplanationEngine
+engines\analytics\explanation\structured_explanation.py:16:from __future__ import annotations
+engines\analytics\explanation\structured_explanation.py:18:from dataclasses import dataclass, field
+engines\analytics\explanation\structured_explanation.py:19:from enum import Enum
+engines\analytics\explanation\structured_explanation.py:20:from typing import Any, Dict, List, Optional, Tuple
+engines\analytics\kpi\kpi_calculator.py:14:from __future__ import annotations
+engines\analytics\kpi\kpi_calculator.py:16:import sys
+engines\analytics\kpi\kpi_calculator.py:17:from dataclasses import dataclass, field
+engines\analytics\kpi\kpi_calculator.py:18:from datetime import datetime, timedelta
+engines\analytics\kpi\kpi_calculator.py:19:from pathlib import Path
+engines\analytics\kpi\kpi_calculator.py:20:from typing import Dict, List, Optional
+engines\analytics\kpi\kpi_calculator.py:26:import pandas as pd
+engines\analytics\kpi\kpi_calculator.py:28:from backend.config.settings import settings
+engines\analytics\kpi\kpi_calculator.py:29:from engines.simulation.optimization.constraint_model import SolverResult, AssignmentResult
+engines\analytics\kpi\kpi_calculator.py:30:from engines.analytics.cost.cost_model import CostEngine, CostConfig, ScheduleCostSummary
+engines\analytics\kpi\processor.py:2:from engines.analytics.kpi.kpi_calculator import KPICalculator
+engines\base_engine.py:2:from abc import ABC, abstractmethod
+engines\base_engine.py:3:from typing import Any, Dict
+engines\core\berth_suitability\processor.py:2:from engines.learning.training.ml_models import BerthSuitabilityModel
+engines\core\decision\confidence.py:22:from __future__ import annotations
+engines\core\decision\confidence.py:24:import sys
+engines\core\decision\confidence.py:25:from dataclasses import dataclass, field
+engines\core\decision\confidence.py:26:from pathlib import Path
+engines\core\decision\confidence.py:27:from typing import Dict, List, Optional
+engines\core\decision\confidence.py:29:import numpy as np
+engines\core\decision\ml_enrichment.py:10:from typing import Dict, List, Optional
+engines\core\decision\ml_enrichment.py:12:import pandas as pd
+engines\core\decision\ml_enrichment.py:18:from engines.simulation.optimization.constraint_model import VesselInput, BerthInput
+engines\core\decision\ml_enrichment.py:19:from backend.db.repositories.port_store import get_models_dir, is_trained, load_port_config
+engines\core\decision\ml_enrichment.py:20:from engines.learning.training.feature_builder import build_inference_features
+engines\core\decision\ml_enrichment.py:21:from engines.learning.training.ml_models import ServiceTimePredictor
+engines\core\decision\ml_enrichment.py:7:from __future__ import annotations
+engines\core\decision\ml_enrichment.py:8:import json, logging, sys
+engines\core\decision\ml_enrichment.py:9:from pathlib import Path
+engines\core\decision\processor.py:2:from engines.core.decision.recommender import recommend_berth
+engines\core\decision\recommender.py:10:from __future__ import annotations
+engines\core\decision\recommender.py:11:import json, sys
+engines\core\decision\recommender.py:12:from pathlib import Path
+engines\core\decision\recommender.py:13:from typing import Dict, List, Optional
+engines\core\decision\recommender.py:15:import numpy as np
+engines\core\decision\recommender.py:16:import pandas as pd
+engines\core\decision\recommender.py:22:from backend.db.repositories.port_store import (
+engines\core\decision\recommender.py:25:from engines.learning.training.feature_builder import build_inference_features
+engines\core\decision\recommender.py:26:from engines.learning.training.ml_models import (
+engines\core\delay_predictor\processor.py:2:from engines.learning.training.ml_models import DelayPredictor
+engines\core\service_time\processor.py:2:from engines.learning.training.ml_models import ServiceTimePredictor
+engines\engine_registry.py:2:from typing import Dict
+engines\engine_registry.py:4:from engines.base_engine import BaseEngine
+engines\ingestion\excel_loader.py:10:from datetime import datetime
+engines\ingestion\excel_loader.py:11:from pathlib import Path
+engines\ingestion\excel_loader.py:12:from typing import Optional, Tuple
+engines\ingestion\excel_loader.py:14:import pandas as pd
+engines\ingestion\excel_loader.py:4:from __future__ import annotations
+engines\ingestion\excel_loader.py:6:import hashlib
+engines\ingestion\excel_loader.py:7:import json
+engines\ingestion\excel_loader.py:8:import logging
+engines\ingestion\excel_loader.py:9:import uuid
+engines\ingestion\ingest.py:11:from __future__ import annotations
+engines\ingestion\ingest.py:12:import json
+engines\ingestion\ingest.py:13:import logging
+engines\ingestion\ingest.py:14:import sys
+engines\ingestion\ingest.py:15:from pathlib import Path
+engines\ingestion\ingest.py:16:from datetime import datetime, time
+engines\ingestion\ingest.py:18:import pandas as pd
+engines\ingestion\ingest.py:24:from backend.db.repositories.port_store import save_port_config, save_history, get_port_dir
+engines\ingestion\ingest.py:25:from engines.ingestion.spec_ingest import build_port_master, save_port_master_config
+engines\ingestion\ingest.py:26:from engines.learning.data_prep import prepare_portcall_log, default_service_time_model
+engines\ingestion\load_berths.py:10:import uuid
+engines\ingestion\load_berths.py:11:from pathlib import Path
+engines\ingestion\load_berths.py:12:from typing import Dict
+engines\ingestion\load_berths.py:14:import pandas as pd
+engines\ingestion\load_berths.py:15:from sqlalchemy.orm import Session
+engines\ingestion\load_berths.py:17:from engines.ingestion.excel_loader import compute_row_hash
+engines\ingestion\load_berths.py:18:from engines.ingestion.transformers import safe_float
+engines\ingestion\load_berths.py:6:from __future__ import annotations
+engines\ingestion\load_berths.py:8:import json
+engines\ingestion\load_berths.py:9:import logging
+engines\ingestion\load_capabilities.py:10:import uuid
+engines\ingestion\load_capabilities.py:11:from pathlib import Path
+engines\ingestion\load_capabilities.py:12:from typing import Dict
+engines\ingestion\load_capabilities.py:14:import pandas as pd
+engines\ingestion\load_capabilities.py:15:from sqlalchemy.orm import Session
+engines\ingestion\load_capabilities.py:17:from engines.ingestion.excel_loader import compute_row_hash
+engines\ingestion\load_capabilities.py:6:from __future__ import annotations
+engines\ingestion\load_capabilities.py:8:import json
+engines\ingestion\load_capabilities.py:9:import logging
+engines\ingestion\load_port_calls.py:10:import uuid
+engines\ingestion\load_port_calls.py:11:from pathlib import Path
+engines\ingestion\load_port_calls.py:12:from typing import Dict, Optional
+engines\ingestion\load_port_calls.py:14:import pandas as pd
+engines\ingestion\load_port_calls.py:15:from sqlalchemy.orm import Session
+engines\ingestion\load_port_calls.py:17:from engines.ingestion.excel_loader import compute_row_hash
+engines\ingestion\load_port_calls.py:18:from engines.ingestion.schema_mapping import normalize_columns
+engines\ingestion\load_port_calls.py:19:from engines.ingestion.transformers import safe_float, safe_datetime, compute_derived_durations
+engines\ingestion\load_port_calls.py:20:from engines.ingestion.validators import validate_port_call_row
+engines\ingestion\load_port_calls.py:6:from __future__ import annotations
+engines\ingestion\load_port_calls.py:8:import json
+engines\ingestion\load_port_calls.py:9:import logging
+engines\ingestion\processor.py:2:from engines.ingestion.ingest import ingest_port_data
+engines\ingestion\schema_mapping.py:4:from __future__ import annotations
+engines\ingestion\schema_mapping.py:6:from typing import Dict, List, Optional
+engines\ingestion\spec_ingest.py:11:from __future__ import annotations
+engines\ingestion\spec_ingest.py:13:import json
+engines\ingestion\spec_ingest.py:14:import logging
+engines\ingestion\spec_ingest.py:15:import sys
+engines\ingestion\spec_ingest.py:16:from pathlib import Path
+engines\ingestion\spec_ingest.py:17:from typing import Dict, List, Optional, Set, Tuple
+engines\ingestion\spec_ingest.py:19:import numpy as np
+engines\ingestion\spec_ingest.py:20:import pandas as pd
+engines\ingestion\spec_ingest.py:26:from backend.db.models.data_models import (
+engines\ingestion\spec_ingest.py:29:from backend.db.repositories.quality import score_berth_quality, QualityReport, score_history_quality
+engines\ingestion\spec_ingest.py:30:from backend.config.settings import settings
+engines\ingestion\transformers.py:10:import pandas as pd
+engines\ingestion\transformers.py:4:from __future__ import annotations
+engines\ingestion\transformers.py:6:import logging
+engines\ingestion\transformers.py:7:from datetime import datetime
+engines\ingestion\transformers.py:8:from typing import Optional
+engines\ingestion\validators.py:4:from __future__ import annotations
+engines\ingestion\validators.py:6:import logging
+engines\ingestion\validators.py:7:from dataclasses import dataclass, field
+engines\ingestion\validators.py:8:from datetime import datetime
+engines\ingestion\validators.py:9:from typing import List, Optional
+engines\learning\assignment_tracker.py:11:import json
+engines\learning\assignment_tracker.py:12:import os
+engines\learning\assignment_tracker.py:13:from datetime import datetime
+engines\learning\assignment_tracker.py:14:from pathlib import Path
+engines\learning\assignment_tracker.py:15:from typing import Dict, List, Optional
+engines\learning\assignment_tracker.py:9:from __future__ import annotations
+engines\learning\data_prep.py:10:from typing import Dict, List, Tuple
+engines\learning\data_prep.py:11:import pandas as pd
+engines\learning\data_prep.py:12:import numpy as np
+engines\learning\data_prep.py:14:from backend.config.settings import settings
+engines\learning\data_prep.py:8:from __future__ import annotations
+engines\learning\data_prep.py:9:import hashlib
+engines\learning\rl\processor.py:2:from engines.learning.rl.weight_agent import BerthingRLAgent
+engines\learning\rl\weight_agent.py:12:from __future__ import annotations
+engines\learning\rl\weight_agent.py:14:from dataclasses import dataclass, field
+engines\learning\rl\weight_agent.py:15:from typing import Dict, List, Optional, Tuple
+engines\learning\rl\weight_agent.py:17:import numpy as np
+engines\learning\rl\weight_agent.py:19:from backend.config.settings import settings
+engines\learning\training\feature_builder.py:13:from __future__ import annotations
+engines\learning\training\feature_builder.py:14:import sys
+engines\learning\training\feature_builder.py:15:from pathlib import Path
+engines\learning\training\feature_builder.py:16:from typing import Dict, List, Optional, Tuple
+engines\learning\training\feature_builder.py:18:import numpy as np
+engines\learning\training\feature_builder.py:19:import pandas as pd
+engines\learning\training\ml_models.py:12:from __future__ import annotations
+engines\learning\training\ml_models.py:13:import hashlib
+engines\learning\training\ml_models.py:14:import pickle
+engines\learning\training\ml_models.py:15:from dataclasses import dataclass, field
+engines\learning\training\ml_models.py:16:from pathlib import Path
+engines\learning\training\ml_models.py:17:from typing import Any, Dict, List, Optional
+engines\learning\training\ml_models.py:19:import numpy as np
+engines\learning\training\ml_models.py:20:import pandas as pd
+engines\learning\training\ml_models.py:21:from sklearn.ensemble import GradientBoostingRegressor, RandomForestClassifier
+engines\learning\training\ml_models.py:22:from sklearn.preprocessing import LabelEncoder
+engines\learning\training\ml_models.py:23:from sklearn.model_selection import cross_val_score
+engines\learning\training\ml_models.py:25:from backend.config.settings import settings
+engines\learning\training\ml_models.py:26:from backend.utils.exceptions import TrainingError
+engines\learning\training\pattern_discovery.py:12:from __future__ import annotations
+engines\learning\training\pattern_discovery.py:14:import json
+engines\learning\training\pattern_discovery.py:15:import logging
+engines\learning\training\pattern_discovery.py:16:import sys
+engines\learning\training\pattern_discovery.py:17:from collections import defaultdict
+engines\learning\training\pattern_discovery.py:18:from datetime import datetime
+engines\learning\training\pattern_discovery.py:19:from pathlib import Path
+engines\learning\training\pattern_discovery.py:20:from typing import Any, Dict, List, Optional, Tuple
+engines\learning\training\pattern_discovery.py:22:import numpy as np
+engines\learning\training\pattern_discovery.py:23:import pandas as pd
+engines\learning\training\pattern_discovery.py:29:from backend.db.repositories.port_store import load_history, load_port_config, get_models_dir
+engines\learning\training\processor.py:2:from engines.learning.training.trainer import train_port_models
+engines\learning\training\trainer.py:11:from __future__ import annotations
+engines\learning\training\trainer.py:12:import json, sys, time, shutil
+engines\learning\training\trainer.py:13:from datetime import datetime
+engines\learning\training\trainer.py:14:from pathlib import Path
+engines\learning\training\trainer.py:16:import numpy as np
+engines\learning\training\trainer.py:17:import pandas as pd
+engines\learning\training\trainer.py:18:from sklearn.model_selection import train_test_split
+engines\learning\training\trainer.py:24:from backend.config.settings import settings
+engines\learning\training\trainer.py:25:from backend.db.repositories.port_store import load_history, load_port_config, get_models_dir, is_trained
+engines\learning\training\trainer.py:26:from backend.utils.exceptions import InsufficientDataError
+engines\learning\training\trainer.py:27:from engines.learning.training.feature_builder import build_training_features
+engines\learning\training\trainer.py:28:from engines.learning.training.ml_models import (
+engines\learning\training\xgboost_ranker.py:11:from __future__ import annotations
+engines\learning\training\xgboost_ranker.py:13:import json
+engines\learning\training\xgboost_ranker.py:14:import logging
+engines\learning\training\xgboost_ranker.py:15:import pickle
+engines\learning\training\xgboost_ranker.py:16:import sys
+engines\learning\training\xgboost_ranker.py:17:from pathlib import Path
+engines\learning\training\xgboost_ranker.py:18:from typing import Dict, List, Optional, Tuple
+engines\learning\training\xgboost_ranker.py:20:import numpy as np
+engines\learning\training\xgboost_ranker.py:21:import pandas as pd
+engines\learning\training\xgboost_ranker.py:22:from sklearn.ensemble import RandomForestClassifier
+engines\learning\training\xgboost_ranker.py:23:from sklearn.preprocessing import LabelEncoder
+engines\learning\training\xgboost_ranker.py:24:from sklearn.model_selection import cross_val_score
+engines\learning\training\xgboost_ranker.py:32:from backend.config.settings import settings
+engines\learning\training\xgboost_ranker.py:33:from engines.learning.training.ml_models import verify_feature_hash, write_feature_hash
+engines\learning\weekly_refresh.py:12:from __future__ import annotations
+engines\learning\weekly_refresh.py:14:import json
+engines\learning\weekly_refresh.py:15:import logging
+engines\learning\weekly_refresh.py:16:import shutil
+engines\learning\weekly_refresh.py:17:import sys
+engines\learning\weekly_refresh.py:18:import time
+engines\learning\weekly_refresh.py:19:from datetime import datetime
+engines\learning\weekly_refresh.py:20:from pathlib import Path
+engines\learning\weekly_refresh.py:21:from typing import Any, Dict, Optional
+engines\simulation\digital_twin.py:18:from __future__ import annotations
+engines\simulation\digital_twin.py:20:import heapq
+engines\simulation\digital_twin.py:21:import sys
+engines\simulation\digital_twin.py:22:from dataclasses import dataclass, field
+engines\simulation\digital_twin.py:23:from pathlib import Path
+engines\simulation\digital_twin.py:24:from typing import Any, Callable, Dict, List, Optional, Tuple
+engines\simulation\digital_twin.py:30:from engines.simulation.optimization.constraint_model import (
+engines\simulation\digital_twin.py:33:from engines.simulation.optimization.scheduler import RollingHorizonScheduler
+engines\simulation\optimization\constraint_library.py:17:from __future__ import annotations
+engines\simulation\optimization\constraint_library.py:19:import sys
+engines\simulation\optimization\constraint_library.py:20:from pathlib import Path
+engines\simulation\optimization\constraint_library.py:21:from typing import Dict, List, Optional, Set, Tuple
+engines\simulation\optimization\constraint_library.py:23:import numpy as np
+engines\simulation\optimization\constraint_library.py:24:import pandas as pd
+engines\simulation\optimization\constraint_library.py:30:from backend.db.models.data_models import (
+engines\simulation\optimization\constraint_model.py:27:from __future__ import annotations
+engines\simulation\optimization\constraint_model.py:29:import sys
+engines\simulation\optimization\constraint_model.py:30:from dataclasses import dataclass, field
+engines\simulation\optimization\constraint_model.py:31:from datetime import datetime, timedelta
+engines\simulation\optimization\constraint_model.py:32:from pathlib import Path
+engines\simulation\optimization\constraint_model.py:33:from typing import Any, Dict, List, Optional, Tuple
+engines\simulation\optimization\constraint_model.py:35:from ortools.sat.python import cp_model
+engines\simulation\optimization\constraint_model.py:41:from engines.simulation.optimization.vessel_type_knowledge import compute_compatibility_score
+engines\simulation\optimization\feasibility_checker.py:11:from __future__ import annotations
+engines\simulation\optimization\feasibility_checker.py:13:import sys
+engines\simulation\optimization\feasibility_checker.py:14:from dataclasses import dataclass, field
+engines\simulation\optimization\feasibility_checker.py:15:from pathlib import Path
+engines\simulation\optimization\feasibility_checker.py:16:from typing import Dict, List, Optional, Tuple
+engines\simulation\optimization\feasibility_checker.py:22:from engines.simulation.optimization.constraint_model import (
+engines\simulation\optimization\feasibility_checker.py:26:from engines.simulation.optimization.vessel_type_knowledge import compute_compatibility_score
+engines\simulation\optimization\processor.py:2:from engines.simulation.optimization.constraint_model import BerthConstraintModel, build_and_solve
+engines\simulation\optimization\processor.py:3:from engines.simulation.optimization.scheduler import RollingHorizonScheduler
+engines\simulation\optimization\scheduler.py:17:from __future__ import annotations
+engines\simulation\optimization\scheduler.py:19:import sys
+engines\simulation\optimization\scheduler.py:20:import time
+engines\simulation\optimization\scheduler.py:21:from dataclasses import dataclass, field
+engines\simulation\optimization\scheduler.py:22:from datetime import datetime, timedelta
+engines\simulation\optimization\scheduler.py:23:from enum import Enum
+engines\simulation\optimization\scheduler.py:24:from pathlib import Path
+engines\simulation\optimization\scheduler.py:25:from typing import Any, Dict, List, Optional, Tuple
+engines\simulation\optimization\scheduler.py:31:from engines.simulation.optimization.constraint_model import (
+engines\simulation\optimization\scheduler.py:37:from engines.simulation.optimization.feasibility_checker import (
+engines\simulation\optimization\vessel_type_knowledge.py:10:from __future__ import annotations
+engines\simulation\optimization\vessel_type_knowledge.py:12:from typing import Dict, List, Optional, Tuple
+engines\simulation\processor.py:2:from engines.simulation.digital_twin import PortDigitalTwin
+engines\simulation\scenario\conflict_detector.py:11:from __future__ import annotations
+engines\simulation\scenario\conflict_detector.py:13:import sys
+engines\simulation\scenario\conflict_detector.py:14:from pathlib import Path
+engines\simulation\scenario\conflict_detector.py:15:from typing import Dict, List, Optional, Tuple
+engines\simulation\scenario\conflict_detector.py:21:from engines.simulation.optimization.constraint_model import (
+engines\simulation\scenario\conflict_detector.py:25:from engines.simulation.optimization.vessel_type_knowledge import compute_compatibility_score
+engines\simulation\scenario\conflict_resolver.py:13:from __future__ import annotations
+engines\simulation\scenario\conflict_resolver.py:15:import sys
+engines\simulation\scenario\conflict_resolver.py:16:from dataclasses import dataclass, field
+engines\simulation\scenario\conflict_resolver.py:17:from pathlib import Path
+engines\simulation\scenario\conflict_resolver.py:18:from typing import Dict, List, Optional, Tuple
+engines\simulation\scenario\conflict_resolver.py:24:from engines.simulation.optimization.constraint_model import (
+engines\simulation\scenario\conflict_resolver.py:27:from engines.simulation.optimization.vessel_type_knowledge import compute_compatibility_score
+engines\simulation\scenario\conflict_resolver.py:28:from engines.analytics.cost.cost_model import CostEngine, CostBreakdown
+engines\simulation\scenario\processor.py:2:from engines.simulation.scenario.scenario_manager import ScenarioManager
+engines\simulation\scenario\scenario_manager.py:16:from __future__ import annotations
+engines\simulation\scenario\scenario_manager.py:18:import sys
+engines\simulation\scenario\scenario_manager.py:19:from dataclasses import dataclass, field, fields as dc_fields
+engines\simulation\scenario\scenario_manager.py:20:from pathlib import Path
+engines\simulation\scenario\scenario_manager.py:21:from typing import Dict, List, Optional, Tuple
+engines\simulation\scenario\scenario_manager.py:27:from engines.simulation.optimization.constraint_model import (
+engines\simulation\scenario\scenario_manager.py:33:from engines.simulation.optimization.feasibility_checker import (
+engines\simulation\scenario\scenario_manager.py:36:from engines.analytics.cost.cost_model import CostEngine, CostConfig
+engines\simulation\scenario\scenario_manager.py:37:from engines.core.decision.confidence import ConfidenceCalculator
+engines\simulation\scenario\scenario_manager.py:38:from engines.simulation.scenario.conflict_detector import detect_conflicts
+engines\simulation\uncertainty\monte_carlo.py:18:from __future__ import annotations
+engines\simulation\uncertainty\monte_carlo.py:20:import sys
+engines\simulation\uncertainty\monte_carlo.py:21:import random
+engines\simulation\uncertainty\monte_carlo.py:22:from dataclasses import dataclass, field
+engines\simulation\uncertainty\monte_carlo.py:23:from pathlib import Path
+engines\simulation\uncertainty\monte_carlo.py:24:from typing import Dict, List, Optional, Tuple
+engines\simulation\uncertainty\monte_carlo.py:26:import numpy as np
+engines\simulation\uncertainty\monte_carlo.py:32:from engines.simulation.optimization.constraint_model import (
+engines\simulation\uncertainty\monte_carlo.py:36:from engines.simulation.optimization.scheduler import RollingHorizonScheduler
+engines\simulation\uncertainty\processor.py:2:from engines.simulation.uncertainty.monte_carlo import UncertaintyEngine
+run.py:10:from pathlib import Path
+run.py:18:from backend.run import main
+run.py:6:from __future__ import annotations
+run.py:8:import asyncio
+run.py:9:import sys
+scripts\ingest_excel_to_db.py:18:from __future__ import annotations
+scripts\ingest_excel_to_db.py:20:import argparse
+scripts\ingest_excel_to_db.py:21:import json
+scripts\ingest_excel_to_db.py:22:import logging
+scripts\ingest_excel_to_db.py:23:import sys
+scripts\ingest_excel_to_db.py:24:import uuid
+scripts\ingest_excel_to_db.py:25:from datetime import datetime
+scripts\ingest_excel_to_db.py:26:from pathlib import Path
+tests\run_tests.py:2:import sys, traceback
+tests\run_tests.py:3:from pathlib import Path
+tests\run_tests.py:6:from tests.test_optimizer import (
+tests\test_commercial_engine.py:13:from engines.analytics.commercial.berth_economics import BerthEconomicsCalculator, BERTH_CLASS_PREMIUM
+tests\test_commercial_engine.py:14:from engines.analytics.commercial.dynamic_pricing import DynamicPricingEngine
+tests\test_commercial_engine.py:15:from engines.analytics.commercial.partnership_manager import PartnershipManager, PartnershipTier
+tests\test_commercial_engine.py:16:from engines.analytics.commercial.commercial_scorer import CommercialScorer, CommercialDecisionConfig
+tests\test_commercial_engine.py:6:import sys
+tests\test_commercial_engine.py:7:from pathlib import Path
+tests\test_commercial_engine.py:8:from datetime import datetime
+tests\test_fast.py:1:import sys
+tests\test_fast.py:4:from engines.core.decision.recommender import recommend_berth
+tests\test_historical_cases.py:1:import sys
+tests\test_historical_cases.py:4:from engines.core.decision.recommender import recommend_berth
+tests\test_ingestion.py:12:from engines.ingestion.transformers import safe_float, safe_datetime, compute_derived_durations
+tests\test_ingestion.py:13:from engines.ingestion.schema_mapping import normalize_columns, resolve_column
+tests\test_ingestion.py:14:from engines.ingestion.validators import validate_port_call_row
+tests\test_ingestion.py:4:import sys
+tests\test_ingestion.py:5:from pathlib import Path
+tests\test_ingestion.py:6:from datetime import datetime, timedelta
+tests\test_integration.py:10:import sys, json, shutil
+tests\test_integration.py:11:from pathlib import Path
+tests\test_integration.py:12:from datetime import datetime
+tests\test_intelligent_backend.py:11:from __future__ import annotations
+tests\test_intelligent_backend.py:12:import json, os, sys
+tests\test_intelligent_backend.py:13:from pathlib import Path
+tests\test_intelligent_backend.py:14:from unittest.mock import patch, MagicMock
+tests\test_intelligent_backend.py:16:import pytest
+tests\test_intelligent_backend.py:17:import numpy as np
+tests\test_intelligent_backend.py:18:import pandas as pd
+tests\test_ml_pipeline.py:14:import sys
+tests\test_ml_pipeline.py:15:from pathlib import Path
+tests\test_ml_pipeline.py:17:import numpy as np
+tests\test_ml_pipeline.py:18:import pandas as pd
+tests\test_ml_pipeline.py:22:from engines.learning.training.feature_builder import (
+tests\test_ml_pipeline.py:27:from engines.learning.training.ml_models import (
+tests\test_optimizer.py:12:from engines.simulation.optimization.constraint_model import (
+tests\test_optimizer.py:20:from engines.simulation.optimization.feasibility_checker import FeasibilityChecker
+tests\test_optimizer.py:21:from engines.simulation.optimization.scheduler import RollingHorizonScheduler
+tests\test_optimizer.py:22:from engines.analytics.cost.cost_model import CostEngine, CostConfig
+tests\test_optimizer.py:23:from engines.core.decision.confidence import ConfidenceCalculator
+tests\test_optimizer.py:24:from engines.analytics.kpi.kpi_calculator import KPICalculator
+tests\test_optimizer.py:25:from engines.analytics.explanation.explainer import AgenticExplainer
+tests\test_optimizer.py:26:from engines.simulation.digital_twin import PortDigitalTwin
+tests\test_optimizer.py:6:import sys
+tests\test_optimizer.py:7:from pathlib import Path
+tests\test_repositories.py:13:from backend.db.repositories.assumption_repository import get_assumptions, get_assumption_value, get_assumptions_as_dict, update_assumption
+tests\test_repositories.py:14:from backend.db.repositories.berth_repository import list_berths
+tests\test_repositories.py:15:from backend.db.repositories.port_repository import list_ports, get_port_by_code, upsert_port, port_exists
+tests\test_repositories.py:16:from backend.db.session import async_session_factory
+tests\test_repositories.py:4:import sys
+tests\test_repositories.py:5:import asyncio
+tests\test_repositories.py:6:from pathlib import Path
+tests\test_repositories.py:7:import uuid
+tests\test_spec_pipeline.py:12:import sys
+tests\test_spec_pipeline.py:13:from pathlib import Path
+tests\test_spec_pipeline.py:19:from backend.db.models.data_models import (
+tests\test_spec_pipeline.py:24:from engines.simulation.optimization.constraint_model import VesselInput, BerthInput, SchedulerConfig
+tests\test_spec_pipeline.py:25:from engines.simulation.optimization.feasibility_checker import FeasibilityChecker
+tests\test_structured_explanation.py:13:import sys
+tests\test_structured_explanation.py:14:from pathlib import Path
+tests\test_structured_explanation.py:20:import pytest
+tests\test_structured_explanation.py:21:from engines.analytics.explanation.structured_explanation import (

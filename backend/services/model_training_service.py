@@ -377,9 +377,15 @@ async def evaluate_port_training_status(db: AsyncSession, port_code: str) -> dic
     missing_models = [name for name in REQUIRED_MODELS if name not in active_models]
     stale_models: list[str] = []
     if latest_data_ts is not None:
+        from datetime import timezone
         for model_name, model in active_models.items():
-            model_created_at = _as_naive(model.created_at)
-            if model_created_at is None or model_created_at < latest_data_ts:
+            if model.created_at is None:
+                stale_models.append(model_name)
+                continue
+            # FIX: model.created_at is naive UTC, latest_data_ts is naive local. Convert both to aware UTC for comparison.
+            model_created_at_utc = model.created_at.replace(tzinfo=timezone.utc)
+            latest_data_ts_utc = latest_data_ts.astimezone(timezone.utc)
+            if model_created_at_utc < latest_data_ts_utc:
                 stale_models.append(model_name)
 
     has_required_tables = berth_count > 0 and capability_count > 0 and history_rows > 0

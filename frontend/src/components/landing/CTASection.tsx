@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Reveal from '@/components/ui/Reveal';
+import { ArrowRight } from 'lucide-react';
 
 export default function CTASection() {
   return (
@@ -15,18 +16,18 @@ export default function CTASection() {
             <p className="mt-3 text-lg text-blue-50">
               Start using AI-assisted berth allocation with explainable decision support.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
+            <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-6">
               <Link
                 href="/login"
-                className="rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-blue-600 shadow-md hover:bg-slate-50 transition-colors"
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-white px-6 py-4 text-sm font-bold text-slate-900 shadow-lg hover:bg-slate-50 hover:scale-[1.02] transition-all"
               >
-                Start Free Trial â†’
+                Start Free Trial <ArrowRight size={16} />
               </Link>
               <Link
                 href="/login"
-                className="rounded-xl border border-white/30 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white hover:bg-white/20 transition-colors"
+                className="inline-flex items-center justify-center gap-1 py-4 text-sm font-bold text-white hover:underline transition-all"
               >
-                Sign In
+                Sign In <ArrowRight size={14} className="inline-block ml-1" />
               </Link>
             </div>
           </div>

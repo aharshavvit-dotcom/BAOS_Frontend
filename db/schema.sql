@@ -1,5 +1,5 @@
 -- ============================================================
--- Commercial Intelligence Schema for ML_APP
+-- Commercial Intelligence Schema for baos
 -- PostgreSQL 13+
 -- ============================================================
 

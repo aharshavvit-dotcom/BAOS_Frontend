@@ -6,13 +6,16 @@ import AnimatedCounter from '@/components/ui/AnimatedCounter';
 import SourceBadge from '@/components/ui/SourceBadge';
 import Reveal from '@/components/ui/Reveal';
 
+import { Ship, Clock, TrendingUp, DollarSign } from 'lucide-react';
+
 export default function MetricsPreviewSection() {
   return (
-    <section id="metrics" className="baos-section bg-slate-50/50 border-b border-slate-100">
+    <section id="metrics" className="relative py-20 lg:py-24 bg-white border-b border-slate-100">
       <div className="baos-container">
         <div className="flex flex-col items-center mb-6">
           <SourceBadge source="HISTORICAL" className="mb-4" />
           <SectionHeader
+            eyebrow="Operational Performance"
             title="Operational Performance Overview"
             subtitle="Operational insights derived from historical log analysis of port records"
             className="!mb-8"
@@ -22,7 +25,7 @@ export default function MetricsPreviewSection() {
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
           <Reveal delay={0}>
             <KpiCard
-              icon="ðŸš¢"
+              icon={<Ship size={20} />}
               label="Active Vessels"
               value={<AnimatedCounter target={142} />}
               sublabel="+8.4% compared to prior period"
@@ -31,7 +34,7 @@ export default function MetricsPreviewSection() {
           </Reveal>
           <Reveal delay={100}>
             <KpiCard
-              icon="â±ï¸"
+              icon={<Clock size={20} />}
               label="Avg Turnaround"
               value={<AnimatedCounter target={26.5} suffix="h" decimals={1} />}
               sublabel="-12% turnaround reduction achieved"
@@ -40,7 +43,7 @@ export default function MetricsPreviewSection() {
           </Reveal>
           <Reveal delay={200}>
             <KpiCard
-              icon="ðŸ“ˆ"
+              icon={<TrendingUp size={20} />}
               label="Berth Utilization"
               value={<AnimatedCounter target={78} suffix="%" />}
               sublabel="Target utilization range: 70% - 85%"
@@ -49,7 +52,7 @@ export default function MetricsPreviewSection() {
           </Reveal>
           <Reveal delay={300}>
             <KpiCard
-              icon="ðŸ’°"
+              icon={<DollarSign size={20} />}
               label="Monthly Revenue"
               value={<AnimatedCounter target={480} prefix="$" suffix="K" />}
               sublabel="+14.3% commercial revenue growth"

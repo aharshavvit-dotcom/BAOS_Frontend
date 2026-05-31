@@ -60,7 +60,7 @@ The "Change Berth" feature is available in **two locations** (Schedule Assignmen
 ┌────────▼────────────────┐
 │   PostgreSQL 14+        │
 │   Port: 5433            │
-│   Database: ML_APP      │
+│   Database: baos        │
 └─────────────────────────┘
 ```
 
@@ -78,7 +78,7 @@ DB_USER=postgres
 DB_PASS=****
 DB_HOST=127.0.0.1
 DB_PORT=5433
-DB_NAME=ML_APP
+DB_NAME=baos
 JWT_SECRET_KEY=****
 CORS_ORIGINS=http://localhost:3000
 ```

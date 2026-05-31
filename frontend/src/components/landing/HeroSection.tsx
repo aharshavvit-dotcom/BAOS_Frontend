@@ -60,13 +60,19 @@ function HeroMockDashboard() {
   );
 }
 
+import { ArrowRight, Rocket } from 'lucide-react';
+
 export default function HeroSection() {
   return (
-    <section className="overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/50 border-b border-slate-100">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-6 py-12 sm:py-16 lg:min-h-[calc(100vh-9rem)] lg:grid-cols-2 lg:py-20">
+    <section className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/50 border-b border-slate-100 py-16 lg:py-24">
+      {/* Decorative Blur Blob */}
+      <div className="absolute top-0 right-0 h-[600px] w-[600px] rounded-full bg-radial-gradient(circle, rgba(59,130,246,0.08) 0%, rgba(255,255,255,0) 70%) filter blur-3xl pointer-events-none -z-10" />
+      
+      <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-6 lg:min-h-[calc(100vh-12rem)] lg:grid-cols-2">
         <div className="text-left animate-fade-in-up">
-          <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-6 bg-blue-50 border border-blue-200 text-blue-600">
-            ðŸš€ Maritime Decision Intelligence Platform
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-6 bg-blue-50 border border-blue-200 text-blue-600 shadow-sm">
+            <Rocket size={14} className="text-blue-600 animate-bounce" />
+            <span>Maritime Decision Intelligence Platform</span>
           </div>
 
           <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl leading-tight">
@@ -84,20 +90,20 @@ export default function HeroSection() {
           <div className="mt-8 flex flex-col gap-4 sm:flex-row">
             <Link
               href="/login"
-              className="rounded-xl bg-blue-600 px-6 py-4 text-center text-sm font-semibold text-white shadow-md hover:bg-blue-500 hover:shadow-lg transition-all"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-6 py-4 text-center text-sm font-semibold text-white shadow-md hover:bg-blue-500 hover:shadow-lg transition-all"
             >
-              Get Started Free â†’
+              Get Started Free <ArrowRight size={16} />
             </Link>
             <a
               href="#features"
-              className="rounded-xl border border-slate-200 bg-white px-6 py-4 text-center text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-all"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-6 py-4 text-center text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950 hover:border-slate-300 transition-all"
             >
               Learn More
             </a>
           </div>
 
-          {/* Quick Counter Stats */}
-          <div className="mt-12 grid grid-cols-3 gap-6 border-t border-slate-100 pt-8">
+          {/* Quick Counter Stats with distinct spacing */}
+          <div className="mt-16 grid grid-cols-3 gap-6 border-t-2 border-slate-100/80 pt-10">
             <div>
               <div className="text-2xl font-extrabold text-blue-600 sm:text-3xl">
                 <AnimatedCounter target={94} suffix="%" />

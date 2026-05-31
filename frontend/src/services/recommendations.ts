@@ -113,10 +113,38 @@ export async function getRecommendation(
 
   return {
     recommendation_id: data.recommendation_id,
-    recommendations: recs.map((r: Record<string, unknown>, idx: number) => ({
-      ...r,
-      rank: (r.rank as number) || idx + 1,
-    })) as BerthRecommendation[],
+    recommendations: recs.map((r: Record<string, any>, idx: number) => {
+      const wait = typeof r.expected_wait_hours === 'number' ? r.expected_wait_hours : 0.0;
+      const svc = typeof r.expected_service_hours === 'number' ? r.expected_service_hours : (typeof r.expected_turnaround_hours === 'number' ? r.expected_turnaround_hours : 24.0);
+      const timeline_start = typeof r.timeline_start === 'number' ? r.timeline_start : 0.0;
+      const timeline_end = typeof r.timeline_end === 'number' ? r.timeline_end : (timeline_start + wait + svc);
+
+      const reasoning = r.reasoning || {};
+      const pros = Array.isArray(reasoning.pros) ? reasoning.pros : (Array.isArray(r.pros) ? r.pros : []);
+      const cons = Array.isArray(reasoning.cons) ? reasoning.cons : (Array.isArray(r.cons) ? r.cons : []);
+      const headline = reasoning.headline || r.explanation || r.compact_reason || '';
+
+      return {
+        berth_code: r.berth_code || '',
+        berth_name: r.berth_name || '',
+        confidence: typeof r.confidence === 'number' ? r.confidence : 80,
+        technical_score: typeof r.technical_score === 'number' ? r.technical_score : (typeof r.suitability_score === 'number' ? r.suitability_score : 80),
+        commercial_score: typeof r.commercial_score === 'number' ? r.commercial_score : 0,
+        suitability_score: typeof r.suitability_score === 'number' ? r.suitability_score : (typeof r.technical_score === 'number' ? r.technical_score : 80),
+        risk_score: typeof r.risk_score === 'number' ? r.risk_score : 0,
+        expected_wait_hours: wait,
+        expected_service_hours: svc,
+        pros: pros,
+        cons: cons,
+        explanation: r.explanation || headline,
+        compact_reason: r.compact_reason || headline,
+        ai_reasoning: r.ai_reasoning || headline,
+        structured_breakdown: Array.isArray(r.structured_breakdown) ? r.structured_breakdown : [],
+        rank: (r.rank as number) || idx + 1,
+        timeline_start: timeline_start,
+        timeline_end: timeline_end,
+      };
+    }) as BerthRecommendation[],
     vessel_name: form.vessel_name,
     port_code: form.port_code,
     warnings: data.warnings || [],

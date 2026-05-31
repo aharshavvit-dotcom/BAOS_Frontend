@@ -1,0 +1,14 @@
+
+# ── Commit Message Template ──────────────────────────────
+# type(scope): subject
+#
+# Types: feat, fix, refactor, docs, test, chore, perf, ci
+# Scope: backend, frontend, engines, db, config, docs
+#
+# Example:
+#   fix(engines): add feature hash validation on model load
+#   feat(frontend): add ErrorBoundary component
+#   docs(readme): rewrite setup instructions
+#
+# Body (optional): Explain what changed and why.
+# Footer (optional): BREAKING CHANGE: ... or Closes #123
